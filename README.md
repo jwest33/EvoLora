@@ -1,4 +1,10 @@
-# R-Zero Self-Evolving Reasoning System
+# Auto-Instruct: R-Zero Self-Evolving Reasoning System
+
+## Overview
+
+This auto-generates embedding model instructions based on user provided hierarchy definitions. It is inspired by the **R-Zero** paper ([R-Zero: Self-Evolving Reasoning LLM from Zero Data](2508_05004v2.pdf)), which introduces a self-evolving reasoning system that generates its own training data and improves through co-evolution of Challenger and Solver agents.
+
+[Qwen3-Embedding-0.6B Instruction Usage](https://huggingface.co/Qwen/Qwen3-Embedding-0.6B-GGUF#usage)
 
 ## Quick Start
 
@@ -15,10 +21,6 @@ embedlab-evolve evolve --hierarchy data/sample_hierarchy.yaml --output evolution
 # 4. Monitor progress
 embedlab-evolve monitor --dir checkpoints
 ```
-
-## Overview
-
-This project is inspired by the **R-Zero** paper ([R-Zero: Self-Evolving Reasoning LLM from Zero Data](2508_05004v2.pdf)), which introduces a self-evolving reasoning system that generates its own training data and improves through co-evolution of Challenger and Solver agents.
 
 ## Key Concepts
 
