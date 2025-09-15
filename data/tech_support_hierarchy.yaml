@@ -1,0 +1,48 @@
+root:
+  name: tech_support
+  description: Technical support query routing system for customer service inquiries.
+  children:
+  - name: account
+    description: Account management, authentication, user permissions and access control.
+    router_instruction: 'Determine if the query relates to account access, login problems, authentication, or user permissions.'
+    children:
+    - name: login_issues
+      description: Password resets, forgotten credentials, 2FA/MFA problems, account lockouts, recovery.
+    - name: permissions
+      description: Access control, role changes, team management, user privileges, authorization.
+    - name: profile
+      description: Profile updates, email changes, notification preferences, account settings.
+  - name: technical
+    description: Technical issues, bugs, API problems, performance and infrastructure.
+    router_instruction: 'Identify if this is a technical problem involving APIs, errors, performance, or system behavior.'
+    children:
+    - name: api_errors
+      description: API failures, HTTP errors, rate limiting, authentication tokens, webhook issues.
+    - name: performance
+      description: Slow responses, timeouts, high latency, resource limits, scaling issues.
+    - name: bugs
+      description: Unexpected behavior, crashes, data corruption, functionality not working as expected.
+    - name: integration
+      description: Third-party integrations, SDK issues, compatibility problems, connection failures.
+  - name: billing
+    description: Payments, subscriptions, invoicing, pricing and financial matters.
+    router_instruction: 'Check if the query involves payments, billing, subscriptions, or financial transactions.'
+    children:
+    - name: payments
+      description: Failed payments, declined cards, payment methods, transaction errors, payment processing.
+    - name: subscriptions
+      description: Plan changes, upgrades, downgrades, cancellations, renewal issues, trial periods.
+    - name: invoices
+      description: Invoice requests, billing history, receipts, tax documents, billing disputes.
+    - name: refunds
+      description: Refund requests, chargebacks, credit adjustments, overpayment corrections.
+  - name: product
+    description: Product features, usage questions, how-to guides, best practices.
+    router_instruction: 'Determine if this is about using product features, seeking guidance, or understanding functionality.'
+    children:
+    - name: features
+      description: Feature requests, feature explanations, capability questions, product limitations.
+    - name: usage
+      description: How-to questions, best practices, tutorials, getting started, workflow guidance.
+    - name: documentation
+      description: Documentation requests, unclear docs, missing information, examples needed.

@@ -62,6 +62,8 @@ class EvolutionEngine:
         # Datasets
         self.train_data = []
         self.test_data = []
+        self.validation_set = []  # Fixed validation set for consistent tracking
+        self.fitness_history = []  # Track improvement over time
 
     def run(self) -> Dict:
         """
@@ -87,6 +89,12 @@ class EvolutionEngine:
             self.state.generation = generation
             logger.info(f"\n{'='*60}")
             logger.info(f"Generation {generation + 1}/{self.config.generations}")
+
+            # Show progress bar for long runs
+            if self.fitness_history:
+                progress = self._format_progress_bar(generation + 1, self.config.generations)
+                logger.info(f"Progress: {progress}")
+
             logger.info(f"{'='*60}")
 
             # Step 1: Challenger generates new difficult queries
@@ -103,6 +111,10 @@ class EvolutionEngine:
 
             # Step 4: Update difficulty and record progress
             self._update_state()
+
+            # Show generation summary
+            if self.fitness_history:
+                self._show_generation_summary()
 
             # Step 5: Checkpoint if needed
             if (generation + 1) % self.config.checkpoint_interval == 0:
@@ -172,17 +184,21 @@ class EvolutionEngine:
         # Balance dataset
         balanced_df = self.dataset_builder.balance_dataset(full_df)
 
-        # Split train/test
+        # Split train/test/validation
         test_size = max(
             self.config.min_test_size,
             int(len(balanced_df) * self.config.test_split)
         )
+        val_size = min(30, len(balanced_df) // 10)  # Small fixed validation set
 
         test_df = balanced_df.sample(n=test_size, random_state=42)
-        train_df = balanced_df.drop(test_df.index)
+        remaining_df = balanced_df.drop(test_df.index)
+        val_df = remaining_df.sample(n=val_size, random_state=42)
+        train_df = remaining_df.drop(val_df.index)
 
         self.train_data = list(zip(train_df["text"], train_df["label_path"]))
         self.test_data = list(zip(test_df["text"], test_df["label_path"]))
+        self.validation_set = list(zip(val_df["text"], val_df["label_path"]))
 
         # Save datasets
         train_df.to_csv(train_path, index=False)
@@ -193,6 +209,7 @@ class EvolutionEngine:
 
         logger.info(f"Generated {len(self.train_data)} training examples")
         logger.info(f"Generated {len(self.test_data)} test examples")
+        logger.info(f"Generated {len(self.validation_set)} validation examples")
 
     def _challenger_phase(self) -> List[Tuple[str, str]]:
         """Challenger generates new difficult queries."""
@@ -232,6 +249,7 @@ class EvolutionEngine:
     ) -> Dict[str, float]:
         """Solver tests each instruction variant."""
         fitness_scores = {}
+        validation_scores = {}
 
         # Combine new queries with some existing training data
         test_queries = new_queries[:self.config.dataset_size_per_gen // 2]
@@ -258,11 +276,22 @@ class EvolutionEngine:
             # Fitness combines accuracy and confidence
             fitness = accuracy * 0.8 + avg_confidence * 0.2
 
+            # Also test on validation set for consistent tracking
+            if self.validation_set:
+                val_results = self.solver.route_queries(
+                    self.validation_set[:20],  # Use subset for speed
+                    gene,
+                    use_embeddings=True
+                )
+                val_accuracy = sum(r.success for r in val_results) / len(val_results)
+                validation_scores[gene.id] = val_accuracy
+
             fitness_scores[gene.id] = fitness
             gene.fitness = fitness
             gene.metrics = {
                 "accuracy": accuracy,
                 "confidence": avg_confidence,
+                "val_accuracy": validation_scores.get(gene.id, 0),
                 "tested_on": len(test_queries)
             }
 
@@ -272,7 +301,26 @@ class EvolutionEngine:
             self.state.best_instruction = best_gene
             self.state.best_fitness = best_gene.fitness
 
-        logger.info(f"Best fitness: {self.state.best_fitness:.3f}")
+        # Track validation performance for progress monitoring
+        if validation_scores:
+            best_val_score = max(validation_scores.values())
+            self.fitness_history.append({
+                "generation": self.state.generation,
+                "best_fitness": self.state.best_fitness,
+                "best_val_accuracy": best_val_score,
+                "mean_fitness": sum(fitness_scores.values()) / len(fitness_scores)
+            })
+
+            # Show improvement trend
+            if len(self.fitness_history) > 1:
+                prev_val = self.fitness_history[-2]["best_val_accuracy"]
+                improvement = best_val_score - prev_val
+                trend = "↑" if improvement > 0 else "↓" if improvement < 0 else "→"
+                logger.info(f"Validation accuracy: {best_val_score:.1%} {trend} ({improvement:+.1%})")
+            else:
+                logger.info(f"Validation accuracy: {best_val_score:.1%}")
+
+        logger.info(f"Evolution fitness: {self.state.best_fitness:.3f}")
         logger.info(f"Best instruction: {self.state.best_instruction.content[:100]}...")
 
         return fitness_scores
@@ -478,3 +526,45 @@ class EvolutionEngine:
             json.dump(metadata, f, indent=2)
 
         logger.info(f"Dataset metadata saved to {metadata_path}")
+
+    def _format_progress_bar(self, current: int, total: int, width: int = 30) -> str:
+        """Format a simple progress bar."""
+        percent = current / total
+        filled = int(width * percent)
+        bar = "█" * filled + "░" * (width - filled)
+        return f"[{bar}] {current}/{total} ({percent:.0%})"
+
+    def _show_generation_summary(self):
+        """Show a summary of the current generation's performance."""
+        if not self.fitness_history:
+            return
+
+        current = self.fitness_history[-1]
+
+        # Build summary message
+        summary_parts = []
+
+        # Show validation trend if available
+        if current.get("best_val_accuracy", 0) > 0:
+            val_acc = current["best_val_accuracy"]
+            summary_parts.append(f"Val Acc: {val_acc:.1%}")
+
+            # Show trend over last 5 generations
+            if len(self.fitness_history) >= 5:
+                five_gen_ago = self.fitness_history[-5]["best_val_accuracy"]
+                trend = val_acc - five_gen_ago
+                if trend > 0:
+                    summary_parts.append(f"↑{trend:.1%} over 5 gen")
+                elif trend < 0:
+                    summary_parts.append(f"↓{abs(trend):.1%} over 5 gen")
+
+        # Show mean fitness
+        if current.get("mean_fitness"):
+            summary_parts.append(f"Mean Fit: {current['mean_fitness']:.3f}")
+
+        # Show challenger difficulty
+        if hasattr(self.challenger, 'state') and hasattr(self.challenger.state, 'current_difficulty'):
+            summary_parts.append(f"Difficulty: {self.challenger.state.current_difficulty:.1%}")
+
+        if summary_parts:
+            logger.info(f"Summary: {' | '.join(summary_parts)}")

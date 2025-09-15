@@ -10,10 +10,10 @@ pip install -e .
 # Default: http://localhost:8000 and http://localhost:8002
 
 # 3. Run evolution with automatic dataset management
-embedlab-evolve evolve --hierarchy data/sample_hierarchy.yaml --output runs/my_experiment
+embedlab-evolve evolve --hierarchy data/sample_hierarchy.yaml --output evolution_runs/my_experiment
 
 # 4. Monitor progress
-embedlab-evolve monitor --dir runs/my_experiment/checkpoints
+embedlab-evolve monitor --dir checkpoints
 ```
 
 ## Overview
@@ -133,10 +133,10 @@ embedlab-evolve evolve \
 ```
 
 The system will:
-- :heavy_check_mark: Check for existing compatible datasets
-- :heavy_check_mark: Reuse them if they match your task goal
-- :heavy_check_mark: Generate new ones only if needed
-- :heavy_check_mark: Save best instructions and results
+  :heavy_check_mark: Check for existing compatible datasets
+  :heavy_check_mark: Reuse them if they match your task goal
+  :heavy_check_mark: Generate new ones only if needed
+  :heavy_check_mark: Save best instructions and results
 
 **Force New Dataset Generation:**
 ```bash
