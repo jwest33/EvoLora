@@ -1,0 +1,123 @@
+# Custom Task Goal Configuration
+#
+# This file allows you to define custom task goals for instruction evolution.
+# You can modify existing goals or create entirely new ones.
+#
+# To use a custom goal from this file:
+# 1. Define it below following the template
+# 2. Run: embedlab-evolve evolve --task-goal-file custom_goals.yaml --task-goal <your_goal_name>
+
+# Example Custom Goal Template:
+example_custom_retrieval:
+  name: "Custom Retrieval Task"
+  type: "custom"
+  description: "Your custom retrieval task description"
+  objective: "What the instruction should achieve"
+
+  # The starting instruction that will be evolved
+  base_instruction: "Find and retrieve relevant information based on the query."
+
+  # Styles for generating instruction variants
+  instruction_styles:
+    - "precise and technical"
+    - "user-friendly"
+    - "detailed"
+    - "concise"
+
+  # Constraints that all instructions should follow
+  instruction_constraints:
+    - "Be clear and actionable"
+    - "Focus on the main objective"
+    - "Be concise (1-2 sentences)"
+
+  # Strategies for mutating instructions
+  mutation_strategies:
+    - "Add specificity"
+    - "Simplify language"
+    - "Add context handling"
+    - "Improve clarity"
+    - "Focus on accuracy"
+
+  # Success criteria (name: threshold)
+  success_criteria:
+    accuracy: 0.85
+    precision: 0.8
+    recall: 0.75
+
+  # What to focus on during evaluation
+  evaluation_focus:
+    - "retrieval_accuracy"
+    - "relevance_scoring"
+    - "query_understanding"
+
+# Add your custom goals below:
+
+technical_documentation_search:
+  name: "Technical Documentation Search"
+  type: "custom"
+  description: "Find relevant technical documentation and API references"
+  objective: "Locate the most relevant technical documentation sections for developer queries"
+  base_instruction: "Find the technical documentation sections that best answer the developer's query."
+
+  instruction_styles:
+    - "API-focused"
+    - "code-example oriented"
+    - "problem-solving focused"
+    - "specification-based"
+
+  instruction_constraints:
+    - "Prioritize exact technical matches"
+    - "Consider code examples and API signatures"
+    - "Be precise and unambiguous"
+
+  mutation_strategies:
+    - "Add API signature matching"
+    - "Improve code example relevance"
+    - "Focus on version-specific docs"
+    - "Add error message handling"
+    - "Consider programming language context"
+
+  success_criteria:
+    accuracy: 0.9
+    precision: 0.85
+    technical_relevance: 0.88
+
+  evaluation_focus:
+    - "api_match_accuracy"
+    - "code_relevance"
+    - "version_compatibility"
+
+customer_support_routing:
+  name: "Customer Support Ticket Routing"
+  type: "custom"
+  description: "Route customer support tickets to the appropriate department"
+  objective: "Accurately classify and route support tickets based on issue type and urgency"
+  base_instruction: "Analyze the support ticket and route it to the most appropriate department based on the issue described."
+
+  instruction_styles:
+    - "urgency-aware"
+    - "department-focused"
+    - "issue-type based"
+    - "customer-sentiment aware"
+
+  instruction_constraints:
+    - "Consider both issue type and urgency"
+    - "Identify keywords indicating department specialization"
+    - "Be consistent in routing similar issues"
+
+  mutation_strategies:
+    - "Improve urgency detection"
+    - "Add sentiment analysis"
+    - "Focus on technical vs non-technical issues"
+    - "Enhance department matching"
+    - "Add escalation criteria"
+
+  success_criteria:
+    routing_accuracy: 0.92
+    urgency_detection: 0.88
+    department_match: 0.9
+
+  evaluation_focus:
+    - "department_accuracy"
+    - "urgency_classification"
+    - "issue_categorization"
