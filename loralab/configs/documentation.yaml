@@ -26,7 +26,7 @@
 challenger:
   type: "llama_cpp"
   executable: "C:\\Users\\Jake\\llama.cpp\\build\\bin\\Release\\llama-server.exe"
-  model_path: "C:\\models\\Qwen3-30B-A3B-Thinking-2507\\Qwen3-30B-A3B-Thinking-2507-Q8_0.gguf"
+  model_path: "C:\\models\\Qwen3-30B-A3B-Instruct-2507\\Qwen3-30B-A3B-Instruct-2507-Q8_0.gguf"
   gpu_layers: 20 # Reduced to save VRAM for the solver model
   port: 8080
   #context_size: 4096  # Reduced to save memory
