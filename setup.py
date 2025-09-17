@@ -55,6 +55,6 @@ setup(
     },
     include_package_data=True,
     package_data={
-        "loralab": ["configs/*.yaml", "configs/*.json"],
+        "loralab": ["config/*.yaml", "config/*.json"],
     },
 )

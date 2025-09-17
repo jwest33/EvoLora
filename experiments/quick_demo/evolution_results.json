@@ -1,13 +1,84 @@
 {
-  "total_generations": 1,
-  "best_score": -Infinity,
-  "history": [],
+  "total_generations": 5,
+  "best_score": 0.4,
+  "history": [
+    {
+      "generation": 1,
+      "metrics": {
+        "loss": -0.00018523260951042175,
+        "policy_loss": -0.00018523260951042175,
+        "kl_loss": 0,
+        "eval_score": 0.4,
+        "task_quality": 0.75,
+        "train_time": 2781.5736408233643,
+        "num_train_tasks": 8,
+        "num_eval_tasks": 2
+      },
+      "timestamp": "2025-09-16T22:07:48.308380"
+    },
+    {
+      "generation": 2,
+      "metrics": {
+        "loss": -0.0001225937157869339,
+        "policy_loss": -0.0001225937157869339,
+        "kl_loss": 0,
+        "eval_score": 0.4,
+        "task_quality": 0.75,
+        "train_time": 458.3464984893799,
+        "num_train_tasks": 8,
+        "num_eval_tasks": 2
+      },
+      "timestamp": "2025-09-16T22:32:39.703856"
+    },
+    {
+      "generation": 3,
+      "metrics": {
+        "loss": 0.00040582529618404806,
+        "policy_loss": 0.00040582529618404806,
+        "kl_loss": 0,
+        "eval_score": 0.4,
+        "task_quality": 0.75,
+        "train_time": 461.99467420578003,
+        "num_train_tasks": 8,
+        "num_eval_tasks": 2
+      },
+      "timestamp": "2025-09-16T22:57:46.930567"
+    },
+    {
+      "generation": 4,
+      "metrics": {
+        "loss": -0.0009647440165281296,
+        "policy_loss": -0.0009647440165281296,
+        "kl_loss": 0,
+        "eval_score": 0.4,
+        "task_quality": 0.75,
+        "train_time": 462.8685164451599,
+        "num_train_tasks": 8,
+        "num_eval_tasks": 2
+      },
+      "timestamp": "2025-09-16T23:22:55.677602"
+    },
+    {
+      "generation": 5,
+      "metrics": {
+        "loss": -0.0006257137283682823,
+        "policy_loss": -0.0006257137283682823,
+        "kl_loss": 0,
+        "eval_score": 0.4,
+        "task_quality": 0.75,
+        "train_time": 464.6611235141754,
+        "num_train_tasks": 8,
+        "num_eval_tasks": 2
+      },
+      "timestamp": "2025-09-16T23:48:11.094330"
+    }
+  ],
   "config": {
     "challenger": {
       "cpu_moe_layers": 20,
       "executable": "C:\\Users\\Jake\\llama.cpp\\build\\bin\\Release\\llama-server.exe",
       "gpu_layers": 20,
-      "model_path": "C:\\models\\Qwen3-30B-A3B-Thinking-2507\\Qwen3-30B-A3B-Thinking-2507-Q8_0.gguf",
+      "model_path": "C:\\models\\Qwen3-30B-A3B-Instruct-2507\\Qwen3-30B-A3B-Instruct-2507-Q8_0.gguf",
       "port": 8080,
       "type": "llama_cpp",
       "use_direct": true
@@ -61,5 +132,5 @@
       "num_rollouts": 4
     }
   },
-  "timestamp": "2025-09-16T20:33:58.470117"
+  "timestamp": "2025-09-16T23:48:11.094341"
 }

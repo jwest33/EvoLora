@@ -49,7 +49,7 @@ class QualityComparison:
     def _load_config(self) -> dict:
         """Load configuration from default location."""
         import yaml
-        config_path = Path("loralab/configs/documentation.yaml")
+        config_path = Path("loralab/config/config.yaml")
         with open(config_path, 'r') as f:
             return yaml.safe_load(f)
 

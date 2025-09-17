@@ -34,7 +34,7 @@ class LlamaCppClient:
         self.model_path = Path(config['model_path'])
         self.gpu_layers = config.get('gpu_layers', 12)  # Default reduced for VRAM
         self.port = config.get('port', 8080)
-        self.context_size = config.get('context_size', 4096)  # Default reduced
+        self.context_size = config.get('context_size', 8192)  # Default reduced
         self.parallel = config.get('parallel', 2)  # Default reduced for memory
         self.batch_size = config.get('batch_size', 512)  # Batch size optimization
         self.cpu_moe_layers = config.get('cpu_moe_layers', None)  # Number of MoE layers for CPU

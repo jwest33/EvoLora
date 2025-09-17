@@ -23,7 +23,7 @@ class LLMTuner:
 
     def __init__(self):
         self.results = []
-        self.config_path = Path("loralab/configs/documentation.yaml")
+        self.config_path = Path("loralab/config/config.yaml")
         with open(self.config_path, 'r') as f:
             self.base_config = yaml.safe_load(f)
 
@@ -364,7 +364,7 @@ class LLMTuner:
         # Test different GPU layer counts with CPU MoE offloading
         gpu_layers_options = [12, 20, 30]
         cpu_moe_options = [0, 10, 20, 30]
-        context_options = [2048, 4096]
+        context_options = [2048, 8192]
 
         best_config = None
         best_score = float('inf')
@@ -381,7 +381,7 @@ class LLMTuner:
 
                 result = self.test_challenger_config(
                     gpu_layers=gpu_layers,
-                    context_size=4096,
+                    context_size=8192,
                     batch_size=512
                 )
 
@@ -462,10 +462,10 @@ class LLMTuner:
             optimized['solver'].update(solver_config)
 
         # Save optimized config
-        with open("loralab/configs/optimized.yaml", 'w') as f:
+        with open("loralab/config/optimized.yaml", 'w') as f:
             yaml.dump(optimized, f, default_flow_style=False, sort_keys=False)
 
-        print("\nOptimized configuration saved to loralab/configs/optimized.yaml")
+        print("\nOptimized configuration saved to loralab/config/optimized.yaml")
 
 
 def main():
@@ -535,12 +535,4 @@ def main():
 
 
 if __name__ == "__main__":
-    try:
-        # Check dependencies
-        import GPUtil
-    except ImportError:
-        print("Installing required dependency: gputil")
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "gputil"])
-        import GPUtil
-
     main()

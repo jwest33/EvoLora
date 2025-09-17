@@ -96,7 +96,11 @@ def test_command(args):
         with open(metadata_file, 'r') as f:
             metadata = json.load(f)
         print(f"Adapter from generation {metadata.get('generation', 'unknown')}")
-        print(f"Best score: {metadata.get('best_score', 'N/A'):.3f}")
+        best_score = metadata.get('best_score', 'N/A')
+        if isinstance(best_score, (int, float)):
+            print(f"Best score: {best_score:.3f}")
+        else:
+            print(f"Best score: {best_score}")
 
     # Create solver model
     solver_config = {

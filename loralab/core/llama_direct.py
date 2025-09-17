@@ -45,7 +45,7 @@ class LlamaDirectClient:
             raise FileNotFoundError(f"Model not found: {self.model_path}")
 
         self.gpu_layers = config.get('gpu_layers', 20)
-        self.context_size = config.get('context_size', 4096)
+        self.context_size = config.get('context_size', 8192)
         self.n_threads = config.get('n_threads', 8)
         self.cpu_moe_layers = config.get('cpu_moe_layers', 20)
 
@@ -285,7 +285,7 @@ def main():
     import yaml
 
     # Load config
-    with open("loralab/configs/documentation.yaml", 'r') as f:
+    with open("loralab/config/config.yaml", 'r') as f:
         config = yaml.safe_load(f)
 
     challenger_config = config['challenger']

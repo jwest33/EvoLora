@@ -8,59 +8,17 @@ import subprocess
 import sys
 import yaml
 from pathlib import Path
-
-def check_llama_cpp_python():
-    """Check if llama-cpp-python is installed."""
-    try:
-        import llama_cpp
-        return True
-    except ImportError:
-        return False
-
-def install_llama_cpp_python():
-    """Offer to install llama-cpp-python."""
-    print("\n⚠️  llama-cpp-python is not installed.")
-    print("This is required for the direct approach (no server needed).")
-    print("\nInstall options:")
-    print("1. CPU only: pip install llama-cpp-python")
-    print("2. CUDA 12.1: pip install llama-cpp-python --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cu121")
-    print("3. Skip installation (exit)")
-
-    choice = input("\nSelect option (1-3): ")
-
-    if choice == '1':
-        print("\nInstalling llama-cpp-python (CPU only)...")
-        subprocess.run([sys.executable, "-m", "pip", "install", "llama-cpp-python"], check=True)
-        return True
-    elif choice == '2':
-        print("\nInstalling llama-cpp-python (CUDA 12.1)...")
-        subprocess.run([
-            sys.executable, "-m", "pip", "install", "llama-cpp-python",
-            "--extra-index-url", "https://abetlen.github.io/llama-cpp-python/whl/cu121"
-        ], check=True)
-        return True
-    else:
-        return False
+import datetime
 
 def main():
     print(" LoRA Adapter Generator Demo (Direct Mode)")
     print("=" * 60)
 
-    # Check for llama-cpp-python
-    if not check_llama_cpp_python():
-        if not install_llama_cpp_python():
-            print("\nCannot proceed without llama-cpp-python. Exiting.")
-            sys.exit(1)
-        # Verify installation
-        if not check_llama_cpp_python():
-            print("\nInstallation failed. Please install manually.")
-            sys.exit(1)
-
-    print("\n✓ Using direct llama-cpp-python (no server required)")
+    print("\n[OK] Using direct llama-cpp-python (no server required)")
     print("  Models will alternate to save memory")
 
     # Check if config exists
-    config_path = "loralab/configs/documentation.yaml"
+    config_path = "loralab/config/config.yaml"
     if not Path(config_path).exists():
         print(f"\nConfiguration file not found: {config_path}")
         sys.exit(1)
@@ -74,31 +32,28 @@ def main():
     print(f"  Challenger model: {config['challenger'].get('model_path', 'Not specified')}")
     print(f"  Solver model: {config['solver'].get('model_name', 'Not specified')}")
 
-    # Save updated config temporarily
-    temp_config = Path("loralab/configs/temp_direct_config.yaml")
-    temp_config.parent.mkdir(parents=True, exist_ok=True)
-    with open(temp_config, 'w') as f:
-        yaml.dump(config, f)
-
     # Demo options
     print("\nDemo Options:")
     print("1. Quick test (5 generations)")
     print("2. Standard run (20 generations)")
     print("3. Full run (50 generations)")
-    print("4. Test existing adapter")
+    print("4. Custom run (specify generations)")
+    print("5. Test existing adapter")
 
-    choice = input("\nSelect option (1-4): ")
+    choice = input("\nSelect option (1-5): ")
 
     if choice == '1':
         # Quick test
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_dir = Path("experiments") / f"job_{timestamp}"
+        output_dir.mkdir(parents=True, exist_ok=True)
         print("\n" + "="*60)
         print("Starting Quick Test (5 generations) - Direct Mode")
-        print("This will take approximately 5-10 minutes")
         print("="*60)
         subprocess.run([
             sys.executable, "-m", "loralab.cli", "evolve",
-            "--config", str(temp_config),
-            "--output", "experiments/quick_demo",
+            "--config", str(config),
+            "--output", str(output_dir),
             "--generations", "5",
             "--use-direct"  # Force direct mode
         ])
@@ -107,11 +62,10 @@ def main():
         # Standard run
         print("\n" + "="*60)
         print("Starting Standard Evolution (20 generations) - Direct Mode")
-        print("This will take approximately 20-40 minutes")
         print("="*60)
         subprocess.run([
             sys.executable, "-m", "loralab.cli", "evolve",
-            "--config", str(temp_config),
+            "--config", str(config),
             "--output", "experiments/standard_demo",
             "--generations", "20",
             "--use-direct"  # Force direct mode
@@ -121,16 +75,44 @@ def main():
         # Full run
         print("\n" + "="*60)
         print("Starting Full Evolution (50 generations) - Direct Mode")
-        print("This will take approximately 1-2 hours")
         print("="*60)
         subprocess.run([
             sys.executable, "-m", "loralab.cli", "evolve",
-            "--config", str(temp_config),
+            "--config", str(config),
             "--output", "experiments/full_demo",
+            "--generations", "50",
             "--use-direct"  # Force direct mode
         ])
 
     elif choice == '4':
+        # Custom run
+        while True:
+            num_gen = input("\nEnter number of generations (1-100): ").strip()
+            try:
+                generations = int(num_gen)
+                if 1 <= generations <= 100:
+                    break
+                else:
+                    print("Please enter a number between 1 and 100")
+            except ValueError:
+                print("Please enter a valid number")
+
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_dir = Path("experiments") / f"custom_{generations}gen_{timestamp}"
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        print("\n" + "="*60)
+        print(f"Starting Custom Evolution ({generations} generations) - Direct Mode")
+        print("="*60)
+        subprocess.run([
+            sys.executable, "-m", "loralab.cli", "evolve",
+            "--config", str(config),
+            "--output", str(output_dir),
+            "--generations", str(generations),
+            "--use-direct"  # Force direct mode
+        ])
+
+    elif choice == '5':
         # Test adapter
         adapter_path = input("\nEnter adapter path (or press Enter for default): ").strip()
         if not adapter_path:
@@ -172,6 +154,11 @@ def main():
             "--task-type", "code_documentation"
         ])
 
+    else:
+        print(f"\nInvalid option: {choice}")
+        print("Please select a valid option (1-5)")
+        sys.exit(1)
+
     print("\nDemo completed!")
     print("\nNext steps:")
     print("1. Check results in experiments/ directory")
@@ -179,14 +166,14 @@ def main():
     print("3. Test adapter: python -m loralab.cli test --adapter experiments/[your_experiment]/best_checkpoint/adapter")
 
     # Clean up temp config
-    if temp_config.exists():
-        temp_config.unlink()
+    if config.exists():
+        config.unlink()
 
 if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        print("\n\n⚠️  Interrupted by user")
+        print("\n\nInterrupted by user")
         sys.exit(0)
     except Exception as e:
         print(f"\nX Error: {e}")

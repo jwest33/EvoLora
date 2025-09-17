@@ -197,11 +197,22 @@ class SolverModel:
             adapter_name: Name to give loaded adapter
         """
         logger.info(f"Loading adapter from {load_path}")
-        self.model = PeftModel.from_pretrained(
-            self.base_model,
-            load_path,
-            adapter_name=adapter_name
-        )
+
+        # Check if we already have a PeftModel with adapters
+        if hasattr(self.model, 'peft_config'):
+            # If model already has adapters, load as additional adapter
+            logger.info(f"Model already has adapters, loading as additional adapter: {adapter_name}")
+            self.model.load_adapter(load_path, adapter_name=adapter_name)
+            self.model.set_adapter(adapter_name)
+        else:
+            # First adapter, create PeftModel
+            logger.info("Loading first adapter, creating PeftModel")
+            self.model = PeftModel.from_pretrained(
+                self.base_model,
+                load_path,
+                adapter_name=adapter_name
+            )
+
         self.current_adapter = adapter_name
 
     def add_adapter(self, adapter_name: str, lora_config: Optional[Dict] = None):
