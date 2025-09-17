@@ -1,0 +1,10 @@
+{
+  "loss": -0.08796732500195503,
+  "policy_loss": -0.08796732500195503,
+  "kl_loss": 0,
+  "eval_score": 0.5921333782062813,
+  "task_quality": 0.48,
+  "train_time": 2788.0504422187805,
+  "num_train_tasks": 8,
+  "num_eval_tasks": 2
+}

@@ -1,0 +1,55 @@
+# Speed-optimized configuration for testing
+# This prioritizes speed over quality - use only for debugging/testing!
+
+challenger:
+  type: "llama_cpp"
+  executable: "C:\\Users\\Jake\\llama.cpp\\build\\bin\\Release\\llama-server.exe"
+  model_path: "C:\\models\\Qwen3-30B-A3B-Thinking-2507\\Qwen3-30B-A3B-Thinking-2507-Q8_0.gguf"
+  gpu_layers: 30  # More GPU for speed
+  cpu_moe_layers: 10  # Less CPU offloading
+  port: 8080
+  context_size: 2048  # Smaller context for speed
+  batch_size: 1024  # Larger batch
+
+solver:
+  type: "transformers"
+  model_name: "Qwen/Qwen3-4B-Instruct-2507"
+  device: "cuda"
+  lora_config:
+    rank: 8  # Smaller rank for faster training
+    alpha: 16
+    dropout: 0.05
+    target_modules:
+      - "q_proj"
+      - "v_proj"  # Only 2 modules for speed
+  quantization:
+    enabled: true
+    load_in_4bit: true
+
+task:
+  type: "code_documentation"
+  difficulty_progression: "adaptive"
+  curriculum:
+    initial_difficulty: 0.2
+    target_success_rate: 0.7
+  templates:
+    # Simpler, shorter template for faster generation
+    code_documentation: |
+      Write a simple Python function.
+      Output only code, max 5 lines:
+
+training:
+  learning_rate: 5e-5
+  batch_size: 4
+  num_rollouts: 1  # CRITICAL: Only 1 rollout!
+  kl_penalty: 0.0  # Disabled
+  clip_ratio: 0.2
+  max_grad_norm: 1.0
+
+evolution:
+  generations: 3
+  dataset_size_per_gen: 5  # Very small for testing
+  bootstrap_size: 3
+  eval_ratio: 0.4
+
+output_dir: "experiments/speed_test"

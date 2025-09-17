@@ -1,0 +1,59 @@
+# Optimized configuration for QUICK testing (5-10 minutes total)
+#
+# This configuration is designed for rapid iteration and testing.
+# It reduces quality for speed - use only for development/debugging.
+
+challenger:
+  type: "llama_cpp"
+  executable: "C:\\Users\\Jake\\llama.cpp\\build\\bin\\Release\\llama-server.exe"
+  model_path: "C:\\models\\Qwen3-30B-A3B-Thinking-2507\\Qwen3-30B-A3B-Thinking-2507-Q8_0.gguf"
+  port: 8080
+  use_cpu_moe: true
+
+solver:
+  type: "transformers"
+  model_name: "Qwen/Qwen3-4B-Instruct-2507"
+  device: "cuda"
+  lora_config:
+    rank: 8  # Reduced from 16 for faster training
+    alpha: 16  # Reduced from 32
+    dropout: 0.05  # Reduced dropout
+    target_modules:
+      - "q_proj"
+      - "v_proj"
+  quantization:
+    enabled: true
+    load_in_4bit: true
+    load_in_8bit: false
+
+task:
+  type: "code_documentation"
+  difficulty_progression: "adaptive"
+  curriculum:
+    initial_difficulty: 0.3
+    target_success_rate: 0.7
+  # Simplified template for faster generation
+  templates:
+    code_documentation: |
+      Generate a simple Python function.
+      Difficulty: {difficulty:.1f}
+
+      Output a short function (5-10 lines):
+      ```python
+
+training:
+  learning_rate: 5e-5  # Higher for faster convergence
+  batch_size: 4  # Smaller batch for faster iteration
+  num_rollouts: 1  # REDUCED from 4 - single rollout only
+  kl_penalty: 0.0  # Disabled for speed
+  clip_ratio: 0.2
+  max_grad_norm: 1.0
+
+evolution:
+  generations: 3  # Only 3 generations for quick test
+  population_size: 10
+  dataset_size_per_gen: 5  # Only 5 tasks per generation
+  bootstrap_size: 3  # Only 3 bootstrap tasks
+  eval_ratio: 0.4  # Evaluate on 2 tasks only
+
+output_dir: "experiments/quick_test"

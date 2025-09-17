@@ -1,0 +1,9 @@
+{
+  "loss": 0.05934437736868858,
+  "policy_loss": 0.05934437736868858,
+  "kl_loss": 0,
+  "eval_score": 0.6358097597285333,
+  "task_quality": 0.62,
+  "difficulty": 0.25,
+  "iteration_time": 9417.673361063004
+}

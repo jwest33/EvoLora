@@ -1,0 +1,75 @@
+2025-09-16 06:54:46,836 - loralab.engine.lora_evolution - INFO - Initializing challenger and solver models
+2025-09-16 06:54:47,498 - loralab.core.solver_client - INFO - Loading base model: Qwen/Qwen3-4B-Instruct-2507
+2025-09-16 06:54:47,791 - accelerate.utils.modeling - INFO - We will use 90% of the memory on device 0 for storing the model, and 10% for the buffer to avoid OOM. You can set `max_memory` in to a higher value to use more memory (at your own risk).
+2025-09-16 06:54:52,768 - loralab.core.solver_client - INFO - Initializing LoRA adapter
+2025-09-16 06:54:53,013 - loralab.adaptation.lora_solver - INFO - Creating reference model for KL penalty
+2025-09-16 06:54:53,014 - loralab.engine.lora_evolution - INFO - Starting LoRA evolution for 5 generations
+2025-09-16 06:54:53,014 - loralab.engine.lora_evolution - INFO - Output directory: experiments\quick_demo
+2025-09-16 06:54:53,014 - loralab.core.llama_client - INFO - Starting llama.cpp server with command: C:\Users\Jake\llama.cpp\build\bin\Release\llama-server.exe -m C:\models\Qwen3-30B-A3B-Instruct-2507\Qwen3-30B-A3B-Instruct-2507-Q8_0.gguf --port 8080 --cpu-moe
+2025-09-16 06:55:00,060 - loralab.core.llama_client - INFO - LlamaCpp server is ready
+2025-09-16 06:55:00,060 - loralab.engine.lora_evolution - INFO - Bootstrapping with initial dataset
+2025-09-16 06:55:00,061 - loralab.engine.lora_evolution - INFO - Generating 10 bootstrap tasks
+2025-09-16 06:55:00,061 - loralab.generation.task_challenger - INFO - Decreasing difficulty to 0.25
+2025-09-16 06:57:26,850 - loralab.engine.lora_evolution - INFO - Generating pseudo-labels with challenger
+2025-09-16 07:21:57,323 - loralab.engine.lora_evolution - INFO - Bootstrap evaluation score: 0.647
+2025-09-16 07:21:57,323 - loralab.engine.lora_evolution - INFO - 
+==================================================
+2025-09-16 07:21:57,323 - loralab.engine.lora_evolution - INFO - Generation 1/5
+2025-09-16 07:21:57,323 - loralab.engine.lora_evolution - INFO - Current solver performance: 0.647
+2025-09-16 07:21:57,323 - loralab.engine.lora_evolution - INFO - Challenger generating 20 tasks
+2025-09-16 07:26:44,161 - loralab.engine.lora_evolution - INFO - Generating pseudo-labels
+2025-09-16 08:14:18,409 - loralab.engine.lora_evolution - INFO - Evaluating task quality
+2025-09-16 08:17:47,138 - loralab.engine.lora_evolution - INFO - Training solver with GRPO
+2025-09-16 08:43:54,966 - loralab.engine.lora_evolution - INFO - Evaluating solver performance
+2025-09-16 08:47:35,672 - loralab.engine.lora_evolution - INFO - Saved 10 solver outputs to experiments\quick_demo\solver_outputs
+2025-09-16 08:47:35,672 - loralab.engine.lora_evolution - INFO - Iteration complete. Eval score: 0.635
+2025-09-16 08:47:35,673 - loralab.engine.lora_evolution - INFO - Saving best checkpoint (score: 0.635)
+2025-09-16 08:47:35,674 - loralab.core.solver_client - INFO - Saving adapter to experiments\quick_demo\best_checkpoint\adapter
+2025-09-16 08:47:36,236 - loralab.core.solver_client - INFO - Saving adapter to experiments\quick_demo\generation_001\adapter
+2025-09-16 08:47:36,547 - loralab.engine.lora_evolution - INFO - Saved generation checkpoint to experiments\quick_demo\generation_001
+2025-09-16 08:47:36,548 - loralab.engine.lora_evolution - INFO - 
+==================================================
+2025-09-16 08:47:36,548 - loralab.engine.lora_evolution - INFO - Generation 2/5
+2025-09-16 08:47:36,548 - loralab.engine.lora_evolution - INFO - Current solver performance: 0.635
+2025-09-16 08:47:36,549 - loralab.engine.lora_evolution - INFO - Challenger generating 20 tasks
+2025-09-16 08:52:10,294 - loralab.engine.lora_evolution - INFO - Generating pseudo-labels
+2025-09-16 09:40:30,708 - loralab.engine.lora_evolution - INFO - Evaluating task quality
+2025-09-16 09:50:49,460 - loralab.engine.lora_evolution - INFO - Training solver with GRPO
+2025-09-16 11:21:19,618 - loralab.engine.lora_evolution - INFO - Evaluating solver performance
+2025-09-16 11:25:32,256 - loralab.engine.lora_evolution - INFO - Saved 10 solver outputs to experiments\quick_demo\solver_outputs
+2025-09-16 11:25:32,256 - loralab.engine.lora_evolution - INFO - Iteration complete. Eval score: 0.640
+2025-09-16 11:25:32,257 - loralab.engine.lora_evolution - INFO - Saving best checkpoint (score: 0.640)
+2025-09-16 11:25:32,257 - loralab.core.solver_client - INFO - Saving adapter to experiments\quick_demo\best_checkpoint\adapter
+2025-09-16 11:25:32,902 - loralab.core.solver_client - INFO - Saving adapter to experiments\quick_demo\generation_002\adapter
+2025-09-16 11:25:33,220 - loralab.engine.lora_evolution - INFO - Saved generation checkpoint to experiments\quick_demo\generation_002
+2025-09-16 11:25:33,221 - loralab.engine.lora_evolution - INFO - 
+==================================================
+2025-09-16 11:25:33,221 - loralab.engine.lora_evolution - INFO - Generation 3/5
+2025-09-16 11:25:33,221 - loralab.engine.lora_evolution - INFO - Current solver performance: 0.640
+2025-09-16 11:25:33,221 - loralab.engine.lora_evolution - INFO - Challenger generating 20 tasks
+2025-09-16 11:30:03,133 - loralab.engine.lora_evolution - INFO - Generating pseudo-labels
+2025-09-16 12:17:59,435 - loralab.engine.lora_evolution - INFO - Evaluating task quality
+2025-09-16 12:27:53,946 - loralab.engine.lora_evolution - INFO - Training solver with GRPO
+2025-09-16 13:58:51,290 - loralab.engine.lora_evolution - INFO - Evaluating solver performance
+2025-09-16 14:02:30,923 - loralab.engine.lora_evolution - INFO - Saved 10 solver outputs to experiments\quick_demo\solver_outputs
+2025-09-16 14:02:30,923 - loralab.engine.lora_evolution - INFO - Iteration complete. Eval score: 0.636
+2025-09-16 14:02:30,924 - loralab.core.solver_client - INFO - Saving adapter to experiments\quick_demo\generation_003\adapter
+2025-09-16 14:02:31,522 - loralab.engine.lora_evolution - INFO - Saved generation checkpoint to experiments\quick_demo\generation_003
+2025-09-16 14:02:31,522 - loralab.engine.lora_evolution - INFO - 
+==================================================
+2025-09-16 14:02:31,523 - loralab.engine.lora_evolution - INFO - Generation 4/5
+2025-09-16 14:02:31,523 - loralab.engine.lora_evolution - INFO - Current solver performance: 0.636
+2025-09-16 14:02:31,523 - loralab.engine.lora_evolution - INFO - Challenger generating 20 tasks
+2025-09-16 14:08:06,600 - loralab.engine.lora_evolution - INFO - Generating pseudo-labels
+2025-09-16 14:56:28,094 - loralab.engine.lora_evolution - INFO - Evaluating task quality
+2025-09-16 15:07:54,904 - loralab.engine.lora_evolution - INFO - Training solver with GRPO
+2025-09-16 16:01:51,413 - loralab.core.llama_client - INFO - LlamaCpp server stopped
+2025-09-16 16:01:51,416 - loralab.engine.lora_evolution - INFO - Evolution complete. Results saved to experiments\quick_demo
+2025-09-16 16:32:53,218 - loralab.engine.lora_evolution - INFO - Initializing challenger and solver models
+2025-09-16 16:32:53,881 - loralab.core.solver_client - INFO - Loading base model: Qwen/Qwen3-4B-Instruct-2507
+2025-09-16 16:32:54,184 - accelerate.utils.modeling - INFO - We will use 90% of the memory on device 0 for storing the model, and 10% for the buffer to avoid OOM. You can set `max_memory` in to a higher value to use more memory (at your own risk).
+2025-09-16 16:32:58,974 - loralab.core.solver_client - INFO - Initializing LoRA adapter
+2025-09-16 16:32:59,210 - loralab.adaptation.lora_solver - INFO - Creating reference model for KL penalty
+2025-09-16 16:32:59,210 - loralab.engine.lora_evolution - INFO - Starting LoRA evolution for 5 generations
+2025-09-16 16:32:59,210 - loralab.engine.lora_evolution - INFO - Output directory: experiments\quick_demo
+2025-09-16 16:32:59,211 - loralab.core.llama_client - INFO - Starting llama.cpp server with command: C:\Users\Jake\llama.cpp\build\bin\Release\llama-server.exe -m C:\models\Qwen3-30B-A3B-Instruct-2507\Qwen3-30B-A3B-Instruct-2507-Q8_0.gguf --port 8080 --n-gpu-layers 20 --n-cpu-moe 20
