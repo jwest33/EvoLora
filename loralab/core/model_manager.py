@@ -9,6 +9,12 @@ import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from peft import LoraConfig, get_peft_model, TaskType
 
+try:
+    from ..utils.cli_formatter import CLIFormatter
+    USE_FORMATTER = True
+except ImportError:
+    USE_FORMATTER = False
+
 logger = logging.getLogger(__name__)
 
 
@@ -36,11 +42,22 @@ class ModelManager:
         logger.info(f"Loading base model: {model_path}")
 
         try:
+            # Determine device
+            device_map = self.config.get('device_map', 'cpu')
+
+            # Check if user wants CUDA but it's not available
+            if device_map != 'cpu':
+                if not torch.cuda.is_available():
+                    logger.warning("CUDA requested but not available, falling back to CPU")
+                    device_map = 'cpu'
+                else:
+                    logger.info(f"CUDA available, using device: {device_map}")
+
             # Load model with memory optimization
             self.base_model = AutoModelForCausalLM.from_pretrained(
                 model_path,
                 torch_dtype=getattr(torch, self.config.get('torch_dtype', 'float16')),
-                device_map=self.config.get('device_map', 'auto'),
+                device_map=device_map,
                 trust_remote_code=self.config.get('trust_remote_code', True),
                 low_cpu_mem_usage=True
             )
@@ -59,11 +76,17 @@ class ModelManager:
             # Get device
             self._device = next(self.base_model.parameters()).device
 
-            logger.info(f"✓ Model loaded successfully on {self._device}")
+            if USE_FORMATTER:
+                CLIFormatter.print_success(f"Model loaded successfully on {self._device}")
+            else:
+                logger.info(f"Model loaded successfully on {self._device}")
 
             # Print model info
             total_params = sum(p.numel() for p in self.base_model.parameters())
-            logger.info(f"Total parameters: {total_params:,}")
+            if USE_FORMATTER:
+                CLIFormatter.print_info(f"Total parameters: {total_params:,}")
+            else:
+                logger.info(f"Total parameters: {total_params:,}")
 
         except Exception as e:
             logger.error(f"Failed to load model: {e}")

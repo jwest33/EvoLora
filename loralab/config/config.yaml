@@ -12,7 +12,7 @@ model:
   path: "Qwen/Qwen3-4B-Instruct-2507"  # HuggingFace ID or local path
   type: "transformers"
   torch_dtype: "float16"
-  device_map: "auto"
+  device_map: "cuda:0"  # Use "auto" for multi-GPU, "cuda:0" for single GPU, "cpu" for CPU only
   trust_remote_code: true
   low_cpu_mem_usage: true
 
@@ -20,9 +20,9 @@ model:
 evolution:
   population_size: 6        # Number of variants per generation
   generations: 10           # Number of evolution cycles
-  keep_top: 2              # Number of best variants to keep
-  mutation_rate: 0.3       # Probability of mutating parameters
-  crossover_rate: 0.2      # Proportion of offspring from crossover
+  keep_top: 2               # Number of best variants to keep
+  mutation_rate: 0.3        # Probability of mutating parameters
+  crossover_rate: 0.2       # Proportion of offspring from crossover
 
 # LoRA hyperparameter search space
 lora_search_space:
@@ -39,7 +39,7 @@ lora_search_space:
 # Training parameters
 training:
   batch_size: 4                    # Batch size per variant
-  gradient_accumulation_steps: 16   # Effective batch = 64
+  gradient_accumulation_steps: 16  # Effective batch = 64
   epochs_per_variant: 1            # Quick iterations for evolution
   max_grad_norm: 1.0               # Gradient clipping
   weight_decay: 0.01               # Weight decay
@@ -56,7 +56,10 @@ dataset:
   seed: 42                         # Random seed for splits
 
 # Output configuration
-output_dir: "evolved_adapters"
+output:
+  base_dir: "lora_runs"         # Base directory for all runs
+  run_name: null                # Optional run name (null = timestamp)
+  keep_runs: 5                  # Number of runs to keep (older ones deleted)
 
 # Logging
 logging:
@@ -71,4 +74,3 @@ quick_test:
   generations: 2
   train_size: 100
   eval_size: 20
-  

@@ -16,6 +16,8 @@ from ..core.lora_factory import LoRAFactory, LoRAVariant
 from .population import PopulationManager
 from .fitness_evaluator import FitnessEvaluator
 from ..training.self_supervised import SelfSupervisedTrainer
+from ..utils.cli_formatter import CLIFormatter
+from ..utils.output_manager import get_output_manager
 
 logger = logging.getLogger(__name__)
 
@@ -33,15 +35,18 @@ class EvolutionaryTrainer:
                 - lora_search_space: LoRA hyperparameter search space
                 - training: Training parameters
                 - dataset: Dataset configuration
-                - output_dir: Output directory
+                - output: Output configuration (or output_dir for legacy)
         """
         self.config = config
-        self.output_dir = Path(config.get('output_dir', 'evolved_adapters'))
-        self.output_dir.mkdir(exist_ok=True)
 
-        # Create checkpoint directory
-        self.checkpoint_dir = self.output_dir / 'checkpoints'
-        self.checkpoint_dir.mkdir(exist_ok=True)
+        # Initialize output manager
+        output_config = config.get('output', {})
+        self.output_manager = get_output_manager(
+            base_dir=output_config.get('base_dir', 'lora_runs'),
+            run_name=output_config.get('run_name')
+        )
+        self.output_dir = self.output_manager.get_path('base')
+        self.checkpoint_dir = self.output_manager.get_path('checkpoints')
 
         # Initialize components
         self.model_manager = ModelManager(config['model'])
@@ -57,12 +62,14 @@ class EvolutionaryTrainer:
 
     def initialize(self):
         """Initialize the training system"""
-        logger.info("="*80)
-        logger.info("INITIALIZING EVOLUTIONARY LORA TRAINER")
-        logger.info("="*80)
+        CLIFormatter.print_header("INITIALIZING EVOLUTIONARY LORA TRAINER")
+
+        # Save configuration for this run
+        self.output_manager.save_config(self.config)
+        CLIFormatter.print_info(f"Run directory: {self.output_manager.get_path('base')}")
 
         # Load base model
-        logger.info("Loading base model...")
+        CLIFormatter.print_info("Loading base model...")
         self.model_manager.load_base_model()
 
         # Initialize trainer and evaluator with loaded model
@@ -75,7 +82,7 @@ class EvolutionaryTrainer:
             model_manager=self.model_manager
         )
 
-        logger.info("✓ Initialization complete")
+        CLIFormatter.print_success("Initialization complete")
 
     def train_variant(self,
                      variant: LoRAVariant,
@@ -158,30 +165,43 @@ class EvolutionaryTrainer:
         Returns:
             Selected survivors for next generation
         """
-        logger.info(f"\n{'='*80}")
-        logger.info(f"GENERATION {self.current_generation}")
-        logger.info(f"{'='*80}")
+        CLIFormatter.print_generation_header(
+            self.current_generation,
+            self.config['evolution']['generations']
+        )
 
         generation_start = time.time()
 
         # Train and evaluate each variant
         for i, variant in enumerate(population):
-            logger.info(f"\nVariant {i+1}/{len(population)}: {variant.variant_id}")
+            CLIFormatter.print_subheader(
+                f"Variant {i+1}/{len(population)}: {variant.variant_id}"
+            )
+
+            # Show configuration
+            CLIFormatter.print_variant_status(variant.variant_id, "TRAINING", {
+                'Rank': variant.rank,
+                'Learning Rate': f"{float(variant.learning_rate):.0e}",
+                'Dropout': variant.dropout
+            })
 
             # Train
-            logger.info(f"  Training with rank={variant.rank}, lr={variant.learning_rate:.0e}...")
             train_loss = self.train_variant(
                 variant,
                 train_data,
                 epochs=self.config['training'].get('epochs_per_variant', 1)
             )
-            logger.info(f"  Training loss: {train_loss:.4f}")
 
             # Evaluate
-            logger.info(f"  Evaluating...")
+            CLIFormatter.print_variant_status(variant.variant_id, "EVALUATING")
             metrics = self.evaluate_variant(variant, eval_data)
-            logger.info(f"  Accuracy: {metrics['accuracy']:.2%}, "
-                       f"Perplexity: {metrics['perplexity']:.2f}")
+
+            # Show results
+            CLIFormatter.print_variant_status(variant.variant_id, "COMPLETE", {
+                'Training Loss': train_loss,
+                'Accuracy': f"{metrics['accuracy']:.2%}",
+                'Perplexity': metrics['perplexity']
+            })
 
             # Save checkpoint for this variant
             self._save_variant_checkpoint(variant)
@@ -274,19 +294,22 @@ class EvolutionaryTrainer:
 
     def _save_variant_checkpoint(self, variant: LoRAVariant):
         """Save a variant's model and configuration"""
-        variant_dir = self.checkpoint_dir / f"gen{self.current_generation}" / variant.variant_id
+        # Use new structure
+        variant_dir = self.output_manager.get_generation_checkpoint_dir(self.current_generation) / variant.variant_id
+        model_dir = self.output_manager.get_variant_model_dir(variant.variant_id)
+
         variant_dir.mkdir(parents=True, exist_ok=True)
 
-        # Save configuration
+        # Save configuration to checkpoint
         self.lora_factory.save_variant(variant, str(variant_dir / "config.json"))
 
-        # Save model if it exists
+        # Save model to models directory
         if variant.model is not None:
-            variant.model.save_pretrained(str(variant_dir / "adapter"))
+            variant.model.save_pretrained(str(model_dir / "adapter"))
 
     def _save_best_variant(self, variant: LoRAVariant):
         """Save the best variant found so far"""
-        best_dir = self.output_dir / "best_variant"
+        best_dir = self.output_manager.get_path('best_model')
         best_dir.mkdir(exist_ok=True)
 
         # Save configuration
@@ -347,54 +370,75 @@ class EvolutionaryTrainer:
         self.evolution_history.append(stats)
 
         # Save to file
-        history_path = self.output_dir / "evolution_history.json"
-        with open(history_path, 'w') as f:
-            json.dump(self.evolution_history, f, indent=2)
+        history_path = self.output_manager.save_history(self.evolution_history)
 
     def _log_generation_summary(self,
                                population: List[LoRAVariant],
                                survivors: List[LoRAVariant],
                                generation_time: float):
         """Log generation summary"""
-        logger.info(f"\nGeneration {self.current_generation} Summary:")
-        logger.info("-" * 50)
+        CLIFormatter.print_subheader(f"Generation {self.current_generation} Summary")
 
         # Sort by fitness
         sorted_pop = sorted(population, key=lambda v: v.fitness_score(), reverse=True)
 
-        for i, variant in enumerate(sorted_pop):
-            status = "SURVIVED" if variant in survivors else "eliminated"
-            logger.info(f"  {i+1}. {variant.variant_id}: "
-                       f"accuracy={variant.eval_accuracy:.2%}, "
-                       f"perplexity={variant.eval_perplexity:.2f}, "
-                       f"fitness={variant.fitness_score():.4f} - {status}")
+        # Prepare table data
+        headers = ["Rank", "Variant ID", "Accuracy", "Perplexity", "Fitness", "Status"]
+        rows = []
+        colors = []
 
-        logger.info(f"\nGeneration time: {generation_time:.1f}s")
-        logger.info("-" * 50)
+        for i, variant in enumerate(sorted_pop):
+            if variant in survivors:
+                status = "SURVIVED"
+                from ..utils.cli_formatter import Fore
+                colors.append(Fore.GREEN)
+            else:
+                status = "ELIMINATED"
+                from ..utils.cli_formatter import Fore
+                colors.append(Fore.RED)
+
+            rows.append([
+                f"#{i+1}",
+                variant.variant_id,
+                f"{variant.eval_accuracy:.2%}",
+                f"{variant.eval_perplexity:.2f}",
+                f"{variant.fitness_score():.4f}",
+                status
+            ])
+
+        CLIFormatter.print_table(headers, rows, colors)
+
+        # Time summary
+        CLIFormatter.print_info(f"Generation completed in {CLIFormatter.format_time(generation_time)}")
 
     def _print_final_summary(self):
         """Print final evolution summary"""
-        logger.info("\n" + "="*80)
-        logger.info("EVOLUTION COMPLETE")
-        logger.info("="*80)
+        CLIFormatter.print_header("EVOLUTION COMPLETE", char="=")
 
         if self.best_variant_overall:
-            logger.info(f"\nBest Variant Found:")
-            logger.info(f"  ID: {self.best_variant_overall.variant_id}")
-            logger.info(f"  Generation: {self.best_variant_overall.generation}")
-            logger.info(f"  Configuration:")
-            logger.info(f"    - Rank: {self.best_variant_overall.rank}")
-            logger.info(f"    - Alpha: {self.best_variant_overall.alpha}")
-            logger.info(f"    - Dropout: {self.best_variant_overall.dropout}")
-            logger.info(f"    - Learning Rate: {self.best_variant_overall.learning_rate:.0e}")
-            logger.info(f"  Performance:")
-            logger.info(f"    - Accuracy: {self.best_variant_overall.eval_accuracy:.2%}")
-            logger.info(f"    - Perplexity: {self.best_variant_overall.eval_perplexity:.2f}")
-            logger.info(f"    - Fitness Score: {self.best_variant_overall.fitness_score():.4f}")
+            # Configuration summary
+            config_summary = {
+                'Variant ID': self.best_variant_overall.variant_id,
+                'Generation': self.best_variant_overall.generation,
+                'LoRA Rank': self.best_variant_overall.rank,
+                'Alpha': self.best_variant_overall.alpha,
+                'Dropout': self.best_variant_overall.dropout,
+                'Learning Rate': f"{float(self.best_variant_overall.learning_rate):.0e}"
+            }
 
-            logger.info(f"\n✓ Best variant saved to: {self.output_dir / 'best_variant'}")
+            CLIFormatter.print_summary_box("BEST VARIANT CONFIGURATION", config_summary)
 
-        logger.info("="*80)
+            # Performance summary
+            perf_summary = {
+                'Accuracy': self.best_variant_overall.eval_accuracy,
+                'Perplexity': self.best_variant_overall.eval_perplexity,
+                'Fitness Score': self.best_variant_overall.fitness_score()
+            }
+
+            from ..utils.cli_formatter import Fore
+            CLIFormatter.print_summary_box("PERFORMANCE METRICS", perf_summary, color=Fore.CYAN)
+
+            CLIFormatter.print_success(f"Best variant saved to: {self.output_dir / 'best_variant'}")
 
     def _generate_comparison_report(self, eval_data: List[Dict]):
         """Generate comparison report for best variant
@@ -408,7 +452,7 @@ class EvolutionaryTrainer:
             logger.info("\nGenerating comparison report for best variant...")
 
             # Load best variant model
-            best_dir = self.output_dir / "best_variant" / "adapter"
+            best_dir = self.output_manager.get_path('best_model') / "adapter"
             if not best_dir.exists():
                 logger.warning("Best variant adapter not found, skipping report")
                 return
@@ -432,7 +476,7 @@ class EvolutionaryTrainer:
             # Generate comparison
             comparator = ComparativeEvaluator(
                 self.model_manager,
-                output_dir=str(self.output_dir / "evaluation_reports")
+                output_dir=str(self.output_manager.get_path('reports'))
             )
 
             comparison = comparator.compare_models(
