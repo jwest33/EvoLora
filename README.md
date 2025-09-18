@@ -1,6 +1,6 @@
-# LoRALab Self-Supervised Evolution System
+# EvoLora - Self-Supervised Evolution System
 
-LoRA adapter optimization using evolutionary algorithms - no teacher model required!
+LoRA adapter optimization using evolutionary algorithms
 
 ## Quick Start
 
