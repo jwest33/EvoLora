@@ -1,5 +1,6 @@
-"""
-Configuration loader and validator for LoRA evolution system.
+"""Configuration loader for LoRALab self-supervised evolution
+
+Provides utilities for loading and managing evolution configurations.
 """
 
 import yaml
@@ -57,72 +58,82 @@ class ConfigLoader:
         Returns:
             Validated configuration with defaults
         """
-        # Challenger defaults
-        if 'challenger' not in config:
-            raise ValueError("Challenger configuration is required")
+        # Check mode
+        mode = config.get('mode', 'self_supervised')
 
-        challenger = config['challenger']
-        challenger.setdefault('port', 8080)
-        # Don't set defaults for optional parameters - let them be undefined
-        # challenger.setdefault('context_size', 8192)
-        # challenger.setdefault('gpu_layers', 20)
+        if mode != 'self_supervised':
+            logger.warning(f"Mode '{mode}' not supported, using 'self_supervised'")
+            config['mode'] = 'self_supervised'
 
-        # Solver defaults
-        if 'solver' not in config:
-            raise ValueError("Solver configuration is required")
+        # Model configuration
+        if 'model' not in config:
+            config['model'] = {}
 
-        solver = config['solver']
-        solver.setdefault('device', 'cuda')
-
-        if 'lora_config' not in solver:
-            solver['lora_config'] = {}
-
-        lora = solver['lora_config']
-        lora.setdefault('rank', 16)
-        lora.setdefault('alpha', 32)
-        lora.setdefault('dropout', 0.1)
-        lora.setdefault('target_modules', ["q_proj", "v_proj", "k_proj", "o_proj"])
-
-        # Task configuration
-        if 'task' not in config:
-            config['task'] = {}
-
-        task = config['task']
-        task.setdefault('type', 'code_documentation')
-        task.setdefault('difficulty_progression', 'adaptive')
-
-        if 'curriculum' not in task:
-            task['curriculum'] = {}
-
-        curriculum = task['curriculum']
-        curriculum.setdefault('initial_difficulty', 0.3)
-        curriculum.setdefault('target_success_rate', 0.7)
-
-        # Training configuration
-        if 'training' not in config:
-            config['training'] = {}
-
-        training = config['training']
-        training.setdefault('learning_rate', 1e-5)
-        training.setdefault('batch_size', 8)
-        training.setdefault('num_rollouts', 4)
-        training.setdefault('kl_penalty', 0.1)
-        training.setdefault('clip_ratio', 0.2)
-        training.setdefault('max_grad_norm', 1.0)
+        model = config['model']
+        model.setdefault('path', 'Qwen/Qwen3-4B-Instruct-2507')
+        model.setdefault('type', 'transformers')
+        model.setdefault('torch_dtype', 'float16')
+        model.setdefault('device_map', 'auto')
+        model.setdefault('trust_remote_code', True)
+        model.setdefault('low_cpu_mem_usage', True)
 
         # Evolution configuration
         if 'evolution' not in config:
             config['evolution'] = {}
 
         evolution = config['evolution']
-        evolution.setdefault('generations', 50)
-        evolution.setdefault('population_size', 10)
-        evolution.setdefault('dataset_size_per_gen', 100)
-        evolution.setdefault('eval_ratio', 0.2)
+        evolution.setdefault('population_size', 6)
+        evolution.setdefault('generations', 10)
+        evolution.setdefault('keep_top', 2)
+        evolution.setdefault('mutation_rate', 0.3)
+        evolution.setdefault('crossover_rate', 0.2)
+
+        # LoRA search space
+        if 'lora_search_space' not in config:
+            config['lora_search_space'] = {}
+
+        lora = config['lora_search_space']
+        lora.setdefault('rank', [16, 32, 64, 128, 256])
+        lora.setdefault('alpha_multiplier', [1, 2, 3])
+        lora.setdefault('dropout', [0.05, 0.1, 0.15])
+        lora.setdefault('learning_rate', [1e-5, 2e-5, 5e-5, 1e-4, 2e-4])
+        lora.setdefault('target_modules', ["q_proj", "k_proj", "v_proj", "o_proj"])
+
+        # Training configuration
+        if 'training' not in config:
+            config['training'] = {}
+
+        training = config['training']
+        training.setdefault('batch_size', 4)
+        training.setdefault('gradient_accumulation_steps', 16)
+        training.setdefault('epochs_per_variant', 1)
+        training.setdefault('max_grad_norm', 1.0)
+        training.setdefault('weight_decay', 0.01)
+        training.setdefault('warmup_ratio', 0.1)
+        training.setdefault('fp16', True)
+        training.setdefault('gradient_checkpointing', False)
+
+        # Dataset configuration
+        if 'dataset' not in config:
+            config['dataset'] = {}
+
+        dataset = config['dataset']
+        dataset.setdefault('sources', ['mmlu-pro'])
+        dataset.setdefault('train_size', 10000)
+        dataset.setdefault('eval_size', 1000)
+        dataset.setdefault('seed', 42)
 
         # Output directory
-        if 'output_dir' not in config:
-            config['output_dir'] = 'experiments/default'
+        config.setdefault('output_dir', 'evolved_adapters')
+
+        # Logging configuration
+        if 'logging' not in config:
+            config['logging'] = {}
+
+        log_config = config['logging']
+        log_config.setdefault('level', 'INFO')
+        log_config.setdefault('save_history', True)
+        log_config.setdefault('track_metrics', ['accuracy', 'perplexity', 'fitness_score'])
 
         return config
 

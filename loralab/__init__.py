@@ -1,19 +1,27 @@
-"""
-LoRALab - R-Zero inspired LoRA adapter generator
+"""LoRALab Self-Supervised Evolution System
+
+Evolutionary optimization for finding optimal LoRA adapters without teacher models.
 """
 
-__version__ = "0.1.0"
+__version__ = "2.0.0"
 
-from loralab.core.llama_client import LlamaCppClient
-from loralab.core.solver_client import SolverModel
-from loralab.generation.task_challenger import TaskChallenger
-from loralab.adaptation.lora_solver import LoRASolverTrainer
-from loralab.engine.lora_evolution import LoRAEvolution
+from .core.model_manager import ModelManager
+from .core.lora_factory import LoRAFactory, LoRAVariant
+from .evolution.evolutionary_trainer import EvolutionaryTrainer
+from .evolution.population import PopulationManager
+from .evolution.fitness_evaluator import FitnessEvaluator
+from .training.self_supervised import SelfSupervisedTrainer
+from .datasets.dataset_loader import DatasetLoader
+from .config.config_loader import ConfigLoader
 
 __all__ = [
-    'LlamaCppClient',
-    'SolverModel',
-    'TaskChallenger',
-    'LoRASolverTrainer',
-    'LoRAEvolution'
+    'ModelManager',
+    'LoRAFactory',
+    'LoRAVariant',
+    'EvolutionaryTrainer',
+    'PopulationManager',
+    'FitnessEvaluator',
+    'SelfSupervisedTrainer',
+    'DatasetLoader',
+    'ConfigLoader'
 ]
