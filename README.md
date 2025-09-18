@@ -98,6 +98,56 @@ The system tracks convergence metrics but doesn't auto-stop:
 - Evolution continues for full 10 generations regardless
 - This ensures thorough exploration of search space
 
+### Mutable vs Fixed Parameters
+
+#### Mutable Parameters (Subject to Evolution)
+The evolution system optimizes these 4 parameters:
+
+1. **Rank** (`r`)
+   - **Search Space**: [16, 32, 64, 128, 256]
+   - **Controls**: Number of LoRA decomposition dimensions
+   - **Impact**: Higher = more capacity but slower training
+
+2. **Alpha** (scaling factor)
+   - **Search Space**: rank × [1, 2, 4]
+   - **Controls**: Strength of LoRA modifications (scaling = alpha/rank)
+   - **Coupling**: Always tied to rank value
+
+3. **Dropout**
+   - **Search Space**: [0.05, 0.1, 0.15]
+   - **Controls**: Regularization during training
+   - **Impact**: Prevents overfitting on small datasets
+
+4. **Learning Rate**
+   - **Search Space**: [1e-5, 2e-5, 5e-5, 1e-4, 2e-4]
+   - **Controls**: Gradient descent step size
+   - **Impact**: Balance between stability and convergence speed
+
+**Total Search Space**: 5 × 3 × 3 × 5 = **225 unique configurations**
+
+#### Fixed Parameters (Constant Across Evolution)
+These parameters remain unchanged for all variants:
+
+**LoRA Architecture**:
+- Target Modules: ["q_proj", "k_proj", "v_proj", "o_proj"]
+- Bias: "none" (no bias terms)
+- Task Type: CAUSAL_LM
+
+**Training Settings** (from config):
+- Batch Size: 4
+- Gradient Accumulation: 16
+- Epochs per Variant: 1
+- Weight Decay: 0.01
+- Warmup Ratio: 0.1
+- Max Gradient Norm: 1.0
+
+**Why These Four?**
+These parameters were selected because they:
+- Have major impact on model performance
+- Are relatively independent (changing one doesn't break others)
+- Cover different optimization aspects (capacity, strength, regularization, learning dynamics)
+- Keep search space tractable while being comprehensive
+
 ### Evolution Mechanisms
 
 #### Mutation
