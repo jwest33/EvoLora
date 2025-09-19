@@ -59,7 +59,7 @@ training:
   fp16: false                      # Disabled for stability
   bf16: false                      # Disabled for stability
   gradient_checkpointing: false    # Disabled - can conflict with LoRA
-  dataloader_num_workers: 0       # Single worker for Windows
+  dataloader_num_workers: 0       # Disabled for Windows compatibility
   dataloader_pin_memory: true      # Pin memory for faster transfer
   dataloader_prefetch_factor: 2    # Prefetch batches
 

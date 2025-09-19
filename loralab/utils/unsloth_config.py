@@ -56,9 +56,17 @@ def init_unsloth():
     if _UNSLOTH_INITIALIZED:
         return _UNSLOTH_AVAILABLE
 
+    # Skip completely if SKIP_UNSLOTH is set
+    if os.environ.get("SKIP_UNSLOTH") == "1":
+        logger.debug("Skipping Unsloth (SKIP_UNSLOTH=1)")
+        _UNSLOTH_INITIALIZED = True
+        _UNSLOTH_AVAILABLE = False
+        return False
+
     # Only initialize in main process
     if multiprocessing.current_process().name != 'MainProcess':
         logger.debug("Skipping Unsloth init in child process")
+        _UNSLOTH_INITIALIZED = True
         _UNSLOTH_AVAILABLE = False
         return False
 

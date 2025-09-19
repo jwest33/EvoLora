@@ -148,7 +148,8 @@ class UnslothSFTTrainer:
             dataset = dataset.map(
                 formatting_func,
                 batched=True,
-                remove_columns=dataset.column_names
+                remove_columns=dataset.column_names,
+                num_proc=1  # Force single process for Windows compatibility
             )
 
         return dataset

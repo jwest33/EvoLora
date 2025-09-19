@@ -410,13 +410,14 @@ Then provide your final answer between {solution_start} and {solution_end}."""
             text = f"""{self._get_system_prompt()}
 
   User: {question}
-  Assistant: {reasoning_start}{reasoning}{reasoning_end}
-  {solution_start}{answer}{solution_end}"""
+  Assistant: {self.reward_functions.reasoning_start}{reasoning}{self.reward_functions.reasoning_end}
+  {self.reward_functions.solution_start}{answer}{self.reward_functions.solution_end}"""
             formatted_texts.append(text)
 
         # Create SFT training config
         sft_config = SFTConfig(
             dataset_text_field="text",
+            dataset_num_proc=1,  # Force single process for Windows compatibility
             per_device_train_batch_size=self.training_config.get('batch_size', 1),
             gradient_accumulation_steps=self.training_config.get('gradient_accumulation_steps', 4),
             warmup_steps=5,

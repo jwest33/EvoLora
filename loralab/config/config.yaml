@@ -58,7 +58,7 @@ training:
   fp16: false                      # Disabled - can cause gradient issues with LoRA
   bf16: false                      # Disabled - can cause gradient issues with LoRA
   gradient_checkpointing: false    # Disabled - can conflict with LoRA
-  dataloader_num_workers: 2       # Parallel data loading
+  dataloader_num_workers: 0       # Disabled for Windows compatibility
   dataloader_pin_memory: true      # Pin memory for faster transfer
   dataloader_prefetch_factor: 2    # Prefetch batches
   # SFT-specific options
