@@ -168,12 +168,22 @@ class EvolutionaryTrainer:
 
         # Add Unsloth-specific options if available
         if isinstance(self.model_manager, UnslothModelManager if UNSLOTH_AVAILABLE else type(None)):
-            lora_config['alpha_multiplier'] = self.config['lora_search_space'].get('alpha_multiplier', [2])[0]
-            lora_config['use_rslora'] = self.config['lora_search_space'].get('use_rslora', False)
+            lora_config['alpha_multiplier'] = variant.alpha // variant.rank if variant.rank > 0 else 2
+            lora_config['use_rslora'] = variant.use_rslora
             lora_config['use_gradient_checkpointing'] = self.config['lora_search_space'].get('use_gradient_checkpointing', True)
 
         lora_model = self.model_manager.create_lora_variant(lora_config)
         variant.model = lora_model
+
+        # Temporarily override training config with variant-specific values
+        original_config = self.config['training'].copy()
+        self.config['training']['weight_decay'] = variant.weight_decay
+        self.config['training']['warmup_ratio'] = variant.warmup_ratio
+        self.config['training']['max_grad_norm'] = variant.max_grad_norm
+
+        # Update trainer config if it has a reference to training_config
+        if hasattr(self.trainer, 'training_config'):
+            self.trainer.training_config = self.config['training']
 
         # Choose training approach based on trainer type
         training_method = self.config['training'].get('method', 'sft')
@@ -229,6 +239,11 @@ class EvolutionaryTrainer:
 
         variant.train_loss = avg_loss
         variant.training_time = time.time() - start_time
+
+        # Restore original training config
+        self.config['training'] = original_config
+        if hasattr(self.trainer, 'training_config'):
+            self.trainer.training_config = original_config
 
         return avg_loss
 

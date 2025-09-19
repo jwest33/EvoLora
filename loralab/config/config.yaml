@@ -29,22 +29,21 @@ evolution:
   mutation_rate: 0.3        # Probability of mutating parameters
   crossover_rate: 0.2       # Proportion of offspring from crossover
 
-# LoRA hyperparameter search space
+# LoRA hyperparameter search space - expanded with new properties
 lora_search_space:
-  rank: [8, 16, 32]                     # LoRA rank options (reduced options)
+  rank: [8, 16, 32]                     # LoRA rank options
   alpha_multiplier: [1, 2]               # alpha = rank * multiplier
-  dropout: [0.05, 0.1]                   # Dropout rates (reduced options)
-  learning_rate: [2e-5, 5e-5, 1e-4]     # Learning rates (focused range)
-  target_modules:                        # Modules to apply LoRA to
-    - "q_proj"
-    - "k_proj"
-    - "v_proj"
-    - "o_proj"
-    - "gate_proj"  # Added for better Unsloth performance
-    - "up_proj"    # Added for better Unsloth performance
-    - "down_proj"  # Added for better Unsloth performance
+  dropout: [0.0]                         # Keep at 0 for Unsloth fast patching
+  learning_rate: [2e-5, 5e-5, 1e-4]     # Learning rates
+  # New training hyperparameters
+  weight_decay: [0.0, 0.01, 0.05]       # Regularization strength
+  warmup_ratio: [0.0, 0.1, 0.2]         # Training warmup
+  max_grad_norm: [0.5, 1.0, 2.0]        # Gradient clipping
+  # LoRA-specific options
+  use_rslora: [false, true]             # Rank-Stabilized LoRA (Unsloth supports this)
+  target_modules_preset: ["minimal", "standard", "extended"]  # Module combinations
+  # Note: actual target_modules will be determined by preset
   # Unsloth-specific LoRA options
-  use_rslora: false                     # Use Rank-Stabilized LoRA
   use_gradient_checkpointing: true      # Use Unsloth's optimized checkpointing
 
 # Training parameters

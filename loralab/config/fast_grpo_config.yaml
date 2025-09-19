@@ -1,0 +1,117 @@
+# LoRALab Fast GRPO Evolution Configuration
+# Optimized for rapid evolutionary cycles with GRPO for reasoning models
+
+mode: "self_supervised"
+
+# ============================================================================
+# FAST GRPO EVOLUTION CONFIGURATION
+# ============================================================================
+
+# Single model configuration
+model:
+  path: "Qwen/Qwen3-4B-Instruct-2507"  # HuggingFace ID or local path
+  backend: "unsloth"  # Use Unsloth for fast training
+  type: "transformers"
+  torch_dtype: "float16"
+  device_map: "cuda:0"
+  trust_remote_code: true
+  low_cpu_mem_usage: true
+  # Unsloth-specific settings
+  quantization: "4bit"
+  max_seq_length: 1024              # Reduced to save memory
+  chat_template: "qwen3-instruct"
+  load_in_4bit: true                # Ensure 4-bit loading
+  use_cache: false                  # Disable KV cache during training
+
+# Fast evolution parameters
+evolution:
+  population_size: 3        # Minimal population for quick iterations
+  generations: 5            # Fewer generations for testing
+  keep_top: 1               # Keep only the best
+  mutation_rate: 0.4        # Higher mutation for exploration
+  crossover_rate: 0.3       # More crossover for diversity
+
+# Focused LoRA search space - expanded for more diversity
+lora_search_space:
+  rank: [8, 16]                          # Just two rank options
+  alpha_multiplier: [1, 2]               # Alpha = rank * multiplier (Unsloth style)
+  dropout: [0.0]                         # Zero dropout for Unsloth fast patching
+  learning_rate: [5e-5, 1e-4]            # Two learning rates
+  # New training hyperparameters
+  weight_decay: [0.0, 0.01]              # Regularization strength
+  warmup_ratio: [0.0, 0.1]               # Training warmup
+  max_grad_norm: [1.0, 2.0]              # Gradient clipping
+  # LoRA-specific options
+  use_rslora: [false, true]              # Rank-Stabilized LoRA (Unsloth supports this)
+  target_modules_preset: ["minimal", "standard", "extended"]  # Module combinations
+  # Note: actual target_modules will be determined by preset
+  use_gradient_checkpointing: true       # Unsloth's optimized checkpointing
+
+# Training parameters - GRPO specific
+training:
+  method: "grpo"                   # Use GRPO instead of SFT
+  batch_size: 4                    # Smaller batch for GRPO (more memory intensive)
+  gradient_accumulation_steps: 4   # Effective batch = 16
+  epochs_per_variant: 1            # GRPO uses steps instead of epochs
+  max_grad_norm: 1.0               # Gradient clipping
+  weight_decay: 0.01               # Weight decay
+  warmup_ratio: 0.1                # Warmup proportion
+  fp16: false                      # Disabled for stability
+  bf16: false                      # Disabled for stability
+  gradient_checkpointing: false    # Disabled - can conflict with LoRA
+  dataloader_num_workers: 0       # Single worker for Windows
+  dataloader_pin_memory: true      # Pin memory for faster transfer
+  dataloader_prefetch_factor: 2    # Prefetch batches
+
+# GRPO configuration for reasoning model training
+grpo:
+  enabled: true                    # Enable GRPO for reasoning tasks
+  max_steps: 50                    # Reduced steps for fast testing
+  temperature: 0.7                 # Lower temperature for more focused generation
+  num_generations: 4               # Number of generations per batch
+  max_prompt_length: 256           # Reduced for memory efficiency
+  max_completion_length: 256       # Reduced for memory efficiency
+  # Reasoning format markers
+  reasoning_start: "<think>"       # Token marking reasoning start
+  reasoning_end: "</think>"        # Token marking reasoning end
+  solution_start: "<solution>"     # Token marking solution start
+  solution_end: "</solution>"      # Token marking solution end
+  # Reward function weights
+  reward_weights:
+    format: 1.0                    # Weight for format compliance
+    accuracy: 3.0                  # Higher weight for answer accuracy
+    reasoning: 2.0                 # Weight for reasoning quality
+  # Pre-training options
+  pre_train_format: true           # Pre-train on format before GRPO
+  format_examples: 25              # Fewer format examples for speed
+
+# Dataset configuration - optimized for GSM8K math reasoning
+dataset:
+  sources:                         # Datasets to use
+    - "gsm8k"                      # Math reasoning dataset (perfect for GRPO)
+  train_size: 500                  # Small training set for fast iteration
+  eval_size: 100                   # Small eval set for quick evaluation
+  seed: 42                         # Random seed for reproducibility
+  max_seq_length: 256              # Reduced for faster processing
+  use_cache: true                  # Enable dataset caching
+  cache_dir: "cache/datasets"      # Cache directory
+
+# Output configuration
+output:
+  base_dir: "lora_runs_grpo"      # Separate directory for GRPO runs
+  run_name: null                   # Optional run name (null = timestamp)
+  keep_runs: 3                     # Keep fewer runs for space
+
+# Logging
+logging:
+  level: "INFO"
+  save_history: true
+  track_metrics: ["accuracy", "perplexity", "fitness_score", "rewards"]
+
+# Quick test mode (even faster for development)
+quick_test:
+  enabled: false
+  population_size: 2
+  generations: 2
+  train_size: 100
+  eval_size: 

@@ -20,6 +20,8 @@ Other configurations (Linux, macOS, different GPUs/CUDA versions) may work but h
 - **Multi-objective Fitness**: Balances perplexity, training speed, and parameter efficiency
 - **Population-based Training**: Tests multiple configurations in parallel
 - **Adaptive Mutation**: Adjusts exploration based on convergence
+- **Duplicate Prevention**: Hash-based configuration tracking ensures no repeated experiments
+- **Extended Search Space**: Evolves 9 different hyperparameters for comprehensive optimization
 
 ### Unsloth Integration
 - **3-5x Faster Training**: Hardware-optimized kernels for modern GPUs
@@ -152,21 +154,33 @@ evolution:
 ```
 
 ### LoRA Search Space
+The evolutionary algorithm explores a comprehensive search space:
+
 ```yaml
 lora_search_space:
+  # Core LoRA parameters
   rank: [8, 16, 32]  # LoRA rank options
   alpha_multiplier: [1, 2]  # Alpha = rank * multiplier
   dropout: [0.0]  # 0 for Unsloth fast patching
   learning_rate: [2e-5, 5e-5, 1e-4]
-  target_modules:  # Modules to apply LoRA
-    - "q_proj"
-    - "k_proj"
-    - "v_proj"
-    - "o_proj"
-    - "gate_proj"
-    - "up_proj"
-    - "down_proj"
+
+  # Training hyperparameters (evolved per variant)
+  weight_decay: [0.0, 0.01, 0.05]  # L2 regularization
+  warmup_ratio: [0.0, 0.1, 0.2]  # Learning rate warmup
+  max_grad_norm: [0.5, 1.0, 2.0]  # Gradient clipping threshold
+
+  # Advanced LoRA settings
+  use_rslora: [false, true]  # Rank-Stabilized LoRA
+  target_modules_preset: ["minimal", "standard", "extended"]
+  # minimal: q_proj, v_proj (fastest)
+  # standard: q_proj, k_proj, v_proj, o_proj (balanced)
+  # extended: all 7 projection modules (comprehensive)
 ```
+
+#### Search Space Size
+- **Fast configs**: 384 unique combinations
+- **Main config**: 1,458 unique combinations
+- **Duplicate prevention**: Ensures no wasted computation on repeated configurations
 
 ## Supported Datasets
 
