@@ -32,6 +32,7 @@ Other configurations (Linux, macOS, different GPUs/CUDA versions) may work but h
 ### Advanced Training Methods
 - **SFT (Supervised Fine-Tuning)**: Standard instruction tuning with TRL integration
 - **GRPO (Group Relative Policy Optimization)**: For reasoning and chain-of-thought models
+- **Multi-Model Support**: Optimized configurations for Qwen3-4B and Gemma3-270M
 - **Memory-Efficient Training**: Gradient checkpointing, mixed precision, and batch optimization
 
 ### Windows Optimization
@@ -109,18 +110,36 @@ pip install "unsloth[colab-new] @ git+https://github.com/unslothai/unsloth.git" 
 
 ### Fast Evolution (Recommended for Testing)
 ```bash
-# Windows
+# Windows - Qwen3 with standard SFT
 ./run_fast.bat
+
+# Windows - Qwen3 with GRPO
+./run_fast_grpo.bat
+
+# Windows - Gemma3 with GRPO
+./run_gemma3_evolution.bat
 
 # Linux/Mac
 ./run_fast.sh
 ```
 
+### Single GRPO Training (No Evolution)
+```bash
+# Train single Gemma3 variant
+./run_single_gemma3.bat
+
+# Train single Qwen3 variant
+./run_single_qwen3.bat
+
+# Or use Python directly with custom parameters
+python run_single_grpo.py --model gemma3 --rank 128 --learning-rate 2e-4
+```
+
 This runs a quick evolution with:
-- 3 variants per generation
-- 5 generations
+- 3-4 variants per generation
+- 5-10 generations
 - GSM8K dataset (math reasoning)
-- 4-bit quantization
+- 4-bit quantization for Qwen3, FP16 for Gemma3
 - Optimized memory settings
 
 ### Full Evolution
@@ -133,6 +152,30 @@ python run_evolution.py
 python run_evolution.py --config my_config.yaml --generations 20 --population 10
 ```
 
+## Supported Models
+
+### Pre-configured Models
+- **Qwen3-4B-Instruct-2507**: 4B parameter model, 4-bit quantization
+- **Gemma3-270M-IT**: Lightweight 270M model, ideal for testing
+- **Custom Models**: Any HuggingFace model compatible with Unsloth
+
+### Model-Specific Configurations
+```yaml
+# Qwen3 Configuration (4B model)
+model:
+  path: "Qwen/Qwen3-4B-Instruct-2507"
+  quantization: "4bit"
+  chat_template: "qwen3-instruct"
+  max_seq_length: 1024
+
+# Gemma3 Configuration (270M model)
+model:
+  path: "unsloth/gemma-3-270m-it"
+  quantization: "none"  # Small model doesn't need quantization
+  chat_template: "gemma3"
+  max_seq_length: 2048
+```
+
 ## Configuration
 
 ### Model Configuration
@@ -142,6 +185,7 @@ model:
   backend: "unsloth"  # Use Unsloth optimizations
   quantization: "4bit"  # 4-bit, 8-bit, or none
   max_seq_length: 1024  # Reduce for less memory usage
+  chat_template: "qwen3-instruct"  # Model-specific template
 ```
 
 ### Evolution Parameters

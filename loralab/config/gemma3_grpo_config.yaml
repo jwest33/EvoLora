@@ -1,0 +1,117 @@
+# LoRALab Gemma3-270M GRPO Evolution Configuration
+# Optimized for Gemma3-270M-IT model with GRPO for reasoning tasks
+
+mode: "self_supervised"
+
+# ============================================================================
+# GEMMA3-270M GRPO CONFIGURATION
+# ============================================================================
+
+# Gemma3-270M model configuration
+model:
+  path: "unsloth/gemma-3-270m-it"  # Small Gemma3 model (270M params)
+  backend: "unsloth"  # Use Unsloth for fast training
+  type: "transformers"
+  torch_dtype: "float16"
+  device_map: "cuda:0"
+  trust_remote_code: true
+  low_cpu_mem_usage: true
+  # Unsloth-specific settings
+  quantization: "none"  # No quantization for 270M model (it's already small)
+  max_seq_length: 2048  # Gemma3 supports up to 8k context
+  chat_template: "gemma3"  # Use Gemma3 chat template
+  load_in_4bit: false  # Disabled for small model
+  load_in_8bit: false  # Disabled for small model
+  use_cache: false  # Disable KV cache during training
+
+# Evolution parameters - optimized for small model
+evolution:
+  population_size: 4        # Small population for quick iterations
+  generations: 10           # More generations to explore
+  keep_top: 2               # Keep top 2 performers
+  mutation_rate: 0.35       # Higher mutation for exploration
+  crossover_rate: 0.25      # Moderate crossover
+
+# LoRA search space - adjusted for 270M model
+lora_search_space:
+  rank: [64, 128, 256]                    # Higher ranks for small model
+  alpha_multiplier: [1, 2]                # Alpha = rank * multiplier
+  dropout: [0.0]                          # Zero dropout for Unsloth
+  learning_rate: [1e-4, 2e-4, 5e-4]      # Higher LR for small model
+  # Training hyperparameters
+  weight_decay: [0.0, 0.01, 0.05]        # Regularization
+  warmup_ratio: [0.0, 0.1, 0.2]          # Warmup ratio
+  max_grad_norm: [0.5, 1.0, 2.0]         # Gradient clipping
+  # LoRA-specific options
+  use_rslora: [false, true]              # Rank-Stabilized LoRA
+  target_modules_preset: ["standard", "extended", "full"]  # Module combinations
+  use_gradient_checkpointing: true       # Unsloth's optimized checkpointing
+
+# Training parameters - GRPO specific
+training:
+  method: "grpo"                   # Use GRPO for reasoning
+  batch_size: 8                    # Larger batch for small model
+  gradient_accumulation_steps: 2   # Effective batch = 16
+  epochs_per_variant: 1            # Single epoch per variant
+  max_grad_norm: 1.0               # Gradient clipping
+  weight_decay: 0.01               # Weight decay
+  warmup_ratio: 0.1                # Warmup proportion
+  fp16: true                       # Use FP16 for speed
+  bf16: false                      # Disabled
+  gradient_checkpointing: false    # Let Unsloth handle this
+  dataloader_num_workers: 0       # Windows compatibility
+  dataloader_pin_memory: true      # Pin memory
+  dataloader_prefetch_factor: 2    # Prefetch batches
+
+# GRPO configuration for reasoning
+grpo:
+  enabled: true                    # Enable GRPO
+  max_steps: 100                   # Training steps
+  temperature: 0.8                 # Generation temperature
+  num_generations: 4               # Generations per batch
+  max_prompt_length: 512           # Max prompt length
+  max_completion_length: 512       # Max completion length
+  # Reasoning format markers
+  reasoning_start: "<think>"       # Reasoning start token
+  reasoning_end: "</think>"        # Reasoning end token
+  solution_start: "<solution>"     # Solution start token
+  solution_end: "</solution>"      # Solution end token
+  # Reward function weights
+  reward_weights:
+    format: 1.0                    # Format compliance weight
+    accuracy: 3.0                  # Higher weight for accuracy
+    reasoning: 2.0                 # Reasoning quality weight
+  # Pre-training options
+  pre_train_format: true           # Pre-train on format
+  format_examples: 50              # More examples for small model
+
+# Dataset configuration
+dataset:
+  sources:                         # Datasets to use
+    - "gsm8k"                      # Math reasoning dataset
+  train_size: 1000                # Moderate training set
+  eval_size: 200                   # Evaluation set
+  seed: 42                         # Random seed
+  max_seq_length: 512              # Sequence length
+  use_cache: true                  # Enable caching
+  cache_dir: "cache/datasets"      # Cache directory
+
+# Output configuration
+output:
+  base_dir: "lora_runs_gemma3"    # Separate directory for Gemma3
+  run_name: null                   # Auto-generate name
+  keep_runs: 5                     # Keep recent runs
+
+# Logging
+logging:
+  level: "INFO"
+  save_history: true
+  track_metrics: ["accuracy", "perplexity", "fitness_score", "rewards"]
+
+# Quick test mode
+quick_test:
+  enabled: false
+  population_size: 2
+  generations: 2
+  train_size: 100
+  eval_size: 20

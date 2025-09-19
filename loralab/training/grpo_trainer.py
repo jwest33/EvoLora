@@ -345,11 +345,32 @@ Then provide your final answer between {solution_start} and {solution_end}."""
         })
 
         # Create reward functions list
-        reward_funcs = [
-            lambda p, c, answer, **kw: self.reward_functions.combined_reward(
-                p, c, answer, weights=reward_weights, **kw
+        # GRPO passes completions as first arg, and dataset columns as kwargs
+        # The 'answer' field from the dataset will be passed in kwargs
+        def custom_reward_func(completions, answer=None, **kwargs):
+            """Custom reward function that uses our RewardFunctions class"""
+            # Completions come as list of message dicts, extract just the content
+            completion_texts = []
+            for comp in completions:
+                if isinstance(comp, list) and len(comp) > 0:
+                    # Extract content from message dict
+                    completion_texts.append(comp[0].get('content', ''))
+                else:
+                    completion_texts.append(str(comp))
+
+            # Convert answer to list if it's not already
+            if answer is not None and not isinstance(answer, list):
+                answer = [answer] * len(completions)
+
+            # Calculate combined reward using our reward functions
+            return self.reward_functions.combined_reward(
+                prompts=[],  # Prompts not needed for our reward calculation
+                completions=[[{"content": text}] for text in completion_texts],
+                answers=answer or [],
+                weights=reward_weights
             )
-        ]
+
+        reward_funcs = [custom_reward_func]
 
         # Create GRPO trainer
         trainer = TRLGRPOTrainer(
