@@ -225,12 +225,36 @@ Training progress includes:
 - Perplexity evaluation
 - Generation-by-generation comparisons
 
+## How Evolution Works
+
+### Mutation Strategy
+The genetic algorithm intelligently mutates variants across multiple dimensions:
+
+1. **Smart Parameter Mutation**: Each hyperparameter has a 30% chance of mutation per generation
+2. **Adaptive Learning Rate Scaling**: Can scale existing LR by factors (0.5x, 0.8x, 1.25x, 2x) or pick new values
+3. **Module Preset Evolution**: Automatically tests different combinations of target modules
+4. **Training Dynamics Evolution**: Optimizes weight decay, warmup, and gradient clipping per variant
+
+### Duplicate Prevention System
+- **Configuration Hashing**: Each variant gets a unique MD5 hash based on all parameters
+- **Intelligent Retry**: Attempts to create unique variants up to 10 times
+- **Forced Variation**: If uniqueness cannot be achieved, applies small perturbations
+- **Memory Efficient**: Tracks only configuration hashes, not full variant objects
+
+### Fitness Evaluation
+Each variant is scored based on:
+- **Accuracy** (70% weight): Task performance on evaluation set
+- **Perplexity** (30% weight): Model confidence and calibration
+- **Efficiency Penalty**: Slight penalty for very large ranks (>128)
+
 ## Results
 
 Typical improvements from evolution:
 - **30-50% better perplexity** vs random hyperparameters
 - **2-3x faster convergence** with optimal learning rates
 - **Automatic rank selection** balancing performance and efficiency
+- **Optimal training dynamics** discovered through evolution
+- **48x more diverse** search space with new mutation properties
 
 ## Common Issues & Troubleshooting
 
