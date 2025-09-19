@@ -1,6 +1,17 @@
 # LoRALab: Evolutionary LoRA Optimization Framework
 
-A framework for automatically discovering optimal LoRA (Low-Rank Adaptation) configurations through evolutionary algorithms. LoRALab leverages Unsloth faster training with less memory usage.
+A framework for automatically discovering optimal LoRA (Low-Rank Adaptation) configurations through evolutionary algorithms. LoRALab leverages Unsloth for faster training with less memory usage.
+
+## Important Notice
+
+**This project has been tested exclusively on:**
+- Windows 11
+- NVIDIA RTX 5060 Ti (16GB VRAM)
+- CUDA 12.8 (nvcc compiler)
+- Python 3.11
+- PyTorch 2.5.1+cu124
+
+Other configurations (Linux, macOS, different GPUs/CUDA versions) may work but have not been tested and may require adjustments.
 
 ## Key Features
 
@@ -26,42 +37,71 @@ A framework for automatically discovering optimal LoRA (Low-Rank Adaptation) con
 - **Memory Fragmentation Reduction**: Optimized allocator settings
 - **Single-threaded Fallback**: Ensures stability on Windows systems
 
-## Requirements
+## System Requirements
 
-- Python 3.8+
-- CUDA 11.8+ compatible GPU (4GB+ VRAM recommended)
-- Windows/Linux/MacOS (Windows fully optimized)
+### Tested Configuration
+- **OS**: Windows 11
+- **GPU**: NVIDIA RTX 5060 Ti (16GB VRAM)
+- **CUDA**: 12.8 (nvcc compiler tools)
+- **CUDA Driver**: 13.0 capable (driver 581.15)
+- **Python**: 3.11
+- **PyTorch**: 2.5.1+cu124
+- **RAM**: 32GB+ recommended
 
 ## Installation
 
+### Prerequisites
+1. **Install CUDA Toolkit** (if not already installed)
+   - Download from [NVIDIA CUDA Downloads](https://developer.nvidia.com/cuda-downloads)
+   - Tested setup uses CUDA 12.8
+   - Note: PyTorch may use a different CUDA version (e.g., cu124 = CUDA 12.4)
+
+2. **Verify CUDA Installation**
+```bash
+nvcc --version  # Should show your CUDA compiler version (e.g., 12.8)
+nvidia-smi      # Should show your GPU and driver info
+```
+
+### Setup Instructions
+
 1. **Clone the repository**
 ```bash
-git clone https://github.com/yourusername/loralab.git
+git clone https://github.com/jwest33/loralab.git
 cd loralab
 ```
 
-2. **Create virtual environment**
+2. **Create virtual environment** (Python 3.11 recommended)
 ```bash
 python -m venv .venv
-.venv\Scripts\activate  # Windows
-source .venv/bin/activate  # Linux/Mac
+# Windows:
+.venv\Scripts\activate
+# Linux/Mac (untested):
+source .venv/bin/activate
 ```
 
-3. **Install dependencies**
+3. **Install PyTorch with CUDA support** (critical - do this first!)
+```bash
+# For CUDA 12.x (tested with CUDA 12.8):
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128
+
+# Install xFormers for memory-efficient attention:
+pip install xformers --no-deps --index-url https://download.pytorch.org/whl/cu128
+```
+
+4. **Install base dependencies**
 ```bash
 pip install -r requirements.txt
 ```
 
-4. **Install Unsloth (recommended)**
+5. **Install Unsloth** (critical for performance)
 ```bash
-# For most GPUs (CUDA 12.1+)
+# For latest CUDA (tested with 12.8):
 pip install "unsloth[colab-new] @ git+https://github.com/unslothai/unsloth.git"
 
-# For specific CUDA versions
-pip install "unsloth[cu118]"  # CUDA 11.8
-pip install "unsloth[cu121]"  # CUDA 12.1
-pip install "unsloth[cu124]"  # CUDA 12.4+
+# If you encounter issues, try:
+pip install "unsloth[colab-new] @ git+https://github.com/unslothai/unsloth.git" --upgrade --force-reinstall --no-cache-dir
 ```
+
 
 ## Quick Start
 
@@ -178,21 +218,69 @@ Typical improvements from evolution:
 - **2-3x faster convergence** with optimal learning rates
 - **Automatic rank selection** balancing performance and efficiency
 
-## Troubleshooting
+## Common Issues & Troubleshooting
 
-### CUDA Out of Memory
-- Reduce `batch_size` in config (default: 4)
-- Lower `max_seq_length` (default: 1024)
-- Use stronger quantization (4-bit vs 8-bit)
+### Installation Issues
 
-### Windows Multiprocessing Errors
-- Already handled automatically
-- Set `dataloader_num_workers: 0` if issues persist
+**Unsloth Installation Fails**
+```bash
+# Try installing with no cache:
+pip install "unsloth[colab-new] @ git+https://github.com/unslothai/unsloth.git" --no-cache-dir
 
-### Slow Training
-- Ensure Unsloth is properly installed
-- Check CUDA version compatibility
-- Disable dropout (set to 0.0) for faster Unsloth patching
+# Or install from PyPI for your CUDA version:
+pip install unsloth[cu121]  # For CUDA 12.1
+```
+
+**CUDA Version Mismatch**
+- PyTorch CUDA version doesn't need to exactly match system CUDA
+- System CUDA 12.8 works fine with PyTorch cu124 (CUDA 12.4)
+- Check versions:
+  ```bash
+  nvcc --version  # System CUDA compiler (e.g., 12.8)
+  python -c "import torch; print(torch.version.cuda)"  # PyTorch CUDA (e.g., 12.4)
+  ```
+- As long as driver supports the PyTorch CUDA version, it will work
+
+**bitsandbytes on Windows**
+```bash
+# If bitsandbytes fails, try:
+pip install bitsandbytes-windows
+# Or use the pre-built wheels:
+pip install https://github.com/jllllll/bitsandbytes-windows-webui/releases/download/wheels/bitsandbytes-0.41.1-py3-none-win_amd64.whl
+```
+
+### Runtime Issues
+
+**CUDA Out of Memory**
+- Reduce `batch_size` in config.yaml (try 2 or 4)
+- Lower `max_seq_length` (try 512 or 256)
+- Use 4-bit quantization instead of 8-bit
+- Reduce `population_size` in evolution config
+
+**Windows Multiprocessing Errors**
+- Already handled automatically in the code
+- If issues persist, set in config.yaml:
+  ```yaml
+  training:
+    dataloader_num_workers: 0
+  ```
+
+**Slow Training**
+1. Verify Unsloth is being used:
+   ```python
+   python -c "from loralab.core.unsloth_manager import UnslothModelManager; print('Unsloth OK')"
+   ```
+2. Check GPU utilization: `nvidia-smi` should show high usage
+3. Ensure dropout is 0.0 for Unsloth fast patching
+4. Use batch_size that maximizes GPU memory usage
+
+**Memory Fragmentation**
+- The code automatically sets optimal PyTorch memory settings
+- If issues persist, restart Python/clear CUDA cache:
+  ```python
+  import torch
+  torch.cuda.empty_cache()
+  ```
 
 ## License
 

@@ -6,6 +6,7 @@ import GPUtil
 import logging
 from typing import Dict, Optional
 import time
+from .cli_formatter import CLIFormatter
 
 logger = logging.getLogger(__name__)
 
@@ -132,57 +133,69 @@ class MemoryMonitor:
 
         status = self.check_memory_pressure()
 
-        # Format log message
+        # Use CLIFormatter for colored output
         gpu = status['gpu_memory']
         ram = status['ram']
 
-        log_msg = (f"[Memory] {variant_id} "
-                  f"GPU: {gpu['allocated']:.2f}/{gpu['reserved']:.2f}/{gpu['total']:.2f}GB "
-                  f"({gpu['utilization']:.1f}%) | "
-                  f"RAM: {ram['process']:.2f}GB (System: {ram['percent']:.1f}%)")
+        # Print formatted memory status
+        CLIFormatter.print_memory_status(gpu, ram, variant_id)
 
+        # Print warnings if offloading detected
         if status['likely_offloading']:
-            log_msg += f" | WARNING: {', '.join(status['signs_of_offloading'])}"
-            logger.warning(log_msg)
-        else:
-            logger.info(log_msg)
+            CLIFormatter.print_warning(f"Memory pressure detected: {', '.join(status['signs_of_offloading'])}")
 
         # Clear PyTorch's cache periodically to prevent fragmentation
         if gpu['utilization'] > 85:
             torch.cuda.empty_cache()
-            logger.info("Cleared CUDA cache due to high memory usage")
+            CLIFormatter.print_info("Cleared CUDA cache due to high memory usage")
 
     def get_summary(self) -> str:
         """Get a summary of memory usage"""
         status = self.check_memory_pressure()
         elapsed = time.time() - self.start_time
+        gpu_mem = status['gpu_memory']
+        ram = status['ram']
 
-        summary = [
-            "\n" + "="*60,
-            "MEMORY USAGE SUMMARY",
-            "="*60,
-            f"Duration: {elapsed/60:.1f} minutes",
-            f"\nGPU Memory:",
-            f"  Current: {status['gpu_memory']['used']:.2f}/{status['gpu_memory']['total']:.2f}GB ({status['gpu_memory']['utilization']:.1f}%)",
-            f"  Peak: {self.peak_gpu_memory:.2f}GB",
-            f"  Allocated: {status['gpu_memory']['allocated']:.2f}GB",
-            f"  Reserved: {status['gpu_memory']['reserved']:.2f}GB",
-            f"\nSystem RAM:",
-            f"  Process: {status['ram']['process']:.2f}GB (Peak: {self.peak_ram_usage:.2f}GB)",
-            f"  System: {status['ram']['used']:.2f}/{status['ram']['total']:.2f}GB ({status['ram']['percent']:.1f}%)",
-            f"  Increase since start: {status['ram_increase_gb']:.2f}GB"
-        ]
+        # Build formatted summary
+        from io import StringIO
+        import sys
 
+        # Capture formatted output
+        old_stdout = sys.stdout
+        sys.stdout = output_buffer = StringIO()
+
+        # Print formatted summary
+        CLIFormatter.print_header("MEMORY USAGE SUMMARY")
+        CLIFormatter.print_info(f"Duration: {CLIFormatter.format_time(elapsed)}")
+
+        # GPU Memory section
+        CLIFormatter.print_subheader("GPU Memory")
+        utilization_percent = gpu_mem['utilization']
+        CLIFormatter.print_metric("Current", gpu_mem['used'], f"/{gpu_mem['total']:.2f}GB ({utilization_percent:.1f}%)",
+                                 good_threshold=70, bad_threshold=85)
+        CLIFormatter.print_metric("Peak", self.peak_gpu_memory, "GB")
+        CLIFormatter.print_metric("Allocated", gpu_mem['allocated'], "GB")
+        CLIFormatter.print_metric("Reserved", gpu_mem['reserved'], "GB")
+
+        # System RAM section
+        CLIFormatter.print_subheader("System RAM")
+        CLIFormatter.print_metric("Process", ram['process'], f"GB (Peak: {self.peak_ram_usage:.2f}GB)")
+        CLIFormatter.print_metric("System", ram['used'], f"/{ram['total']:.2f}GB ({ram['percent']:.1f}%)",
+                                 good_threshold=70, bad_threshold=85)
+        CLIFormatter.print_metric("Increase since start", status['ram_increase_gb'], "GB",
+                                 good_threshold=2.0, bad_threshold=4.0)
+
+        # Offloading detection
         if status['likely_offloading']:
-            summary.append(f"\n⚠️  Possible Memory Offloading Detected:")
+            CLIFormatter.print_warning("Possible Memory Offloading Detected:")
             for sign in status['signs_of_offloading']:
-                summary.append(f"  - {sign}")
+                CLIFormatter.print_list_item(sign, level=1)
         else:
-            summary.append("\n✓ No signs of memory offloading detected")
+            CLIFormatter.print_success("No signs of memory offloading detected")
 
-        summary.append("="*60 + "\n")
-
-        return "\n".join(summary)
+        # Get the formatted output
+        sys.stdout = old_stdout
+        return output_buffer.getvalue()
 
 
 def diagnose_memory_usage(model, sample_batch_size: int = 16):
@@ -193,14 +206,12 @@ def diagnose_memory_usage(model, sample_batch_size: int = 16):
         sample_batch_size: Batch size to test with
     """
     if not torch.cuda.is_available():
-        print("CUDA not available, cannot diagnose GPU memory")
+        CLIFormatter.print_error("CUDA not available, cannot diagnose GPU memory")
         return
 
     device = next(model.parameters()).device
 
-    print("\n" + "="*60)
-    print("MEMORY DIAGNOSTIC")
-    print("="*60)
+    CLIFormatter.print_header("MEMORY DIAGNOSTIC")
 
     # Clear cache first
     torch.cuda.empty_cache()
@@ -210,17 +221,17 @@ def diagnose_memory_usage(model, sample_batch_size: int = 16):
     model_memory = sum(p.numel() * p.element_size() for p in model.parameters()) / 1024**3
     trainable_memory = sum(p.numel() * p.element_size() for p in model.parameters() if p.requires_grad) / 1024**3
 
-    print(f"\nModel Memory:")
-    print(f"  Total parameters memory: {model_memory:.3f}GB")
-    print(f"  Trainable parameters memory: {trainable_memory:.3f}GB")
+    CLIFormatter.print_subheader("Model Memory")
+    CLIFormatter.print_metric("Total parameters memory", model_memory, "GB")
+    CLIFormatter.print_metric("Trainable parameters memory", trainable_memory, "GB")
 
     # Current GPU state
     allocated = torch.cuda.memory_allocated(device) / 1024**3
     reserved = torch.cuda.memory_reserved(device) / 1024**3
 
-    print(f"\nCurrent GPU Memory:")
-    print(f"  Allocated: {allocated:.3f}GB")
-    print(f"  Reserved: {reserved:.3f}GB")
+    CLIFormatter.print_subheader("Current GPU Memory")
+    CLIFormatter.print_metric("Allocated", allocated, "GB", good_threshold=0.7*torch.cuda.get_device_properties(device).total_memory/1024**3, bad_threshold=0.9*torch.cuda.get_device_properties(device).total_memory/1024**3)
+    CLIFormatter.print_metric("Reserved", reserved, "GB", good_threshold=0.7*torch.cuda.get_device_properties(device).total_memory/1024**3, bad_threshold=0.9*torch.cuda.get_device_properties(device).total_memory/1024**3)
 
     # Estimate batch memory
     # Assuming sequence length of 256 and vocab size of ~150k for Qwen
@@ -235,30 +246,28 @@ def diagnose_memory_usage(model, sample_batch_size: int = 16):
 
     estimated_batch_memory = input_memory + attention_memory + output_memory
 
-    print(f"\nEstimated Memory per Batch (size={sample_batch_size}):")
-    print(f"  Input embeddings: {input_memory:.3f}GB")
-    print(f"  Attention: {attention_memory:.3f}GB")
-    print(f"  Output logits: {output_memory:.3f}GB")
-    print(f"  Total estimate: {estimated_batch_memory:.3f}GB")
+    CLIFormatter.print_subheader(f"Estimated Memory per Batch (size={sample_batch_size})")
+    CLIFormatter.print_metric("Input embeddings", input_memory, "GB")
+    CLIFormatter.print_metric("Attention", attention_memory, "GB")
+    CLIFormatter.print_metric("Output logits", output_memory, "GB")
+    CLIFormatter.print_metric("Total estimate", estimated_batch_memory, "GB")
 
     # GPU capacity
     total_memory = torch.cuda.get_device_properties(device).total_memory / 1024**3
     available = total_memory - reserved
 
-    print(f"\nGPU Capacity:")
-    print(f"  Total: {total_memory:.3f}GB")
-    print(f"  Available: {available:.3f}GB")
-    print(f"  Reserved for this process: {reserved:.3f}GB")
+    CLIFormatter.print_subheader("GPU Capacity")
+    CLIFormatter.print_metric("Total", total_memory, "GB")
+    CLIFormatter.print_metric("Available", available, "GB", good_threshold=0.3*total_memory, bad_threshold=0.1*total_memory)
+    CLIFormatter.print_metric("Reserved for this process", reserved, "GB")
 
     # Recommendations
-    print(f"\nRecommendations:")
+    CLIFormatter.print_subheader("Recommendations")
     if available < estimated_batch_memory:
-        print(f"  ⚠️  Batch size {sample_batch_size} may cause OOM!")
+        CLIFormatter.print_warning(f"Batch size {sample_batch_size} may cause OOM!")
         safe_batch = int(available / (estimated_batch_memory / sample_batch_size))
-        print(f"  💡 Try batch size <= {safe_batch}")
+        CLIFormatter.print_info(f"Try batch size <= {safe_batch}")
     else:
-        print(f"  ✓ Batch size {sample_batch_size} should fit in memory")
+        CLIFormatter.print_success(f"Batch size {sample_batch_size} should fit in memory")
         max_batch = int(available / (estimated_batch_memory / sample_batch_size))
-        print(f"  💡 Maximum batch size estimate: {max_batch}")
-
-    print("="*60 + "\n")
+        CLIFormatter.print_info(f"Maximum batch size estimate: {max_batch}")

@@ -1,17 +1,34 @@
 # LoRALab Evolution System Requirements
+# IMPORTANT: This project has been tested on Windows 11 with:
+#   - NVIDIA RTX 5060 Ti (16GB VRAM)
+#   - CUDA 12.8 (nvcc compiler)
+#   - PyTorch 2.5.1+cu124
+#   - Python 3.11
+# Other configurations may require adjustments
 
-# Core ML Libraries
-torch>=2.0.0,<2.9.0  # PyTorch (use CUDA version matching your system)
+# Core ML Libraries (install in order)
+# 1. First install PyTorch with CUDA support:
+#    pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128
+# 2. Install xFormers for memory efficiency:
+#    pip install xformers --no-deps --index-url https://download.pytorch.org/whl/cu128
+# 3. Then install the rest of the requirements:
+#    pip install -r requirements.txt
+
 transformers>=4.30.0  # HuggingFace Transformers
 peft>=0.5.0  # Parameter-Efficient Fine-Tuning (LoRA support)
 accelerate>=0.20.0  # Distributed training support
 
-# Optimized Training
-unsloth>=2024.1
+# Optimized Training (install manually AFTER PyTorch)
+# Unsloth - Critical for performance:
+#   pip install "unsloth[colab-new] @ git+https://github.com/unslothai/unsloth.git"
+# OR for specific CUDA versions:
+#   pip install "unsloth[cu124]"  # CUDA 12.4-12.8 (tested)
+#   pip install "unsloth[cu121]"  # CUDA 12.1-12.3
+#   pip install "unsloth[cu118]"  # CUDA 11.8
 
 # Advanced Training Methods
-trl>=0.7.0  # Transformer Reinforcement Learning (SFT, GRPO, DPO)
-bitsandbytes>=0.41.0  # 4-bit/8-bit quantization
+trl>=0.7.0  # Transformer Reinforcement Learning (SFT, GRPO)
+bitsandbytes>=0.41.0  # 4-bit/8-bit quantization for Windows
 
 # Datasets & Evaluation
 datasets>=2.14.0  # HuggingFace datasets

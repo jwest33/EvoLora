@@ -27,7 +27,8 @@ def evolve_command(args):
     import torch
     if torch.cuda.is_available():
         CLIFormatter.print_info(f"CUDA available: {torch.cuda.get_device_name(0)}")
-        CLIFormatter.print_info(f"CUDA memory: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.2f} GB")
+        total_memory_gb = torch.cuda.get_device_properties(0).total_memory / 1024**3
+        CLIFormatter.print_metric("CUDA memory", total_memory_gb, "GB")
     else:
         CLIFormatter.print_warning("CUDA not available - will use CPU (much slower)")
 

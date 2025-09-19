@@ -280,6 +280,79 @@ class CLIFormatter:
         else:
             return f"{seconds/3600:.1f}h"
 
+    @staticmethod
+    def print_memory_status(gpu_memory: dict, ram: dict, variant_id: str = ""):
+        """Print formatted memory status for monitoring
+
+        Args:
+            gpu_memory: Dict with GPU memory stats (allocated, reserved, total, utilization)
+            ram: Dict with RAM stats (process, total, percent)
+            variant_id: Optional variant identifier
+        """
+        # Determine GPU memory color based on utilization
+        gpu_util = gpu_memory.get('utilization', 0)
+        if gpu_util < 70:
+            gpu_color = Fore.GREEN
+        elif gpu_util < 85:
+            gpu_color = Fore.YELLOW
+        else:
+            gpu_color = Fore.RED
+
+        # Determine RAM color based on percentage
+        ram_percent = ram.get('percent', 0)
+        if ram_percent < 70:
+            ram_color = Fore.GREEN
+        elif ram_percent < 85:
+            ram_color = Fore.YELLOW
+        else:
+            ram_color = Fore.RED
+
+        # Format the status line
+        variant_str = f"[{variant_id}] " if variant_id else ""
+
+        gpu_str = (f"GPU: {gpu_color}{gpu_memory['allocated']:.2f}/"
+                   f"{gpu_memory['reserved']:.2f}/{gpu_memory['total']:.2f}GB "
+                   f"({gpu_util:.1f}%){Style.RESET_ALL}")
+
+        ram_str = (f"RAM: {ram_color}{ram['process']:.2f}GB "
+                   f"(System: {ram_percent:.1f}%){Style.RESET_ALL}")
+
+        print(f"{Fore.BLUE}[Memory]{Style.RESET_ALL} {variant_str}{gpu_str} | {ram_str}")
+
+    @staticmethod
+    def print_memory_diagnostic(title: str, metrics: dict):
+        """Print a formatted memory diagnostic section
+
+        Args:
+            title: Section title
+            metrics: Dict of metric names to (value, unit) tuples or just values
+        """
+        CLIFormatter.print_subheader(title)
+
+        for name, value in metrics.items():
+            if isinstance(value, tuple):
+                metric_value, unit = value
+                CLIFormatter.print_metric(name, metric_value, unit)
+            else:
+                CLIFormatter.print_metric(name, value, "")
+
+    @staticmethod
+    def format_memory_size(size_gb: float) -> str:
+        """Format memory size with appropriate units
+
+        Args:
+            size_gb: Size in gigabytes
+
+        Returns:
+            Formatted string with appropriate units
+        """
+        if size_gb < 0.001:
+            return f"{size_gb * 1024 * 1024:.1f}KB"
+        elif size_gb < 1:
+            return f"{size_gb * 1024:.1f}MB"
+        else:
+            return f"{size_gb:.2f}GB"
+
 
 class SpinnerProgress:
     """Simple spinner for long-running operations"""

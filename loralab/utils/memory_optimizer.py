@@ -7,6 +7,7 @@ import torch
 import gc
 import os
 import logging
+from .cli_formatter import CLIFormatter
 
 logger = logging.getLogger(__name__)
 
@@ -24,12 +25,24 @@ def optimize_memory():
         # Set memory fraction to prevent over-allocation
         torch.cuda.set_per_process_memory_fraction(0.95)
 
-        # Log current memory state
+        # Log current memory state with formatted output
         allocated = torch.cuda.memory_allocated() / 1024**3
         reserved = torch.cuda.memory_reserved() / 1024**3
         total = torch.cuda.get_device_properties(0).total_memory / 1024**3
+        utilization = (reserved / total) * 100 if total > 0 else 0
 
-        logger.info(f"GPU Memory optimized: {allocated:.2f}GB allocated, {reserved:.2f}GB reserved, {total:.2f}GB total")
+        # Use formatted memory status display
+        gpu_memory = {
+            'allocated': allocated,
+            'reserved': reserved,
+            'total': total,
+            'utilization': utilization
+        }
+
+        CLIFormatter.print_info("GPU Memory optimized")
+        CLIFormatter.print_metric("Allocated", allocated, "GB", good_threshold=0.7*total, bad_threshold=0.9*total)
+        CLIFormatter.print_metric("Reserved", reserved, "GB", good_threshold=0.7*total, bad_threshold=0.9*total)
+        CLIFormatter.print_metric("Total", total, "GB")
 
     # Set environment variables for better memory management
     # Smaller split size reduces fragmentation
