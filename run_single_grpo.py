@@ -365,7 +365,12 @@ def main():
 
     # Final memory status
     memory_monitor.log_memory_status("Training complete")
-    memory_monitor.print_summary()
+
+    # Print memory summary
+    summary = memory_monitor.get_summary()
+    CLIFormatter.print_subheader("Memory Usage Summary")
+    print(f"Peak GPU Memory: {summary['peak_gpu_gb']:.2f} GB")
+    print(f"Peak RAM: {summary['peak_ram_gb']:.2f} GB")
 
     CLIFormatter.print_success(f"\nSingle GRPO training completed successfully!")
     CLIFormatter.print_success(f"Results saved to: {output_dir}")

@@ -349,6 +349,8 @@ Then provide your final answer between {solution_start} and {solution_end}."""
         # The 'answer' field from the dataset will be passed in kwargs
         def custom_reward_func(completions, answer=None, **kwargs):
             """Custom reward function that uses our RewardFunctions class"""
+            import re
+
             # Completions come as list of message dicts, extract just the content
             completion_texts = []
             for comp in completions:
@@ -362,13 +364,51 @@ Then provide your final answer between {solution_start} and {solution_end}."""
             if answer is not None and not isinstance(answer, list):
                 answer = [answer] * len(completions)
 
-            # Calculate combined reward using our reward functions
-            return self.reward_functions.combined_reward(
-                prompts=[],  # Prompts not needed for our reward calculation
-                completions=[[{"content": text}] for text in completion_texts],
-                answers=answer or [],
-                weights=reward_weights
-            )
+            rewards = []
+            for i, text in enumerate(completion_texts):
+                reward = 0.0
+
+                # Basic reward for generating any response
+                if len(text.strip()) > 10:
+                    reward += 0.1
+
+                # Reward for attempting math (numbers present)
+                if re.search(r'\d+', text):
+                    reward += 0.2
+
+                # Reward for showing work (multiple lines/steps)
+                lines = text.strip().split('\n')
+                if len(lines) > 2:
+                    reward += 0.2
+
+                # Reward for mathematical operations
+                if any(op in text for op in ['+', '-', '*', '/', '=']):
+                    reward += 0.2
+
+                # Reward for keywords showing reasoning
+                reasoning_keywords = ['because', 'therefore', 'so', 'first', 'then',
+                                     'step', 'calculate', 'total', 'answer', 'result']
+                keyword_count = sum(1 for keyword in reasoning_keywords if keyword.lower() in text.lower())
+                reward += min(keyword_count * 0.1, 0.3)
+
+                # Try to extract final answer and check accuracy if possible
+                if answer and i < len(answer):
+                    correct_answer = str(answer[i])
+                    # Look for the answer number in the completion
+                    if correct_answer in text:
+                        reward += 1.0  # Big reward for correct answer
+
+                # Cap reward between -1 and 2
+                reward = max(-1.0, min(2.0, reward))
+                rewards.append(reward)
+
+            # Log first completion for debugging (only occasionally)
+            import random
+            if random.random() < 0.1 and completion_texts:  # Log 10% of the time
+                logger.debug(f"Sample completion: {completion_texts[0][:200]}...")
+                logger.debug(f"Reward: {rewards[0]}")
+
+            return rewards
 
         reward_funcs = [custom_reward_func]
 
