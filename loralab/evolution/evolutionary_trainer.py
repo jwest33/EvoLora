@@ -203,9 +203,9 @@ class EvolutionaryTrainer:
             avg_loss = metrics.get('final_loss', float('inf'))
             variant.rewards = metrics.get('rewards', 0.0)
 
-        os.environ['UNSLOTH_RETURN_LOGITS'] = '1'
         elif hasattr(self.trainer, 'train_on_responses'):
             # TRL SFTTrainer with advanced options
+            os.environ['UNSLOTH_RETURN_LOGITS'] = '1'
             metrics = self.trainer.train(
                 model=lora_model,
                 train_data=train_data,
@@ -216,8 +216,8 @@ class EvolutionaryTrainer:
             )
             avg_loss = metrics.get('final_loss', float('inf'))
         
-        os.environ['UNSLOTH_RETURN_LOGITS'] = '1'
         else:
+            os.environ['UNSLOTH_RETURN_LOGITS'] = '1'
             # Standard training
             avg_loss = self.trainer.train(
                 model=lora_model,
