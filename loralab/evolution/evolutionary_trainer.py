@@ -10,6 +10,7 @@ from typing import List, Dict, Any, Optional
 import torch
 import json
 from tqdm import tqdm
+import os
 
 from ..core.model_manager import ModelManager, ModelCheckpoint
 from ..core.lora_factory import LoRAFactory, LoRAVariant
@@ -190,7 +191,7 @@ class EvolutionaryTrainer:
                     learning_rate=variant.learning_rate * 2,  # Higher LR for pre-training
                     epochs=2
                 )
-
+            os.environ['UNSLOTH_RETURN_LOGITS'] = '1'
             # Main GRPO training
             metrics = self.trainer.train(
                 model=lora_model,
@@ -202,6 +203,7 @@ class EvolutionaryTrainer:
             avg_loss = metrics.get('final_loss', float('inf'))
             variant.rewards = metrics.get('rewards', 0.0)
 
+        os.environ['UNSLOTH_RETURN_LOGITS'] = '1'
         elif hasattr(self.trainer, 'train_on_responses'):
             # TRL SFTTrainer with advanced options
             metrics = self.trainer.train(
@@ -213,7 +215,8 @@ class EvolutionaryTrainer:
                 train_on_responses=self.config['training'].get('train_on_completions_only', False)
             )
             avg_loss = metrics.get('final_loss', float('inf'))
-
+        
+        os.environ['UNSLOTH_RETURN_LOGITS'] = '1'
         else:
             # Standard training
             avg_loss = self.trainer.train(

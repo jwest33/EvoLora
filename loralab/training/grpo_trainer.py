@@ -10,6 +10,7 @@ from typing import Dict, List, Any, Optional, Callable, Tuple
 import torch
 from tqdm import tqdm
 import numpy as np
+import os
 
 try:
     from trl import GRPOConfig, GRPOTrainer as TRLGRPOTrainer
@@ -359,6 +360,7 @@ Then provide your final answer between {solution_start} and {solution_end}."""
             train_dataset=grpo_dataset,
         )
 
+        os.environ['UNSLOTH_RETURN_LOGITS'] = '1'
         # Train and collect metrics
         train_output = trainer.train()
 
@@ -439,7 +441,8 @@ Then provide your final answer between {solution_start} and {solution_end}."""
             train_dataset=pre_train_dataset,
             args=sft_config,
         )
-
+        
+        os.environ['UNSLOTH_RETURN_LOGITS'] = '1'
         # Train
         train_output = trainer.train()
 

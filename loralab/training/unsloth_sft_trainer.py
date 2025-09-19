@@ -9,6 +9,7 @@ from typing import Dict, List, Any, Optional, Union
 import torch
 from tqdm import tqdm
 from pathlib import Path
+import os
 
 try:
     from trl import SFTTrainer, SFTConfig
@@ -249,7 +250,8 @@ class UnslothSFTTrainer:
                 logger.info(f"Applied response-only training with markers: {instruction_part} / {response_part}")
             except Exception as e:
                 logger.warning(f"Could not apply response-only training: {e}")
-
+                
+        os.environ['UNSLOTH_RETURN_LOGITS'] = '1'
         # Train
         train_output = trainer.train()
 

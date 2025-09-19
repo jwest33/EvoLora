@@ -1,41 +1,52 @@
 # LoRALab Evolution System Requirements
 
-# Core ML libraries
-torch>=2.0.0
-transformers>=4.30.0
-peft>=0.5.0
-accelerate>=0.20.0
+# Core ML Libraries
+torch>=2.0.0,<2.9.0  # PyTorch (use CUDA version matching your system)
+transformers>=4.30.0  # HuggingFace Transformers
+peft>=0.5.0  # Parameter-Efficient Fine-Tuning (LoRA support)
+accelerate>=0.20.0  # Distributed training support
 
-# Unsloth for optimized training (3-5x speedup)
-unsloth>=2024.1  # Install with: pip install unsloth
+# Optimized Training
+unsloth>=2024.1
 
-# TRL for advanced training methods (GRPO, DPO, etc.)
-trl>=0.7.0  # For GRPO, SFTTrainer, and other RL methods
+# Advanced Training Methods
+trl>=0.7.0  # Transformer Reinforcement Learning (SFT, GRPO, DPO)
+bitsandbytes>=0.41.0  # 4-bit/8-bit quantization
 
-# Datasets
-datasets>=2.14.0
+# Datasets & Evaluation
+datasets>=2.14.0  # HuggingFace datasets
+evaluate>=0.4.0  # Evaluation metrics
+scikit-learn>=1.3.0  # ML utilities
 
-# CLI enhancements
-colorama>=0.4.6  # Cross-platform colored terminal output
-tqdm>=4.65.0      # Progress bars
+# Scientific Computing
+numpy>=1.24.0,<2.0.0  # Numerical computing
+scipy>=1.10.0  # Scientific computing
+pandas>=1.3.0  # Data analysis
+einops>=0.7.0  # Tensor operations
 
-# System monitoring
-psutil>=5.9.0     # System and process utilities
-gputil>=1.4.0     # GPU monitoring
+# System Monitoring & CLI
+psutil>=5.9.0  # System resource monitoring
+gputil>=1.4.0  # GPU monitoring (optional)
+tqdm>=4.65.0  # Progress bars
+colorama>=0.4.6  # Colored terminal output
+tabulate>=0.9.0  # Table formatting
 
 # Configuration
-pyyaml>=6.0
+pyyaml>=6.0  # YAML config files
+python-dotenv>=1.0.0  # Environment variables
 
-# Optional for better performance
-bitsandbytes>=0.41.0  # 8-bit quantization support
+# Visualization (optional)
+matplotlib>=3.5.0  # Plotting
+seaborn>=0.11.0  # Statistical visualization
+plotly>=5.0.0  # Interactive plots
 
-# Visualization and analysis
-matplotlib>=3.5.0
-seaborn>=0.11.0
-networkx>=2.6.0
-pandas>=1.3.0
+# Development Tools
+pytest>=7.0.0  # Testing
+black>=23.0.0  # Code formatting
+flake8>=6.0.0  # Linting
+ipykernel>=6.25.0  # Jupyter support
 
-# Development
-pytest>=7.0.0
-black>=23.0.0
-flake8>=6.0.0
+# Optional Dependencies
+# xformers>=0.0.20  # Memory-efficient attention (install separately if needed)
+# flash-attn>=2.0.0  # Flash Attention 2 (requires specific CUDA versions)
+# triton>=2.0.0  # Required for some optimizations
