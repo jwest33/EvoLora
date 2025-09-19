@@ -92,7 +92,7 @@ grpo:
 # Dataset configuration
 dataset:
   sources:                         # Datasets to use
-    - "mmlu-pro"                   # Multi-task benchmark
+    - "gsm8k"                      # Math reasoning dataset (default)
   train_size: 2000                 # Reduced training examples for faster evolution
   eval_size: 500                   # Reduced evaluation examples
   seed: 42                         # Random seed for splits

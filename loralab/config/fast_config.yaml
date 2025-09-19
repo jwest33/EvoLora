@@ -35,7 +35,7 @@ evolution:
 lora_search_space:
   rank: [8, 16]                          # Just two rank options
   alpha_multiplier: [1, 2]               # Alpha = rank * multiplier (Unsloth style)
-  dropout: [0.1]                         # Single dropout value
+  dropout: [0.0]                         # Zero dropout for Unsloth fast patching
   learning_rate: [5e-5, 1e-4]            # Two learning rates
   target_modules:                        # Extended for Unsloth
     - "q_proj"
@@ -52,8 +52,8 @@ lora_search_space:
 # Optimized training parameters
 training:
   method: "sft"                    # Use SFT with Unsloth optimizations
-  batch_size: 8                    # Smaller batch to reduce memory fragmentation
-  gradient_accumulation_steps: 8   # More accumulation for same effective batch = 64
+  batch_size: 4                    # Even smaller batch to minimize fragmentation
+  gradient_accumulation_steps: 16  # Higher accumulation for same effective batch = 64
   epochs_per_variant: 1            # Single epoch per variant
   max_grad_norm: 1.0               # Gradient clipping
   weight_decay: 0.01               # Weight decay
@@ -70,7 +70,7 @@ training:
 # Minimal dataset configuration
 dataset:
   sources:                         # Datasets to use
-    - "mmlu-pro"                   # Multi-task benchmark
+    - "gsm8k"                      # Math reasoning dataset (simpler to load)
   train_size: 500                  # Very small training set
   eval_size: 100                   # Tiny evaluation set
   seed: 42                         # Random seed

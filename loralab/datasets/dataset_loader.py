@@ -38,7 +38,8 @@ class DatasetLoader:
             'split': 'test',
             'question_field': 'question',
             'answer_field': 'answer',
-            'subset': None
+            'subset': None,
+            'process_answer': lambda x: x if isinstance(x, str) else str(x)
         },
         'gsm8k': {
             'name': 'gsm8k',
@@ -67,6 +68,21 @@ class DatasetLoader:
             'split': 'train',
             'question_field': 'instruction',
             'answer_field': 'response',
+            'subset': None
+        },
+        'openassistant': {
+            'name': 'OpenAssistant/oasst1',
+            'split': 'train',
+            'question_field': 'text',
+            'answer_field': 'text',
+            'subset': None,
+            'process_answer': lambda x: x if isinstance(x, str) else ''
+        },
+        'wizardlm': {
+            'name': 'WizardLM/WizardLM_evol_instruct_V2_196k',
+            'split': 'train',
+            'question_field': 'instruction',
+            'answer_field': 'output',
             'subset': None
         }
     }
@@ -135,10 +151,18 @@ class DatasetLoader:
             # Load dataset from HuggingFace
             logger.info(f"Fetching {dataset_name} from HuggingFace...")
 
-            if config['subset']:
-                dataset = load_dataset(config['name'], config['subset'])
-            else:
-                dataset = load_dataset(config['name'])
+            try:
+                if config['subset']:
+                    dataset = load_dataset(config['name'], config['subset'], trust_remote_code=True)
+                else:
+                    dataset = load_dataset(config['name'], trust_remote_code=True)
+            except Exception as e:
+                logger.warning(f"Failed with trust_remote_code=True: {e}")
+                # Try without trust_remote_code
+                if config['subset']:
+                    dataset = load_dataset(config['name'], config['subset'])
+                else:
+                    dataset = load_dataset(config['name'])
 
             # Get the appropriate split
             if config['split'] in dataset:

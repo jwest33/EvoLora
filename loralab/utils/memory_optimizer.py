@@ -32,7 +32,8 @@ def optimize_memory():
         logger.info(f"GPU Memory optimized: {allocated:.2f}GB allocated, {reserved:.2f}GB reserved, {total:.2f}GB total")
 
     # Set environment variables for better memory management
-    os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:512"
+    # Smaller split size reduces fragmentation
+    os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:128,expandable_segments:True"
     os.environ["CUDA_LAUNCH_BLOCKING"] = "0"  # Async execution
 
 def set_memory_efficient_settings():

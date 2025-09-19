@@ -215,7 +215,7 @@ class SelfSupervisedTrainer:
         max_grad_norm = self.training_config.get('max_grad_norm', 1.0)
 
         # Setup mixed precision training
-        scaler = torch.cuda.amp.GradScaler() if use_amp and torch.cuda.is_available() else None
+        scaler = torch.amp.GradScaler('cuda') if use_amp and torch.cuda.is_available() else None
         use_bf16 = self.training_config.get('bf16', True)
         use_fp16 = self.training_config.get('fp16', False) and not use_bf16
 
