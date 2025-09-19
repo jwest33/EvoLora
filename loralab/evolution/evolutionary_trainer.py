@@ -305,8 +305,8 @@ class EvolutionaryTrainer:
 
             # Evaluate
             CLIFormatter.print_variant_status(variant.variant_id, "EVALUATING")
-            # Use fast mode by default for evolutionary selection
-            fast_mode = self.config.get('evolution', {}).get('fast_evaluation', True)
+            # Disable fast mode to actually calculate accuracy
+            fast_mode = False  # Changed: We need accuracy for GSM8K
             metrics = self.evaluate_variant(variant, eval_data, fast_mode=fast_mode)
 
             # Show results

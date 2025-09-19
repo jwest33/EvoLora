@@ -53,8 +53,8 @@ class FitnessEvaluator:
         total = len(eval_data)
         total_perplexity = 0
 
-        # Increased batch size for faster evaluation
-        batch_size = 32 if fast_mode else 16
+        # Reduced batch size for accuracy evaluation (generation is memory intensive)
+        batch_size = 32 if fast_mode else 4  # Reduced from 16 to 4 for generation
         num_batches = (total + batch_size - 1) // batch_size
 
         with torch.no_grad():
@@ -105,10 +105,21 @@ class FitnessEvaluator:
             1.0 if correct, 0.0 otherwise
         """
         question = item.get('question', item.get('text', ''))
-        true_answer = item.get('answer', item.get('label', '')).strip().lower()
+        true_answer = item.get('answer', item.get('label', ''))
 
-        # Format prompt
-        prompt = f"Question: {question}\nAnswer:"
+        # Extract numerical answer from GSM8K format (removes #### and explanation)
+        import re
+        if '####' in true_answer:
+            true_answer = true_answer.split('####')[-1].strip()
+        # Also try to extract just the number
+        numbers = re.findall(r'-?\d+\.?\d*', true_answer)
+        if numbers:
+            true_answer = numbers[-1]  # Use the last number found
+
+        true_answer = true_answer.strip().lower()
+
+        # Format prompt for GSM8K style
+        prompt = f"Question: {question}\nLet's solve this step by step.\nAnswer:"
 
         # Tokenize with reduced max_length
         inputs = self.tokenizer(
@@ -131,19 +142,28 @@ class FitnessEvaluator:
 
         # Decode and extract answer
         generated = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
-        generated_answer = generated.replace(prompt, "").strip().lower()
+        generated_answer = generated.replace(prompt, "").strip()
 
-        # Simple accuracy check - is the true answer contained in generated?
-        # This is a simplified check - you might want more sophisticated matching
-        if self._fuzzy_match(true_answer, generated_answer):
+        # Extract numbers from generated answer for GSM8K
+        import re
+        generated_numbers = re.findall(r'-?\d+\.?\d*', generated_answer)
+
+        # Check if the true answer (number) appears in generated text
+        if true_answer in generated_answer.lower():
             return 1.0
 
-        # Check for multiple choice style answers
-        if len(true_answer) == 1 and true_answer in 'abcde':
-            # Extract first letter that looks like an answer
-            for char in generated_answer:
-                if char in 'abcde':
-                    return 1.0 if char == true_answer else 0.0
+        # Check if any generated number matches the true answer
+        try:
+            true_num = float(true_answer)
+            for num_str in generated_numbers:
+                if abs(float(num_str) - true_num) < 0.01:  # Allow small floating point differences
+                    return 1.0
+        except:
+            pass
+
+        # Fallback to fuzzy matching
+        if self._fuzzy_match(true_answer, generated_answer.lower()):
+            return 1.0
 
         return 0.0
 

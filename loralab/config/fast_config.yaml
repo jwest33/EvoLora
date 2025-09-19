@@ -54,7 +54,7 @@ training:
   method: "sft"                    # Use SFT with Unsloth optimizations
   batch_size: 4                    # Even smaller batch to minimize fragmentation
   gradient_accumulation_steps: 16  # Higher accumulation for same effective batch = 64
-  epochs_per_variant: 1            # Single epoch per variant
+  epochs_per_variant: 2            # Two epochs for better initial learning
   max_grad_norm: 1.0               # Gradient clipping
   weight_decay: 0.01               # Weight decay
   warmup_ratio: 0.05               # Minimal warmup
