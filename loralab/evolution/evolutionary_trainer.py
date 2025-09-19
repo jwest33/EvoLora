@@ -18,6 +18,29 @@ from .fitness_evaluator import FitnessEvaluator
 from ..training.self_supervised import SelfSupervisedTrainer
 from ..utils.cli_formatter import CLIFormatter
 from ..utils.output_manager import get_output_manager
+from ..utils.memory_optimizer import optimize_memory, cleanup_after_variant
+
+# Import new components
+try:
+    from ..core.unsloth_manager import UnslothModelManager, create_model_manager
+    UNSLOTH_AVAILABLE = True
+except ImportError:
+    UNSLOTH_AVAILABLE = False
+    create_model_manager = None
+
+try:
+    from ..training.unsloth_sft_trainer import UnslothSFTTrainer, create_trainer
+    from ..training.grpo_trainer import GRPOTrainer
+    ADVANCED_TRAINERS = True
+except ImportError:
+    ADVANCED_TRAINERS = False
+    create_trainer = None
+
+try:
+    from ..utils.model_exporter import ModelExporter
+    EXPORTER_AVAILABLE = True
+except ImportError:
+    EXPORTER_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 
@@ -49,11 +72,19 @@ class EvolutionaryTrainer:
         self.checkpoint_dir = self.output_manager.get_path('checkpoints')
 
         # Initialize components
-        self.model_manager = ModelManager(config['model'])
+        # Choose model manager based on backend
+        if UNSLOTH_AVAILABLE and create_model_manager:
+            self.model_manager = create_model_manager(config['model'])
+            logger.info(f"Using {config['model'].get('backend', 'transformers')} backend")
+        else:
+            self.model_manager = ModelManager(config['model'])
+            logger.info("Using standard transformers backend")
+
         self.lora_factory = LoRAFactory(config['lora_search_space'])
         self.population_manager = PopulationManager()
         self.trainer = None  # Will be initialized after model loads
         self.evaluator = None  # Will be initialized after model loads
+        self.exporter = None  # Model export utilities
 
         # Evolution state
         self.current_generation = 0
@@ -68,19 +99,45 @@ class EvolutionaryTrainer:
         self.output_manager.save_config(self.config)
         CLIFormatter.print_info(f"Run directory: {self.output_manager.get_path('base')}")
 
+        # Optimize memory before loading model
+        optimize_memory()
+
         # Load base model
         CLIFormatter.print_info("Loading base model...")
         self.model_manager.load_base_model()
 
-        # Initialize trainer and evaluator with loaded model
-        self.trainer = SelfSupervisedTrainer(
-            model_manager=self.model_manager,
-            training_config=self.config['training']
-        )
+        # Initialize trainer based on method
+        training_method = self.config['training'].get('method', 'sft')
+
+        if training_method == 'grpo' and ADVANCED_TRAINERS:
+            # Use GRPO trainer for reasoning tasks
+            CLIFormatter.print_info("Using GRPO trainer for reasoning tasks")
+            self.trainer = GRPOTrainer(
+                model_manager=self.model_manager,
+                training_config=self.config['training']
+            )
+        elif ADVANCED_TRAINERS and create_trainer:
+            # Use factory to create appropriate trainer
+            CLIFormatter.print_info(f"Using {training_method.upper()} training method")
+            self.trainer = create_trainer(
+                model_manager=self.model_manager,
+                training_config=self.config['training']
+            )
+        else:
+            # Fall back to original self-supervised trainer
+            CLIFormatter.print_info("Using standard self-supervised trainer")
+            self.trainer = SelfSupervisedTrainer(
+                model_manager=self.model_manager,
+                training_config=self.config['training']
+            )
 
         self.evaluator = FitnessEvaluator(
             model_manager=self.model_manager
         )
+
+        # Initialize exporter if available
+        if EXPORTER_AVAILABLE:
+            self.exporter = ModelExporter(self.model_manager)
 
         CLIFormatter.print_success("Initialization complete")
 
@@ -96,28 +153,76 @@ class EvolutionaryTrainer:
             epochs: Number of epochs to train
 
         Returns:
-            Average training loss
+            Average training loss or fitness score
         """
         start_time = time.time()
 
-        # Create LoRA model for this variant
-        lora_model = self.model_manager.create_lora_variant({
+        # Create LoRA model for this variant with enhanced config
+        lora_config = {
             'rank': variant.rank,
             'alpha': variant.alpha,
             'dropout': variant.dropout,
             'target_modules': variant.target_modules
-        })
+        }
 
+        # Add Unsloth-specific options if available
+        if isinstance(self.model_manager, UnslothModelManager if UNSLOTH_AVAILABLE else type(None)):
+            lora_config['alpha_multiplier'] = self.config['lora_search_space'].get('alpha_multiplier', [2])[0]
+            lora_config['use_rslora'] = self.config['lora_search_space'].get('use_rslora', False)
+            lora_config['use_gradient_checkpointing'] = self.config['lora_search_space'].get('use_gradient_checkpointing', True)
+
+        lora_model = self.model_manager.create_lora_variant(lora_config)
         variant.model = lora_model
 
-        # Train the variant
-        avg_loss = self.trainer.train(
-            model=lora_model,
-            train_data=train_data,
-            learning_rate=variant.learning_rate,
-            epochs=epochs,
-            variant_id=variant.variant_id
-        )
+        # Choose training approach based on trainer type
+        training_method = self.config['training'].get('method', 'sft')
+
+        if training_method == 'grpo' and hasattr(self.trainer, 'pre_train_formatting'):
+            # GRPO training with pre-training if needed
+            grpo_config = self.config.get('grpo', {})
+
+            # Pre-train on format if requested
+            if grpo_config.get('pre_train_format', False):
+                format_examples = train_data[:grpo_config.get('format_examples', 50)]
+                self.trainer.pre_train_formatting(
+                    model=lora_model,
+                    format_examples=format_examples,
+                    learning_rate=variant.learning_rate * 2,  # Higher LR for pre-training
+                    epochs=2
+                )
+
+            # Main GRPO training
+            metrics = self.trainer.train(
+                model=lora_model,
+                train_data=train_data,
+                learning_rate=variant.learning_rate,
+                max_steps=grpo_config.get('max_steps', 100),
+                variant_id=variant.variant_id
+            )
+            avg_loss = metrics.get('final_loss', float('inf'))
+            variant.rewards = metrics.get('rewards', 0.0)
+
+        elif hasattr(self.trainer, 'train_on_responses'):
+            # TRL SFTTrainer with advanced options
+            metrics = self.trainer.train(
+                model=lora_model,
+                train_data=train_data,
+                learning_rate=variant.learning_rate,
+                epochs=epochs,
+                variant_id=variant.variant_id,
+                train_on_responses=self.config['training'].get('train_on_completions_only', False)
+            )
+            avg_loss = metrics.get('final_loss', float('inf'))
+
+        else:
+            # Standard training
+            avg_loss = self.trainer.train(
+                model=lora_model,
+                train_data=train_data,
+                learning_rate=variant.learning_rate,
+                epochs=epochs,
+                variant_id=variant.variant_id
+            )
 
         variant.train_loss = avg_loss
         variant.training_time = time.time() - start_time
@@ -126,12 +231,14 @@ class EvolutionaryTrainer:
 
     def evaluate_variant(self,
                         variant: LoRAVariant,
-                        eval_data: List[Dict]) -> Dict[str, float]:
+                        eval_data: List[Dict],
+                        fast_mode: bool = True) -> Dict[str, float]:
         """Evaluate a variant's performance
 
         Args:
             variant: LoRA variant to evaluate
             eval_data: Evaluation dataset
+            fast_mode: If True, use fast evaluation (perplexity only)
 
         Returns:
             Dictionary with evaluation metrics
@@ -142,11 +249,12 @@ class EvolutionaryTrainer:
         metrics = self.evaluator.evaluate(
             model=variant.model,
             eval_data=eval_data,
-            variant_id=variant.variant_id
+            variant_id=variant.variant_id,
+            fast_mode=fast_mode
         )
 
         # Update variant metrics
-        variant.eval_accuracy = metrics['accuracy']
+        variant.eval_accuracy = metrics.get('accuracy', 0.0)
         variant.eval_perplexity = metrics['perplexity']
 
         return metrics
@@ -194,7 +302,9 @@ class EvolutionaryTrainer:
 
             # Evaluate
             CLIFormatter.print_variant_status(variant.variant_id, "EVALUATING")
-            metrics = self.evaluate_variant(variant, eval_data)
+            # Use fast mode by default for evolutionary selection
+            fast_mode = self.config.get('evolution', {}).get('fast_evaluation', True)
+            metrics = self.evaluate_variant(variant, eval_data, fast_mode=fast_mode)
 
             # Show results
             CLIFormatter.print_variant_status(variant.variant_id, "COMPLETE", {
@@ -210,6 +320,8 @@ class EvolutionaryTrainer:
             if i < len(population) - 1:  # Keep last model for potential reuse
                 del variant.model
                 variant.model = None
+                # Aggressive memory cleanup after each variant
+                cleanup_after_variant()
                 if torch.cuda.is_available():
                     torch.cuda.empty_cache()
 
@@ -319,6 +431,29 @@ class EvolutionaryTrainer:
         if variant.model is not None:
             variant.model.save_pretrained(str(best_dir / "adapter"))
             self.model_manager.get_tokenizer().save_pretrained(str(best_dir / "adapter"))
+
+            # Export in additional formats if exporter is available
+            if self.exporter and EXPORTER_AVAILABLE:
+                export_config = self.config.get('export', {})
+                if export_config.get('auto_export', False):
+                    formats = export_config.get('formats', ['lora'])
+                    variant_info = {
+                        'variant_id': variant.variant_id,
+                        'rank': variant.rank,
+                        'alpha': variant.alpha,
+                        'generation': self.current_generation,
+                        'accuracy': variant.eval_accuracy,
+                        'fitness': variant.fitness_score()
+                    }
+
+                    export_paths = self.exporter.export_best_variant(
+                        model=variant.model,
+                        variant_info=variant_info,
+                        output_dir=str(best_dir.parent / 'exports'),
+                        formats=formats
+                    )
+
+                    logger.info(f"Exported best model in formats: {list(export_paths.keys())}")
 
         logger.info(f"✓ New best variant saved: {variant.variant_id} "
                    f"(accuracy: {variant.eval_accuracy:.2%})")

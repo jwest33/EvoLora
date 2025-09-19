@@ -1,0 +1,105 @@
+# LoRALab Fast Evolution Configuration
+# Optimized for rapid evolutionary cycles with smaller populations and datasets
+
+mode: "self_supervised"
+
+# ============================================================================
+# FAST EVOLUTION CONFIGURATION
+# ============================================================================
+
+# Single model configuration
+model:
+  path: "Qwen/Qwen3-4B-Instruct-2507"  # HuggingFace ID or local path
+  backend: "unsloth"  # Re-enable Unsloth
+  type: "transformers"
+  torch_dtype: "float16"
+  device_map: "cuda:0"
+  trust_remote_code: true
+  low_cpu_mem_usage: true
+  # Unsloth-specific settings
+  quantization: "4bit"
+  max_seq_length: 1024              # Reduced to save memory
+  chat_template: "qwen3-instruct"
+  load_in_4bit: true                # Ensure 4-bit loading
+  use_cache: false                  # Disable KV cache during training
+
+# Fast evolution parameters
+evolution:
+  population_size: 3        # Minimal population for quick iterations
+  generations: 5            # Fewer generations for testing
+  keep_top: 1               # Keep only the best
+  mutation_rate: 0.4        # Higher mutation for exploration
+  crossover_rate: 0.3       # More crossover for diversity
+
+# Focused LoRA search space
+lora_search_space:
+  rank: [8, 16]                          # Just two rank options
+  alpha_multiplier: [1, 2]               # Alpha = rank * multiplier (Unsloth style)
+  dropout: [0.1]                         # Single dropout value
+  learning_rate: [5e-5, 1e-4]            # Two learning rates
+  target_modules:                        # Extended for Unsloth
+    - "q_proj"
+    - "k_proj"
+    - "v_proj"
+    - "o_proj"
+    - "gate_proj"
+    - "up_proj"
+    - "down_proj"
+  # Unsloth-specific LoRA options
+  use_rslora: false                      # Rank-Stabilized LoRA
+  use_gradient_checkpointing: true       # Unsloth's optimized checkpointing
+
+# Optimized training parameters
+training:
+  method: "sft"                    # Use SFT with Unsloth optimizations
+  batch_size: 8                    # Smaller batch to reduce memory fragmentation
+  gradient_accumulation_steps: 8   # More accumulation for same effective batch = 64
+  epochs_per_variant: 1            # Single epoch per variant
+  max_grad_norm: 1.0               # Gradient clipping
+  weight_decay: 0.01               # Weight decay
+  warmup_ratio: 0.05               # Minimal warmup
+  fp16: false                      # Disabled - can cause gradient issues with LoRA
+  bf16: false                      # Disabled - can cause gradient issues with LoRA
+  gradient_checkpointing: false    # Disabled - handled by Unsloth
+  dataloader_num_workers: 0        # Disabled for Windows+Unsloth compatibility
+  dataloader_pin_memory: false     # Disabled for Windows+Unsloth compatibility
+  dataloader_prefetch_factor: 2    # Prefetch factor (unused with 0 workers)
+  use_trl_trainer: false           # Disable TRL trainer to avoid multiprocessing issues
+  train_on_completions_only: false # Train on full sequences for general tasks
+
+# Minimal dataset configuration
+dataset:
+  sources:                         # Datasets to use
+    - "mmlu-pro"                   # Multi-task benchmark
+  train_size: 500                  # Very small training set
+  eval_size: 100                   # Tiny evaluation set
+  seed: 42                         # Random seed
+  max_seq_length: 128              # Very short sequences
+  use_cache: true                  # Always use cache
+  cache_dir: "cache/datasets"      # Cache directory
+
+# Output configuration
+output:
+  base_dir: "lora_runs/fast"      # Separate directory for fast runs
+  run_name: null                  # Auto-generate name
+  keep_runs: 3                    # Keep fewer runs
+
+# Export configuration (optional)
+export:
+  auto_export: true                # Auto-export best model
+  formats: ["lora"]                # Just save LoRA for fast runs
+  # formats: ["lora", "merged_16bit", "gguf_q4_k_m"]  # Uncomment for full export
+
+# Logging
+logging:
+  level: "INFO"
+  save_history: true
+  track_metrics: ["perplexity"]   # Only track perplexity for speed
+
+# Quick test mode enabled by default
+quick_test:
+  enabled: true
+  population_size: 2
+  generations: 2
+  train_size: 100
+  eval_size: 

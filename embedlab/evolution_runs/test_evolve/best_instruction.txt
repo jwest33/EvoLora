@@ -1,1 +1,0 @@
-Assign each customer query to the most relevant category in the category hierarchy.

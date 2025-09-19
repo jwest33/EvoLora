@@ -10,39 +10,108 @@ from torch.optim import AdamW
 from typing import Dict, List, Any, Optional
 from tqdm import tqdm
 import time
+from ..utils.memory_monitor import MemoryMonitor
 
 logger = logging.getLogger(__name__)
 
 
 class TextDataset(Dataset):
-    """Simple dataset for text data"""
+    """Optimized dataset with pre-tokenization support"""
 
-    def __init__(self, data: List[Dict], tokenizer, max_length: int = 512):
+    def __init__(self, data: List[Dict], tokenizer, max_length: int = 256,
+                 pre_tokenize: bool = True, cache_dir: str = None):
         """Initialize dataset
 
         Args:
             data: List of dictionaries with 'question' and 'answer' fields
             tokenizer: Tokenizer to use
             max_length: Maximum sequence length
+            pre_tokenize: Whether to pre-tokenize all data
+            cache_dir: Directory to cache tokenized data
         """
         self.data = data
         self.tokenizer = tokenizer
         self.max_length = max_length
+        self.tokenized_data = None
+
+        if pre_tokenize:
+            self._pre_tokenize_data(cache_dir)
+
+    def _pre_tokenize_data(self, cache_dir):
+        """Pre-tokenize all data for faster loading"""
+        import os
+        import pickle
+        import hashlib
+
+        # Create cache key from data characteristics
+        if cache_dir:
+            os.makedirs(cache_dir, exist_ok=True)
+            cache_key = hashlib.md5(
+                f"{len(self.data)}_{self.max_length}_{self.tokenizer.name_or_path}".encode()
+            ).hexdigest()
+            cache_path = os.path.join(cache_dir, f"tokenized_{cache_key}.pkl")
+
+            # Try loading from cache
+            if os.path.exists(cache_path):
+                try:
+                    with open(cache_path, 'rb') as f:
+                        self.tokenized_data = pickle.load(f)
+                    logger.info(f"Loaded pre-tokenized data from cache: {cache_path}")
+                    return
+                except:
+                    pass
+
+        logger.info("Pre-tokenizing dataset...")
+        self.tokenized_data = []
+
+        # Batch tokenization for efficiency
+        texts = []
+        for item in self.data:
+            question = item.get('question', item.get('text', ''))
+            answer = item.get('answer', item.get('label', ''))
+            texts.append(f"Question: {question}\nAnswer: {answer}")
+
+        # Tokenize in batches
+        batch_size = 32
+        for i in range(0, len(texts), batch_size):
+            batch_texts = texts[i:i+batch_size]
+            batch_encoding = self.tokenizer(
+                batch_texts,
+                truncation=True,
+                padding='max_length',
+                max_length=self.max_length,
+                return_tensors='pt'
+            )
+
+            for j in range(len(batch_texts)):
+                self.tokenized_data.append({
+                    'input_ids': batch_encoding['input_ids'][j],
+                    'attention_mask': batch_encoding['attention_mask'][j],
+                    'labels': batch_encoding['input_ids'][j]
+                })
+
+        # Save to cache
+        if cache_dir and cache_path:
+            try:
+                with open(cache_path, 'wb') as f:
+                    pickle.dump(self.tokenized_data, f)
+                logger.info(f"Saved pre-tokenized data to cache: {cache_path}")
+            except:
+                pass
 
     def __len__(self):
         return len(self.data)
 
     def __getitem__(self, idx):
-        item = self.data[idx]
+        if self.tokenized_data:
+            return self.tokenized_data[idx]
 
-        # Format text with question and answer
+        # Fallback to on-the-fly tokenization
+        item = self.data[idx]
         question = item.get('question', item.get('text', ''))
         answer = item.get('answer', item.get('label', ''))
-
-        # Create full text
         text = f"Question: {question}\nAnswer: {answer}"
 
-        # Tokenize
         encoding = self.tokenizer(
             text,
             truncation=True,
@@ -54,7 +123,7 @@ class TextDataset(Dataset):
         return {
             'input_ids': encoding['input_ids'].squeeze(),
             'attention_mask': encoding['attention_mask'].squeeze(),
-            'labels': encoding['input_ids'].squeeze()  # For causal LM, labels = input_ids
+            'labels': encoding['input_ids'].squeeze()
         }
 
 
@@ -77,7 +146,9 @@ class SelfSupervisedTrainer:
              train_data: List[Dict],
              learning_rate: float,
              epochs: int = 1,
-             variant_id: str = "") -> float:
+             variant_id: str = "",
+             use_amp: bool = True,
+             monitor_memory: bool = True) -> float:
         """Train a model on the dataset
 
         Args:
@@ -93,20 +164,43 @@ class SelfSupervisedTrainer:
         logger.info(f"Starting training for {variant_id}")
         device = next(model.parameters()).device
 
-        # Create dataset and dataloader
-        dataset = TextDataset(train_data, self.tokenizer)
+        # Create dataset and dataloader with optimizations
+        max_length = self.training_config.get('max_seq_length', 256)
+        cache_dir = self.training_config.get('cache_dir', 'cache/datasets')
 
-        # Determine batch size - use smaller if memory constrained
-        batch_size = min(
-            self.training_config.get('batch_size', 4),
-            4  # Cap at 4 for memory safety
+        dataset = TextDataset(
+            train_data,
+            self.tokenizer,
+            max_length=max_length,
+            pre_tokenize=True,
+            cache_dir=cache_dir
         )
+
+        # Use configured batch size
+        batch_size = self.training_config.get('batch_size', 16)
+        num_workers = self.training_config.get('dataloader_num_workers', 2)
+        pin_memory = self.training_config.get('dataloader_pin_memory', True)
+        prefetch_factor = self.training_config.get('dataloader_prefetch_factor', 2)
+
+        # Windows-specific adjustments
+        import platform
+        if platform.system() == 'Windows':
+            # Check if using Unsloth - force single-threaded to avoid pickling issues
+            if hasattr(self.model_manager, '__class__') and 'Unsloth' in self.model_manager.__class__.__name__:
+                num_workers = 0  # Disable multiprocessing for Unsloth on Windows
+                pin_memory = False  # Also disable pinned memory
+                logger.debug("Disabled dataloader multiprocessing for Unsloth on Windows")
+            else:
+                num_workers = min(num_workers, 2)  # Limit workers on Windows
 
         dataloader = DataLoader(
             dataset,
             batch_size=batch_size,
             shuffle=True,
-            num_workers=0  # Use 0 for Windows compatibility
+            num_workers=num_workers,
+            pin_memory=pin_memory and torch.cuda.is_available(),
+            prefetch_factor=prefetch_factor if num_workers > 0 else None,
+            persistent_workers=num_workers > 0  # Keep workers alive between epochs
         )
 
         # Setup optimizer
@@ -117,8 +211,27 @@ class SelfSupervisedTrainer:
         )
 
         # Gradient accumulation settings
-        gradient_accumulation_steps = self.training_config.get('gradient_accumulation_steps', 1)
+        gradient_accumulation_steps = self.training_config.get('gradient_accumulation_steps', 4)
         max_grad_norm = self.training_config.get('max_grad_norm', 1.0)
+
+        # Setup mixed precision training
+        scaler = torch.cuda.amp.GradScaler() if use_amp and torch.cuda.is_available() else None
+        use_bf16 = self.training_config.get('bf16', True)
+        use_fp16 = self.training_config.get('fp16', False) and not use_bf16
+
+        # Enable gradient checkpointing if configured
+        if self.training_config.get('gradient_checkpointing', False):
+            # Only enable if model supports it and not using LoRA
+            # LoRA + gradient checkpointing can cause issues with gradients
+            if hasattr(model, 'gradient_checkpointing_enable'):
+                try:
+                    model.gradient_checkpointing_enable()
+                    logger.info("Enabled gradient checkpointing")
+                except Exception as e:
+                    logger.warning(f"Could not enable gradient checkpointing: {e}")
+
+        # Initialize memory monitor if requested
+        memory_monitor = MemoryMonitor(log_interval=10) if monitor_memory else None
 
         # Training loop
         model.train()
@@ -137,33 +250,46 @@ class SelfSupervisedTrainer:
                 attention_mask = batch['attention_mask'].to(device)
                 labels = batch['labels'].to(device)
 
-                # Forward pass
+                # Forward pass with mixed precision
                 try:
+                    # For LoRA training, we'll use regular precision to avoid gradient issues
                     outputs = model(
                         input_ids=input_ids,
                         attention_mask=attention_mask,
                         labels=labels
                     )
 
-                    loss = outputs.loss
-
-                    # Scale loss for gradient accumulation
-                    loss = loss / gradient_accumulation_steps
+                    loss = outputs.loss / gradient_accumulation_steps
 
                     # Backward pass
                     loss.backward()
 
                     # Update weights if accumulation complete
                     if (batch_idx + 1) % gradient_accumulation_steps == 0:
-                        # Gradient clipping
-                        if max_grad_norm:
-                            torch.nn.utils.clip_grad_norm_(
-                                model.parameters(),
-                                max_grad_norm
-                            )
+                        if scaler and use_fp16:
+                            # Unscale gradients before clipping
+                            scaler.unscale_(optimizer)
 
-                        optimizer.step()
-                        optimizer.zero_grad()
+                            # Gradient clipping
+                            if max_grad_norm:
+                                torch.nn.utils.clip_grad_norm_(
+                                    model.parameters(),
+                                    max_grad_norm
+                                )
+
+                            scaler.step(optimizer)
+                            scaler.update()
+                        else:
+                            # Gradient clipping
+                            if max_grad_norm:
+                                torch.nn.utils.clip_grad_norm_(
+                                    model.parameters(),
+                                    max_grad_norm
+                                )
+
+                            optimizer.step()
+
+                        optimizer.zero_grad(set_to_none=True)  # More efficient than zero_grad()
 
                     # Track losses
                     epoch_loss += loss.item() * gradient_accumulation_steps
@@ -175,8 +301,12 @@ class SelfSupervisedTrainer:
                         'avg_loss': epoch_loss / epoch_batches
                     })
 
-                    # Periodic memory cleanup
-                    if batch_idx % 50 == 0 and torch.cuda.is_available():
+                    # Monitor memory if enabled
+                    if memory_monitor:
+                        memory_monitor.log_memory_status(batch_idx, variant_id)
+
+                    # More frequent memory cleanup to reduce fragmentation
+                    if batch_idx % 20 == 0 and batch_idx > 0 and torch.cuda.is_available():
                         torch.cuda.empty_cache()
 
                 except RuntimeError as e:
@@ -198,6 +328,10 @@ class SelfSupervisedTrainer:
 
         # Calculate average loss
         avg_loss = total_loss / num_batches if num_batches > 0 else float('inf')
+
+        # Print memory summary if monitoring was enabled
+        if memory_monitor:
+            logger.info(memory_monitor.get_summary())
 
         return avg_loss
 

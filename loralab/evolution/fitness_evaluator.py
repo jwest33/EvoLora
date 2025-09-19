@@ -28,7 +28,8 @@ class FitnessEvaluator:
                 model: Any,
                 eval_data: List[Dict],
                 variant_id: str = "",
-                max_samples: int = None) -> Dict[str, float]:
+                max_samples: int = None,
+                fast_mode: bool = True) -> Dict[str, float]:
         """Evaluate a model on the evaluation dataset
 
         Args:
@@ -36,6 +37,7 @@ class FitnessEvaluator:
             eval_data: Evaluation dataset with 'question' and 'answer' fields
             variant_id: Identifier for logging
             max_samples: Maximum samples to evaluate (None for all)
+            fast_mode: If True, only evaluate perplexity (skip accuracy)
 
         Returns:
             Dictionary with evaluation metrics
@@ -51,8 +53,8 @@ class FitnessEvaluator:
         total = len(eval_data)
         total_perplexity = 0
 
-        # Batch processing for efficiency
-        batch_size = 8
+        # Increased batch size for faster evaluation
+        batch_size = 32 if fast_mode else 16
         num_batches = (total + batch_size - 1) // batch_size
 
         with torch.no_grad():
@@ -61,29 +63,33 @@ class FitnessEvaluator:
                 end_idx = min(start_idx + batch_size, total)
                 batch_data = eval_data[start_idx:end_idx]
 
-                # Evaluate accuracy
-                for item in batch_data:
-                    accuracy_score = self._evaluate_accuracy(model, item, device)
-                    correct += accuracy_score
+                # Batch perplexity evaluation
+                batch_perplexities = self._evaluate_perplexity_batch(model, batch_data, device)
+                total_perplexity += sum(batch_perplexities)
 
-                # Evaluate perplexity (on full answer)
-                for item in batch_data:
-                    perplexity = self._evaluate_perplexity(model, item, device)
-                    total_perplexity += perplexity
+                # Skip accuracy in fast mode (use perplexity only)
+                if not fast_mode:
+                    for item in batch_data:
+                        accuracy_score = self._evaluate_accuracy(model, item, device)
+                        correct += accuracy_score
 
         # Calculate metrics
-        accuracy = correct / total if total > 0 else 0.0
+        accuracy = correct / total if total > 0 and not fast_mode else 0.0
         avg_perplexity = total_perplexity / total if total > 0 else float('inf')
 
         metrics = {
             'accuracy': accuracy,
             'perplexity': avg_perplexity,
             'total_evaluated': total,
-            'correct': correct
+            'correct': correct,
+            'fast_mode': fast_mode
         }
 
-        logger.info(f"Evaluation complete for {variant_id}: "
-                   f"Accuracy={accuracy:.2%}, Perplexity={avg_perplexity:.2f}")
+        if fast_mode:
+            logger.info(f"Evaluation complete for {variant_id}: Perplexity={avg_perplexity:.2f} (fast mode)")
+        else:
+            logger.info(f"Evaluation complete for {variant_id}: "
+                       f"Accuracy={accuracy:.2%}, Perplexity={avg_perplexity:.2f}")
 
         return metrics
 
@@ -104,21 +110,21 @@ class FitnessEvaluator:
         # Format prompt
         prompt = f"Question: {question}\nAnswer:"
 
-        # Tokenize
+        # Tokenize with reduced max_length
         inputs = self.tokenizer(
             prompt,
             return_tensors="pt",
             truncation=True,
-            max_length=512
+            max_length=256  # Reduced from 512
         ).to(device)
 
-        # Generate answer
+        # Generate answer with faster settings
         with torch.no_grad():
             outputs = model.generate(
                 **inputs,
-                max_new_tokens=50,
+                max_new_tokens=20,  # Reduced from 50
                 temperature=0.1,
-                do_sample=True,
+                do_sample=False,  # Greedy decoding is faster
                 pad_token_id=self.tokenizer.pad_token_id,
                 eos_token_id=self.tokenizer.eos_token_id
             )
@@ -141,8 +147,67 @@ class FitnessEvaluator:
 
         return 0.0
 
+    def _evaluate_perplexity_batch(self, model, batch_data: List[Dict], device) -> List[float]:
+        """Evaluate perplexity on a batch of items
+
+        Args:
+            model: Model to evaluate
+            batch_data: List of data items with 'question' and 'answer'
+            device: Device to run on
+
+        Returns:
+            List of perplexity values
+        """
+        texts = []
+        for item in batch_data:
+            question = item.get('question', item.get('text', ''))
+            answer = item.get('answer', item.get('label', ''))
+            texts.append(f"Question: {question}\nAnswer: {answer}")
+
+        # Batch tokenization
+        encodings = self.tokenizer(
+            texts,
+            return_tensors="pt",
+            truncation=True,
+            padding=True,
+            max_length=256  # Reduced from 512
+        ).to(device)
+
+        # Calculate perplexity for batch
+        with torch.no_grad():
+            outputs = model(
+                input_ids=encodings['input_ids'],
+                attention_mask=encodings['attention_mask'],
+                labels=encodings['input_ids']
+            )
+
+            # Get per-sample loss using reduction='none'
+            if hasattr(outputs, 'logits'):
+                # Manual loss calculation for per-sample losses
+                from torch.nn import CrossEntropyLoss
+                loss_fct = CrossEntropyLoss(reduction='none')
+                shift_logits = outputs.logits[..., :-1, :].contiguous()
+                shift_labels = encodings['input_ids'][..., 1:].contiguous()
+                loss_per_token = loss_fct(
+                    shift_logits.view(-1, shift_logits.size(-1)),
+                    shift_labels.view(-1)
+                ).view(shift_labels.size())
+
+                # Average loss per sample
+                loss_per_sample = loss_per_token.mean(dim=1)
+                perplexities = torch.exp(loss_per_sample).tolist()
+            else:
+                # Fallback: use single loss value for all samples
+                perplexity = torch.exp(outputs.loss).item()
+                perplexities = [perplexity] * len(batch_data)
+
+            # Cap perplexities
+            perplexities = [min(p, 1000.0) for p in perplexities]
+
+        return perplexities
+
     def _evaluate_perplexity(self, model, item: Dict, device) -> float:
-        """Evaluate perplexity on a single item
+        """Evaluate perplexity on a single item (fallback method)
 
         Args:
             model: Model to evaluate
@@ -152,35 +217,8 @@ class FitnessEvaluator:
         Returns:
             Perplexity value
         """
-        question = item.get('question', item.get('text', ''))
-        answer = item.get('answer', item.get('label', ''))
-
-        # Format full text
-        full_text = f"Question: {question}\nAnswer: {answer}"
-
-        # Tokenize
-        encoding = self.tokenizer(
-            full_text,
-            return_tensors="pt",
-            truncation=True,
-            max_length=512
-        ).to(device)
-
-        # Calculate perplexity
-        with torch.no_grad():
-            outputs = model(
-                input_ids=encoding['input_ids'],
-                attention_mask=encoding['attention_mask'],
-                labels=encoding['input_ids']
-            )
-
-            # Perplexity is exp(loss)
-            perplexity = torch.exp(outputs.loss).item()
-
-            # Cap perplexity to avoid infinities
-            perplexity = min(perplexity, 1000.0)
-
-        return perplexity
+        result = self._evaluate_perplexity_batch(model, [item], device)
+        return result[0] if result else float('inf')
 
     def _fuzzy_match(self, true_answer: str, generated: str) -> bool:
         """Fuzzy matching for answers
@@ -282,9 +320,9 @@ class FitnessEvaluator:
 
                 outputs = model.generate(
                     **inputs,
-                    max_new_tokens=50,
+                    max_new_tokens=20,  # Reduced for speed
                     temperature=0.7,
-                    do_sample=True
+                    do_sample=False  # Greedy is faster
                 )
 
                 end_time = time.time()

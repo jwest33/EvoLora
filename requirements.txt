@@ -6,12 +6,22 @@ transformers>=4.30.0
 peft>=0.5.0
 accelerate>=0.20.0
 
+# Unsloth for optimized training (3-5x speedup)
+unsloth>=2024.1  # Install with: pip install unsloth
+
+# TRL for advanced training methods (GRPO, DPO, etc.)
+trl>=0.7.0  # For GRPO, SFTTrainer, and other RL methods
+
 # Datasets
 datasets>=2.14.0
 
 # CLI enhancements
 colorama>=0.4.6  # Cross-platform colored terminal output
 tqdm>=4.65.0      # Progress bars
+
+# System monitoring
+psutil>=5.9.0     # System and process utilities
+gputil>=1.4.0     # GPU monitoring
 
 # Configuration
 pyyaml>=6.0

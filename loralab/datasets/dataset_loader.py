@@ -14,6 +14,14 @@ logger = logging.getLogger(__name__)
 # Try to import datasets library
 try:
     from datasets import load_dataset
+    import datasets
+
+    # Apply Windows compatibility settings
+    from ..utils.windows_compat import disable_multiprocessing, is_windows
+    if is_windows():
+        disable_multiprocessing()
+        datasets.config.NUM_PROC = 1
+
     DATASETS_AVAILABLE = True
 except ImportError:
     DATASETS_AVAILABLE = False

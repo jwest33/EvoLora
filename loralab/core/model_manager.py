@@ -122,6 +122,9 @@ class ModelManager:
         # Apply LoRA to base model (creates a new PEFT model)
         lora_model = get_peft_model(self.base_model, peft_config)
 
+        # Ensure model is in training mode
+        lora_model.train()
+
         # Print trainable parameters info
         trainable_params = sum(p.numel() for p in lora_model.parameters() if p.requires_grad)
         all_params = sum(p.numel() for p in lora_model.parameters())

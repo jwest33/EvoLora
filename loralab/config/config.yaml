@@ -10,15 +10,20 @@ mode: "self_supervised"
 # Single model configuration (no teacher needed)
 model:
   path: "Qwen/Qwen3-4B-Instruct-2507"  # HuggingFace ID or local path
+  backend: "unsloth"  # "unsloth" or "transformers"
   type: "transformers"
   torch_dtype: "float16"
   device_map: "cuda:0"  # Use "auto" for multi-GPU, "cuda:0" for single GPU, "cpu" for CPU only
   trust_remote_code: true
   low_cpu_mem_usage: true
+  # Unsloth-specific settings
+  quantization: "4bit"  # "4bit", "8bit", or "none" - reduces memory by 50-75%
+  max_seq_length: 2048  # Maximum sequence length for training
+  chat_template: null  # Optional: "qwen3-instruct", "llama3", "gemma3", etc.
 
 # Evolution parameters
 evolution:
-  population_size: 6        # Number of variants per generation
+  population_size: 4        # Number of variants per generation (reduced for speed)
   generations: 10           # Number of evolution cycles
   keep_top: 2               # Number of best variants to keep
   mutation_rate: 0.3        # Probability of mutating parameters
@@ -26,34 +31,74 @@ evolution:
 
 # LoRA hyperparameter search space
 lora_search_space:
-  rank: [16, 32, 64, 128, 256]           # LoRA rank options
-  alpha_multiplier: [1, 2, 3]            # alpha = rank * multiplier
-  dropout: [0.05, 0.1, 0.15]             # Dropout rates
-  learning_rate: [1e-5, 2e-5, 5e-5, 1e-4, 2e-4]  # Learning rates
-  target_modules:                         # Modules to apply LoRA to
+  rank: [8, 16, 32]                     # LoRA rank options (reduced options)
+  alpha_multiplier: [1, 2]               # alpha = rank * multiplier
+  dropout: [0.05, 0.1]                   # Dropout rates (reduced options)
+  learning_rate: [2e-5, 5e-5, 1e-4]     # Learning rates (focused range)
+  target_modules:                        # Modules to apply LoRA to
     - "q_proj"
     - "k_proj"
     - "v_proj"
     - "o_proj"
+    - "gate_proj"  # Added for better Unsloth performance
+    - "up_proj"    # Added for better Unsloth performance
+    - "down_proj"  # Added for better Unsloth performance
+  # Unsloth-specific LoRA options
+  use_rslora: false                     # Use Rank-Stabilized LoRA
+  use_gradient_checkpointing: true      # Use Unsloth's optimized checkpointing
 
 # Training parameters
 training:
-  batch_size: 4                    # Batch size per variant
-  gradient_accumulation_steps: 16  # Effective batch = 64
+  method: "sft"                    # Training method: "sft", "grpo", or "auto" (auto selects based on task)
+  batch_size: 16                   # Increased batch size for better GPU utilization
+  gradient_accumulation_steps: 4   # Reduced accumulation (effective batch = 64)
   epochs_per_variant: 1            # Quick iterations for evolution
   max_grad_norm: 1.0               # Gradient clipping
   weight_decay: 0.01               # Weight decay
   warmup_ratio: 0.1                # Warmup proportion
-  fp16: true                       # Use mixed precision
-  gradient_checkpointing: false    # Memory vs speed tradeoff
+  fp16: false                      # Disabled - can cause gradient issues with LoRA
+  bf16: false                      # Disabled - can cause gradient issues with LoRA
+  gradient_checkpointing: false    # Disabled - can conflict with LoRA
+  dataloader_num_workers: 2       # Parallel data loading
+  dataloader_pin_memory: true      # Pin memory for faster transfer
+  dataloader_prefetch_factor: 2    # Prefetch batches
+  # SFT-specific options
+  train_on_completions_only: false  # Only train on assistant responses (for instruct tuning)
+  # TRL trainer options (when using Unsloth)
+  use_trl_trainer: false           # Use TRL's SFTTrainer instead of custom trainer
+
+# GRPO configuration (for reasoning model training)
+grpo:
+  enabled: false                   # Enable GRPO for reasoning tasks
+  max_steps: 100                   # Max GRPO training steps per variant
+  temperature: 1.0                 # Generation temperature
+  num_generations: 4               # Number of generations per batch
+  max_prompt_length: 512           # Maximum prompt length
+  max_completion_length: 512       # Maximum completion length
+  # Reasoning format markers
+  reasoning_start: "<think>"       # Token marking reasoning start
+  reasoning_end: "</think>"        # Token marking reasoning end
+  solution_start: "<solution>"     # Token marking solution start
+  solution_end: "</solution>"      # Token marking solution end
+  # Reward function weights
+  reward_weights:
+    format: 1.0                    # Weight for format compliance
+    accuracy: 2.0                  # Weight for answer accuracy
+    reasoning: 1.5                 # Weight for reasoning quality
+  # Pre-training options
+  pre_train_format: true           # Pre-train on format before GRPO
+  format_examples: 50              # Number of format examples for pre-training
 
 # Dataset configuration
 dataset:
   sources:                         # Datasets to use
     - "mmlu-pro"                   # Multi-task benchmark
-  train_size: 10000                # Training examples
-  eval_size: 1000                  # Evaluation examples
+  train_size: 2000                 # Reduced training examples for faster evolution
+  eval_size: 500                   # Reduced evaluation examples
   seed: 42                         # Random seed for splits
+  max_seq_length: 256              # Reduced from 512 for faster processing
+  use_cache: true                  # Enable dataset caching
+  cache_dir: "cache/datasets"      # Cache directory
 
 # Output configuration
 output:

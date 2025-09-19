@@ -4,12 +4,43 @@ Run evolutionary optimization to find optimal LoRA adapters.
 """
 
 import sys
+import os
 import logging
 from pathlib import Path
 
 # Add project to path
 project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root))
+
+# Disable ALL multiprocessing on Windows before any imports
+import platform
+if platform.system() == 'Windows':
+    os.environ["TOKENIZERS_PARALLELISM"] = "false"
+    os.environ["DATASETS_PARALLEL_DOWNLOADS"] = "false"
+    os.environ["UNSLOTH_NUM_PROC"] = "1"
+    os.environ["DATASETS_NUM_PROC"] = "1"
+
+    # Windows multiprocessing fix
+    import multiprocessing
+    if __name__ == '__main__':
+        multiprocessing.freeze_support()
+        # Force spawn method (required for Windows)
+        try:
+            multiprocessing.set_start_method('spawn', force=True)
+        except:
+            pass
+
+    # Force single process for datasets
+    try:
+        import datasets
+        datasets.disable_progress_bars()
+        datasets.config.NUM_PROC = 1
+    except ImportError:
+        pass
+
+# Configure and initialize Unsloth before anything else
+from loralab.utils.unsloth_config import init_unsloth
+UNSLOTH_AVAILABLE = init_unsloth()
 
 from loralab.cli_evolution import main
 

@@ -93,7 +93,7 @@ class ConfigLoader:
             config['lora_search_space'] = {}
 
         lora = config['lora_search_space']
-        lora.setdefault('rank', [16, 32, 64, 128, 256])
+        lora.setdefault('rank', [4, 8, 16, 32, 64])
         lora.setdefault('alpha_multiplier', [1, 2, 3])
         lora.setdefault('dropout', [0.05, 0.1, 0.15])
         lora.setdefault('learning_rate', [1e-5, 2e-5, 5e-5, 1e-4, 2e-4])
