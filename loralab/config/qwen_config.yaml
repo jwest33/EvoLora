@@ -1,0 +1,132 @@
+# LoRALab Qwen3-4B Evolution Configuration
+# Supports both SFT and GRPO training methods
+
+mode: "self_supervised"
+
+# ============================================================================
+# MODEL CONFIGURATION
+# ============================================================================
+
+model:
+  path: "Qwen/Qwen3-4B-Instruct-2507"  # HuggingFace model ID
+  backend: "unsloth"                    # Use Unsloth for optimization
+  type: "transformers"
+  torch_dtype: "float16"
+  device_map: "cuda:0"
+  trust_remote_code: true
+  low_cpu_mem_usage: true
+  # Unsloth-specific settings
+  quantization: "4bit"                  # 4-bit quantization for memory efficiency
+  max_seq_length: 2048                  # Maximum sequence length
+  chat_template: "qwen3-instruct"       # Qwen3 chat template
+  load_in_4bit: true                    # Enable 4-bit loading
+  use_cache: false                      # Disable KV cache during training
+
+# ============================================================================
+# EVOLUTION PARAMETERS
+# ============================================================================
+
+evolution:
+  population_size: 4                    # Number of variants per generation
+  generations: 10                       # Number of evolution cycles
+  keep_top: 2                          # Keep top N performers
+  mutation_rate: 0.3                    # Mutation probability
+  crossover_rate: 0.25                  # Crossover probability
+  skip_perplexity: false                # Use full perplexity evaluation
+
+# ============================================================================
+# LORA SEARCH SPACE
+# ============================================================================
+
+lora_search_space:
+  rank: [16, 32, 64]                    # LoRA rank options
+  alpha_multiplier: [1, 2]              # Alpha = rank * multiplier
+  dropout: [0.0]                        # Zero dropout for Unsloth
+  learning_rate: [5e-5, 1e-4, 2e-4]     # Learning rate options
+  # Training hyperparameters
+  weight_decay: [0.0, 0.01]             # Weight decay options
+  warmup_ratio: [0.0, 0.1]              # Warmup ratio options
+  max_grad_norm: [1.0]                  # Gradient clipping
+  # LoRA-specific options
+  use_rslora: [false, true]             # Rank-Stabilized LoRA
+  target_modules_preset: ["standard", "extended"]  # Module combinations
+  use_gradient_checkpointing: true      # Unsloth's optimized checkpointing
+
+# ============================================================================
+# TRAINING PARAMETERS
+# ============================================================================
+
+training:
+  method: "sft"                         # Default to SFT (overridden by --grpo flag)
+  batch_size: 4                         # Training batch size
+  gradient_accumulation_steps: 4        # Effective batch = 16
+  epochs_per_variant: 1                 # Epochs per variant
+  max_grad_norm: 1.0                    # Gradient clipping
+  weight_decay: 0.01                    # Weight decay
+  warmup_ratio: 0.1                     # Warmup proportion
+  fp16: true                            # Use FP16 training
+  bf16: false                           # Disable BF16
+  gradient_checkpointing: false         # Let Unsloth handle this
+  dataloader_num_workers: 0             # Windows compatibility
+  dataloader_pin_memory: true           # Pin memory
+  dataloader_prefetch_factor: 2         # Prefetch batches
+
+# ============================================================================
+# GRPO CONFIGURATION (Used when --grpo flag is set)
+# ============================================================================
+
+grpo:
+  enabled: false                        # Enabled via command line flag
+  max_steps: 100                        # Training steps for GRPO
+  temperature: 0.8                      # Generation temperature
+  num_generations: 4                    # Generations per batch
+  max_prompt_length: 512                # Max prompt length
+  max_completion_length: 512            # Max completion length
+  # Reward function weights
+  reward_weights:
+    format: 1.0                         # Format compliance weight
+    accuracy: 2.0                       # Accuracy weight
+    reasoning: 1.5                      # Reasoning quality weight
+
+# ============================================================================
+# DATASET CONFIGURATION
+# ============================================================================
+
+dataset:
+  sources:                              # Datasets to use
+    - "gsm8k"                           # Math reasoning dataset
+  train_size: 1000                      # Training samples
+  eval_size: 200                        # Evaluation samples
+  seed: 42                              # Random seed
+  max_seq_length: 512                   # Sequence length
+  use_cache: true                       # Enable caching
+  cache_dir: "cache/datasets"           # Cache directory
+
+# ============================================================================
+# OUTPUT CONFIGURATION
+# ============================================================================
+
+output:
+  base_dir: "lora_runs_qwen"            # Output directory for Qwen
+  run_name: null                        # Auto-generate name
+  keep_runs: 5                          # Keep recent runs
+
+# ============================================================================
+# LOGGING
+# ============================================================================
+
+logging:
+  level: "INFO"
+  save_history: true
+  track_metrics: ["accuracy", "perplexity", "fitness_score", "rewards"]
+
+# ============================================================================
+# QUICK TEST MODE
+# ============================================================================
+
+quick_test:
+  enabled: false
+  population_size: 2
+  generations: 2
+  train_size: 100
+  eval_size: 20
