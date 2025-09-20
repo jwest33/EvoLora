@@ -85,10 +85,10 @@ training:
 grpo:
   enabled: false                        # Enabled via command line flag
   max_steps: 20                         # Very few steps to avoid instability
-  num_generations: 2                    # Minimum 2 required for GRPO advantage calculation
+  num_generations: 3                    # Minimum 2 required for GRPO advantage calculation
   temperature: 0.6                      # Lower temperature for stability
-  max_prompt_length: 256                # Shorter prompts for small model
-  max_completion_length: 256            # Shorter completions for stability
+  max_prompt_length: 512                # Shorter prompts for small model
+  max_completion_length: 512            # Shorter completions for stability
   # KL regularization
   beta: 0.1                             # KL coefficient for reference model
   epsilon: 0.2                          # Clipping epsilon

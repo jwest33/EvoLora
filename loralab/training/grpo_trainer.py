@@ -371,7 +371,7 @@ Then provide your final answer between {solution_start} and {solution_end}."""
         logger.info(f"Starting GRPO training for {variant_id}")
 
         # Disable torch compile for GRPO to avoid dynamo issues
-        os.environ['TORCHDYNAMO_DISABLE'] = '1'
+        #os.environ['TORCHDYNAMO_DISABLE'] = '1'
         os.environ['UNSLOTH_RETURN_LOGITS'] = '1'
         
         # Prepare dataset
@@ -431,8 +431,9 @@ Then provide your final answer between {solution_start} and {solution_end}."""
         # GRPO passes completions as first arg, and dataset columns as kwargs
         # The 'answer' field from the dataset will be passed in kwargs
         def custom_reward_func(completions, answer=None, **kwargs):
-            """Custom reward function that uses our RewardFunctions class"""
+            """Custom reward function with better discrimination"""
             import re
+            import math
 
             # Completions come as list of message dicts, extract just the content
             completion_texts = []
@@ -451,45 +452,112 @@ Then provide your final answer between {solution_start} and {solution_end}."""
             for i, text in enumerate(completion_texts):
                 reward = 0.0
 
-                # Basic reward for generating any response
-                if len(text.strip()) > 10:
-                    reward += 0.1
+                # Penalty for too short or too long responses
+                text_len = len(text.strip())
+                if text_len < 20:
+                    reward -= 3.0  # Strong penalty for trivial responses
+                elif text_len > 1500:
+                    reward -= 1.0  # Penalty for rambling
+                else:
+                    # Good length bonus
+                    reward += 0.5
 
-                # Reward for attempting math (numbers present)
-                if re.search(r'\d+', text):
-                    reward += 0.2
-
-                # Reward for showing work (multiple lines/steps)
+                # Check for step-by-step reasoning (higher weight)
                 lines = text.strip().split('\n')
-                if len(lines) > 2:
-                    reward += 0.2
+                if len(lines) >= 3:
+                    reward += 1.0  # Reward multi-line reasoning
+                elif len(lines) == 1:
+                    reward -= 1.0  # Penalize single-line answers for math problems
 
-                # Reward for mathematical operations
-                if any(op in text for op in ['+', '-', '*', '/', '=']):
-                    reward += 0.2
+                # Look for explicit step indicators
+                step_patterns = [r'step\s*\d+', r'first\s*,', r'then\s*,', r'finally\s*,',
+                               r'^\d+\.', r'^\d+\)']
+                step_count = 0
+                for pattern in step_patterns:
+                    if re.search(pattern, text, re.MULTILINE | re.IGNORECASE):
+                        step_count += 1
+                reward += min(step_count * 0.5, 2.0)  # Up to 2.0 for structured steps
 
-                # Reward for keywords showing reasoning
-                reasoning_keywords = ['because', 'therefore', 'so', 'first', 'then',
-                                     'step', 'calculate', 'total', 'answer', 'result']
-                keyword_count = sum(1 for keyword in reasoning_keywords if keyword.lower() in text.lower())
-                reward += min(keyword_count * 0.1, 0.3)
+                # Mathematical operations (essential for math problems)
+                math_ops_found = 0
+                for op in ['+', '-', '*', '/', '=']:
+                    if op in text:
+                        math_ops_found += text.count(op)
+                if math_ops_found > 0:
+                    reward += min(math_ops_found * 0.3, 1.5)  # Up to 1.5 for math operations
+                else:
+                    reward -= 2.0  # Penalty for no math operations in a math problem
 
-                # Try to extract final answer and check accuracy if possible
+                # Check for numbers in the response (should have calculations)
+                numbers = re.findall(r'\d+\.?\d*', text)
+                if len(numbers) >= 3:  # Multiple numbers suggest working
+                    reward += 1.0
+                elif len(numbers) <= 1:
+                    reward -= 2.0  # Too few numbers for a math problem
+
+                # CRITICAL: Check answer accuracy (biggest weight)
                 if answer and i < len(answer):
-                    correct_answer = str(answer[i])
-                    # Look for the answer number in the completion
-                    if correct_answer in text:
-                        reward += 1.0  # Big reward for correct answer
+                    correct_answer = str(answer[i]).strip()
 
-                # Cap reward between -1 and 2
-                reward = max(-1.0, min(2.0, reward))
+                    # Try to find the answer in various formats
+                    answer_found = False
+
+                    # Look for exact match
+                    if correct_answer in text:
+                        answer_found = True
+                        # Check if it's at the end (best case)
+                        if text.strip().endswith(correct_answer):
+                            reward += 8.0  # Huge reward for correct answer at end
+                        else:
+                            reward += 5.0  # Good reward for correct answer elsewhere
+
+                    # Look for "answer is X" or "= X" patterns
+                    if not answer_found:
+                        answer_patterns = [
+                            rf'answer\s*[:=]\s*{re.escape(correct_answer)}',
+                            rf'=\s*{re.escape(correct_answer)}(?:\D|$)',
+                            rf'total\s*[:=]\s*{re.escape(correct_answer)}',
+                            rf'result\s*[:=]\s*{re.escape(correct_answer)}'
+                        ]
+                        for pattern in answer_patterns:
+                            if re.search(pattern, text, re.IGNORECASE):
+                                answer_found = True
+                                reward += 6.0  # Good reward for formatted answer
+                                break
+
+                    # Heavy penalty for wrong or missing answer
+                    if not answer_found:
+                        # Check if there's any final answer attempt
+                        if re.search(r'answer\s*[:=]|final answer|the answer is', text, re.IGNORECASE):
+                            reward -= 5.0  # Wrong answer is very bad
+                        else:
+                            reward -= 8.0  # No answer attempt is worst
+
+                # Reasoning quality keywords (smaller weight)
+                reasoning_indicators = ['because', 'therefore', 'thus', 'since', 'so we',
+                                      'this means', 'calculate', 'multiply', 'divide', 'add', 'subtract']
+                reasoning_count = sum(1 for word in reasoning_indicators
+                                    if word.lower() in text.lower())
+                reward += min(reasoning_count * 0.2, 1.0)
+
+                # Use RewardFunctions format checking (smaller weight)
+                if self.reward_functions.reasoning_pattern.search(text):
+                    reward += 1.0  # Bonus for using reasoning tags
+                if self.reward_functions.solution_pattern.search(text):
+                    reward += 1.0  # Bonus for using solution tags
+
+                # Final reward range: approximately -15 to +15
+                # This provides much better discrimination
                 rewards.append(reward)
 
-            # Log first completion for debugging (only occasionally)
+            # Enhanced logging for debugging
             import random
-            if random.random() < 0.1 and completion_texts:  # Log 10% of the time
-                logger.debug(f"Sample completion: {completion_texts[0][:200]}...")
-                logger.debug(f"Reward: {rewards[0]}")
+            if random.random() < 0.3:  # Log 30% of the time for better debugging
+                logger.info(f"[GRPO Reward] Sample completion (first 400 chars):")
+                logger.info(f"  Text: {completion_texts[0][:400] if completion_texts else 'None'}...")
+                logger.info(f"  Reward: {rewards[0]:.2f} (range: -15 to +15)")
+                if answer and len(answer) > 0:
+                    logger.info(f"  Expected answer: {answer[0]}")
 
             return rewards
 
@@ -538,30 +606,44 @@ Then provide your final answer between {solution_start} and {solution_end}."""
             }
 
         # Extract metrics - look for various reward keys
-        # Debug: show all available metrics keys
-        all_keys = list(train_output.metrics.keys())
-        logger.info(f"Available metrics: {[k for k in all_keys if 'reward' in k.lower()]}")
-        logger.debug(f"All metric keys: {all_keys}")
-
-        # Try different reward keys in order of preference
+        # The reward metrics are in the state's log history, not the final metrics
         reward_value = 0.0
         reward_found = False
 
-        # First check for the actual reward keys from GRPO
-        reward_keys = [
-            'train_reward',  # Main training reward
-            'train_rewards/custom_reward_func/mean',  # Custom reward mean
-            'rewards/custom_reward_func/mean',  # Without train prefix
-            'reward',  # Simple reward key
-            'train_rewards_mean',  # Alternative format
-        ]
+        # Check trainer state for logged metrics
+        if hasattr(trainer, 'state') and hasattr(trainer.state, 'log_history'):
+            # Get the last non-empty log entry that has reward data
+            for log_entry in reversed(trainer.state.log_history):
+                if isinstance(log_entry, dict):
+                    # Try different reward keys
+                    reward_keys = [
+                        'reward',  # Simple reward key
+                        'rewards/custom_reward_func/mean',  # Custom reward mean
+                        'train_reward',  # Main training reward
+                        'train_rewards/custom_reward_func/mean',  # With train prefix
+                    ]
 
-        for key in reward_keys:
-            if key in train_output.metrics:
-                reward_value = train_output.metrics[key]
-                logger.info(f"Found reward value {reward_value:.4f} from key '{key}'")
-                reward_found = True
-                break
+                    for key in reward_keys:
+                        if key in log_entry:
+                            reward_value = log_entry[key]
+                            logger.info(f"Found reward value {reward_value:.4f} from key '{key}' in log history")
+                            reward_found = True
+                            break
+
+                    if reward_found:
+                        break
+
+        # Fallback to checking train_output.metrics
+        if not reward_found:
+            all_keys = list(train_output.metrics.keys())
+            logger.debug(f"Available metrics in train_output: {[k for k in all_keys if 'reward' in k.lower()]}")
+
+            for key in ['train_reward', 'reward', 'rewards_mean']:
+                if key in train_output.metrics:
+                    reward_value = train_output.metrics[key]
+                    logger.info(f"Found reward value {reward_value:.4f} from key '{key}' in train_output.metrics")
+                    reward_found = True
+                    break
 
         if not reward_found:
             logger.warning("No reward metric found in training output, defaulting to 0.0")
