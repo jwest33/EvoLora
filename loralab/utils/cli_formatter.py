@@ -353,6 +353,149 @@ class CLIFormatter:
         else:
             return f"{size_gb:.2f}GB"
 
+    @staticmethod
+    def format_training_metrics(metrics: dict, step: Optional[int] = None,
+                               total_steps: Optional[int] = None):
+        """Format training metrics in a clean, readable layout
+
+        Args:
+            metrics: Dictionary of training metrics
+            step: Current step number
+            total_steps: Total number of steps
+        """
+        # Header with step info if provided
+        if step is not None:
+            if total_steps:
+                progress = step / total_steps
+                CLIFormatter.print_progress(step, total_steps, "Training Progress")
+            else:
+                print(f"\n{Fore.CYAN}[Step {step}]{Style.RESET_ALL}")
+
+        # Group metrics by category
+        core_metrics = {}
+        reward_metrics = {}
+        completion_metrics = {}
+        other_metrics = {}
+
+        for key, value in metrics.items():
+            if key in ['loss', 'grad_norm', 'learning_rate', 'kl', 'epoch']:
+                core_metrics[key] = value
+            elif 'reward' in key.lower():
+                reward_metrics[key] = value
+            elif 'completion' in key.lower() or 'length' in key.lower():
+                completion_metrics[key] = value
+            else:
+                other_metrics[key] = value
+
+        # Print core metrics
+        if core_metrics:
+            print(f"\n{Fore.CYAN}{'─' * 40}{Style.RESET_ALL}")
+            print(f"{Fore.YELLOW}{Style.BRIGHT}Core Metrics:{Style.RESET_ALL}")
+            for key, value in core_metrics.items():
+                CLIFormatter._print_metric_value(key, value)
+
+        # Print reward metrics
+        if reward_metrics:
+            print(f"\n{Fore.YELLOW}{Style.BRIGHT}Rewards:{Style.RESET_ALL}")
+            for key, value in reward_metrics.items():
+                # Clean up nested reward names
+                clean_key = key.replace('rewards/', '').replace('custom_reward_func/', '')
+                CLIFormatter._print_metric_value(clean_key, value)
+
+        # Print completion metrics
+        if completion_metrics:
+            print(f"\n{Fore.YELLOW}{Style.BRIGHT}Completions:{Style.RESET_ALL}")
+            for key, value in completion_metrics.items():
+                clean_key = key.replace('completions/', '')
+                CLIFormatter._print_metric_value(clean_key, value)
+
+        # Print other metrics
+        if other_metrics:
+            print(f"\n{Fore.YELLOW}{Style.BRIGHT}Other:{Style.RESET_ALL}")
+            for key, value in other_metrics.items():
+                CLIFormatter._print_metric_value(key, value)
+
+        print(f"{Fore.CYAN}{'─' * 40}{Style.RESET_ALL}")
+
+    @staticmethod
+    def _print_metric_value(name: str, value: Any):
+        """Print a single metric with appropriate formatting
+
+        Args:
+            name: Metric name
+            value: Metric value
+        """
+        # Format name
+        formatted_name = name.replace('_', ' ').title()
+
+        # Determine color based on metric type and value
+        color = Fore.WHITE
+
+        if 'loss' in name.lower():
+            # Lower loss is better
+            if isinstance(value, (int, float)):
+                if value < 0.01:
+                    color = Fore.GREEN
+                elif value < 0.1:
+                    color = Fore.YELLOW
+                else:
+                    color = Fore.RED
+        elif 'reward' in name.lower():
+            # Higher reward is usually better
+            if isinstance(value, (int, float)):
+                if value > 0.5:
+                    color = Fore.GREEN
+                elif value > 0:
+                    color = Fore.YELLOW
+                else:
+                    color = Fore.RED
+        elif 'learning_rate' in name.lower():
+            color = Fore.CYAN
+        elif 'grad_norm' in name.lower():
+            # Check for gradient issues
+            if isinstance(value, (int, float)):
+                if value == 0:
+                    color = Fore.RED  # No gradients
+                elif value < 0.001:
+                    color = Fore.YELLOW  # Very small gradients
+                elif value > 100:
+                    color = Fore.RED  # Exploding gradients
+                else:
+                    color = Fore.GREEN
+
+        # Format value
+        if isinstance(value, float):
+            if abs(value) < 0.0001:
+                formatted_value = f"{value:.2e}"
+            elif abs(value) < 1:
+                formatted_value = f"{value:.6f}"
+            elif abs(value) > 1000:
+                formatted_value = f"{value:.2e}"
+            else:
+                formatted_value = f"{value:.4f}"
+        else:
+            formatted_value = str(value)
+
+        # Print with padding
+        print(f"  {Fore.CYAN}{formatted_name:25s}: {color}{formatted_value}{Style.RESET_ALL}")
+
+    @staticmethod
+    def format_training_batch(metrics_list: List[dict]):
+        """Format multiple training metric dictionaries as a batch
+
+        Args:
+            metrics_list: List of metric dictionaries
+        """
+        print(f"\n{Fore.CYAN}{Style.BRIGHT}{'═' * 60}")
+        print(f"Training Metrics Batch - {len(metrics_list)} Updates".center(60))
+        print(f"{'═' * 60}{Style.RESET_ALL}\n")
+
+        for i, metrics in enumerate(metrics_list, 1):
+            print(f"{Fore.BLUE}{Style.BRIGHT}Update {i}/{len(metrics_list)}{Style.RESET_ALL}")
+            CLIFormatter.format_training_metrics(metrics)
+            if i < len(metrics_list):
+                print()  # Add space between updates
+
 
 class SpinnerProgress:
     """Simple spinner for long-running operations"""

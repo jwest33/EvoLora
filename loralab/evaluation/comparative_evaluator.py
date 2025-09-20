@@ -27,7 +27,7 @@ class ComparativeEvaluator:
         self.model_manager = model_manager
         self.tokenizer = model_manager.get_tokenizer()
         self.output_dir = Path(output_dir)
-        self.output_dir.mkdir(exist_ok=True)
+        # Directory will be created when needed
 
     def evaluate_single(self, model: Any, example: Dict, max_length: int = 50) -> Dict:
         """Evaluate a single example
@@ -216,6 +216,7 @@ class ComparativeEvaluator:
         Returns:
             Path to saved report
         """
+        self.output_dir.mkdir(parents=True, exist_ok=True)
         report_path = self.output_dir / f"comparison_report_{variant_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md"
 
         with open(report_path, 'w', encoding='utf-8') as f:

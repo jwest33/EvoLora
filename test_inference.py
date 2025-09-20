@@ -186,7 +186,7 @@ def main():
     parser.add_argument(
         "--adapter-path",
         type=str,
-        default="single_grpo_runs/gemma3_20250919_110648/adapter",
+        default="lora_runs/latest/models/best/adapter",
         help="Path to the trained LoRA adapter"
     )
     parser.add_argument(
@@ -212,8 +212,9 @@ def main():
         print("\nAvailable adapters:")
 
         # List available adapters
-        for run_dir in Path("single_grpo_runs").glob("*/adapter"):
-            print(f"  - {run_dir}")
+        if Path("lora_runs").exists():
+            for run_dir in Path("lora_runs").rglob("*/models/best/adapter"):
+                print(f"  - {run_dir}")
 
         return
 

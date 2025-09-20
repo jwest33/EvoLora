@@ -166,7 +166,7 @@ class SelfSupervisedTrainer:
 
         # Create dataset and dataloader with optimizations
         max_length = self.training_config.get('max_seq_length', 256)
-        cache_dir = self.training_config.get('cache_dir', 'cache/datasets')
+        cache_dir = self.training_config.get('cache_dir', 'cache')
 
         dataset = TextDataset(
             train_data,

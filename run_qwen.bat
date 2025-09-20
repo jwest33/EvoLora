@@ -9,14 +9,16 @@ echo.
 
 REM Check if GRPO flag is provided
 set USE_GRPO=0
-if /i "%1"=="grpo" (
-    set USE_GRPO=1
-    echo Mode: GRPO (Group Relative Policy Optimization)
-) else if /i "%1"=="GRPO" (
-    set USE_GRPO=1
-    echo Mode: GRPO (Group Relative Policy Optimization)
+if /i "%1"=="--gpro" set USE_GRPO=1
+if /i "%1"=="gpro" set USE_GRPO=1
+if /i "%1"=="--grpo" set USE_GRPO=1
+if /i "%1"=="grpo" set USE_GRPO=1
+
+REM Display mode
+if !USE_GRPO!==1 (
+    echo Mode: GRPO ^(Group Relative Policy Optimization^)
 ) else (
-    echo Mode: Standard SFT (Supervised Fine-Tuning)
+    echo Mode: Standard SFT ^(Supervised Fine-Tuning^)
 )
 
 REM Set environment variables

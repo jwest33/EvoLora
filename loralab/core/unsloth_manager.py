@@ -7,6 +7,7 @@ optimized training, and advanced LoRA features from Unsloth.
 import logging
 from typing import Optional, Dict, Any, List, Tuple
 from pathlib import Path
+import os
 
 # Use centralized Unsloth initialization to handle Windows compatibility
 from ..utils.unsloth_config import init_unsloth, is_unsloth_available
@@ -112,6 +113,8 @@ class UnslothModelManager:
                 # Default to float16 for Gemma to avoid dtype conflicts
                 dtype = torch.float16
                 logger.info("Using float16 for Gemma model (avoiding BFloat16 conflicts)")
+
+            os.environ['UNSLOTH_RETURN_LOGITS'] = '1'
 
             self.model, self.tokenizer = FastLanguageModel.from_pretrained(
                 model_name=model_path,

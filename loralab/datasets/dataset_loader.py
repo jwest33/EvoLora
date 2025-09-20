@@ -93,8 +93,8 @@ class DatasetLoader:
         Args:
             cache_dir: Directory to cache datasets
         """
-        self.cache_dir = Path(cache_dir) if cache_dir else Path('dataset_cache')
-        self.cache_dir.mkdir(exist_ok=True)
+        self.cache_dir = Path(cache_dir) if cache_dir else Path('cache')
+        # Don't create directory immediately - let it be created when needed
 
     def load_dataset(self,
                     dataset_name: str,

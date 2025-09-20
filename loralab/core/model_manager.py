@@ -8,6 +8,7 @@ from typing import Optional, Dict, Any
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from peft import LoraConfig, get_peft_model, TaskType
+import os
 
 try:
     from ..utils.cli_formatter import CLIFormatter
@@ -52,6 +53,8 @@ class ModelManager:
                     device_map = 'cpu'
                 else:
                     logger.info(f"CUDA available, using device: {device_map}")
+
+            os.environ['UNSLOTH_RETURN_LOGITS'] = '1'
 
             # Load model with memory optimization
             self.base_model = AutoModelForCausalLM.from_pretrained(

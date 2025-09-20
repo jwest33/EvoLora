@@ -29,8 +29,8 @@ model:
 
 evolution:
   population_size: 4                    # Small population for quick iterations
-  generations: 10                       # Number of evolution cycles
-  keep_top: 2                          # Keep top N performers
+  generations: 2                        # Number of evolution cycles
+  keep_top: 2                           # Keep top N performers
   mutation_rate: 0.35                   # Higher mutation for exploration
   crossover_rate: 0.25                  # Moderate crossover
   skip_perplexity: false                # Use full evaluation for small model
@@ -40,7 +40,7 @@ evolution:
 # ============================================================================
 
 lora_search_space:
-  rank: [64, 128, 256]                  # Higher ranks for small model
+  rank: [16,32, 64, 128, 256]           # Higher ranks for small model
   alpha_multiplier: [1, 2]              # Alpha = rank * multiplier
   dropout: [0.0]                        # Zero dropout for Unsloth
   learning_rate: [1e-4, 2e-4, 5e-4]     # Higher LR for small model
@@ -78,7 +78,7 @@ training:
 
 grpo:
   enabled: false                        # Enabled via command line flag
-  max_steps: 100                        # Training steps for GRPO
+  max_steps: 25                         # Training steps for GRPO
   temperature: 0.8                      # Generation temperature
   num_generations: 4                    # Generations per batch
   max_prompt_length: 512                # Max prompt length
@@ -104,7 +104,7 @@ dataset:
   seed: 42                              # Random seed
   max_seq_length: 512                   # Sequence length
   use_cache: true                       # Enable caching
-  cache_dir: "cache/datasets"           # Cache directory
+  cache_dir: "cache"                    # Cache directory
 
 # ============================================================================
 # OUTPUT CONFIGURATION

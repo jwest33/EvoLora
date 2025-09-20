@@ -7,6 +7,7 @@ import argparse
 import logging
 from pathlib import Path
 import sys
+import os
 
 from .config.config_loader import ConfigLoader
 from .evolution.evolutionary_trainer import EvolutionaryTrainer
@@ -89,6 +90,13 @@ def evolve_command(args):
     if args.eval_size:
         ss_config['dataset']['eval_size'] = args.eval_size
 
+    # Apply GRPO flag
+    if args.grpo:
+        CLIFormatter.print_info("GRPO mode enabled - using Group Relative Policy Optimization")
+        ss_config['training']['method'] = 'grpo'
+        if 'grpo' in ss_config:
+            ss_config['grpo']['enabled'] = True
+
     # Initialize trainer
     trainer = EvolutionaryTrainer(ss_config)
     trainer.initialize()
@@ -131,9 +139,11 @@ def evaluate_command(args):
     from transformers import AutoModelForCausalLM
     from peft import PeftModel
 
+    os.environ['UNSLOTH_RETURN_LOGITS'] = '1'
+
     # Load configuration
     config = ConfigLoader.load_config(args.config if args.config else 'loralab/config/config.yaml')
-
+    
     model_config = config.get('model', config.get('self_supervised', {}).get('model', {}))
     if not model_config:
         logger.error("No model configuration found")
@@ -426,6 +436,11 @@ def main():
         '--eval-size',
         type=int,
         help='Number of evaluation examples'
+    )
+    evolve_parser.add_argument(
+        '--grpo',
+        action='store_true',
+        help='Use Group Relative Policy Optimization (GRPO) training'
     )
 
     # Evaluate command

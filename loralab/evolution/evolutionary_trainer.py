@@ -431,9 +431,8 @@ class EvolutionaryTrainer:
         variant_dir = self.output_manager.get_generation_checkpoint_dir(self.current_generation) / variant.variant_id
         model_dir = self.output_manager.get_variant_model_dir(variant.variant_id)
 
-        variant_dir.mkdir(parents=True, exist_ok=True)
-
-        # Save configuration to checkpoint
+        # Save configuration to checkpoint (directory already created by get_generation_checkpoint_dir)
+        variant_dir.mkdir(parents=True, exist_ok=True)  # Still need this for the variant subdirectory
         self.lora_factory.save_variant(variant, str(variant_dir / "config.json"))
 
         # Save model to models directory
@@ -442,8 +441,7 @@ class EvolutionaryTrainer:
 
     def _save_best_variant(self, variant: LoRAVariant):
         """Save the best variant found so far"""
-        best_dir = self.output_manager.get_path('best_model')
-        best_dir.mkdir(exist_ok=True)
+        best_dir = self.output_manager.get_path('best_model')  # Directory created by get_path
 
         # Save configuration
         self.lora_factory.save_variant(variant, str(best_dir / "config.json"))
@@ -624,6 +622,9 @@ class EvolutionaryTrainer:
 
             # Load trained adapter
             from peft import PeftModel
+
+            os.environ['UNSLOTH_RETURN_LOGITS'] = '1'
+            
             lora_model = PeftModel.from_pretrained(
                 self.model_manager.base_model,
                 str(best_dir)

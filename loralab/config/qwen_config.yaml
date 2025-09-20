@@ -100,7 +100,7 @@ dataset:
   seed: 42                              # Random seed
   max_seq_length: 512                   # Sequence length
   use_cache: true                       # Enable caching
-  cache_dir: "cache/datasets"           # Cache directory
+  cache_dir: "cache"                    # Cache directory
 
 # ============================================================================
 # OUTPUT CONFIGURATION

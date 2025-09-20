@@ -28,17 +28,15 @@ class OutputManager:
         self.base_dir = Path(base_dir)
         self.run_dir = self.base_dir / run_name
 
-        # Create directory structure
-        self._create_directories()
+        # Create only the base run directory
+        self.run_dir.mkdir(parents=True, exist_ok=True)
 
-        # Store paths for easy access
+        # Store paths for easy access - directories will be created on demand
         self.paths = {
             'base': self.run_dir,
             'checkpoints': self.run_dir / 'checkpoints',
             'models': self.run_dir / 'models',
             'best_model': self.run_dir / 'models' / 'best',
-            'reports': self.run_dir / 'reports',
-            'analysis': self.run_dir / 'analysis',
             'logs': self.run_dir / 'logs',
             'config': self.run_dir / 'config',
             'history': self.run_dir / 'history'
@@ -46,30 +44,14 @@ class OutputManager:
 
         logger.info(f"Output manager initialized at: {self.run_dir}")
 
-    def _create_directories(self):
-        """Create all required directories"""
-        directories = [
-            self.run_dir,
-            self.run_dir / 'checkpoints',        # Evolution checkpoints
-            self.run_dir / 'checkpoints' / 'generations',  # Per-generation checkpoints
-            self.run_dir / 'models',              # Saved models
-            self.run_dir / 'models' / 'best',     # Best variant
-            self.run_dir / 'models' / 'variants', # All variant models
-            self.run_dir / 'reports',             # Evaluation reports
-            self.run_dir / 'reports' / 'comparisons',  # Model comparison reports
-            self.run_dir / 'reports' / 'evaluations',  # Individual evaluation reports
-            self.run_dir / 'analysis',            # Analysis outputs
-            self.run_dir / 'analysis' / 'visualizations',  # Graphs and charts
-            self.run_dir / 'logs',                # Training and system logs
-            self.run_dir / 'config',              # Configuration backups
-            self.run_dir / 'history'              # Evolution history
-        ]
-
-        for directory in directories:
-            directory.mkdir(parents=True, exist_ok=True)
+    def _ensure_directory(self, path: Path):
+        """Ensure a directory exists (lazy creation)"""
+        if not path.exists():
+            path.mkdir(parents=True, exist_ok=True)
+            logger.debug(f"Created directory: {path}")
 
     def get_path(self, key: str) -> Path:
-        """Get a specific path by key
+        """Get a specific path by key (creates directory if needed)
 
         Args:
             key: Path key (e.g., 'checkpoints', 'best_model')
@@ -79,7 +61,10 @@ class OutputManager:
         """
         if key not in self.paths:
             raise KeyError(f"Unknown path key: {key}. Available keys: {list(self.paths.keys())}")
-        return self.paths[key]
+
+        path = self.paths[key]
+        self._ensure_directory(path)
+        return path
 
     def get_generation_checkpoint_dir(self, generation: int) -> Path:
         """Get checkpoint directory for a specific generation
@@ -91,7 +76,7 @@ class OutputManager:
             Path to generation checkpoint directory
         """
         gen_dir = self.paths['checkpoints'] / 'generations' / f'gen{generation}'
-        gen_dir.mkdir(parents=True, exist_ok=True)
+        self._ensure_directory(gen_dir)
         return gen_dir
 
     def get_variant_model_dir(self, variant_id: str) -> Path:
@@ -104,7 +89,7 @@ class OutputManager:
             Path to variant model directory
         """
         variant_dir = self.paths['models'] / 'variants' / variant_id
-        variant_dir.mkdir(parents=True, exist_ok=True)
+        self._ensure_directory(variant_dir)
         return variant_dir
 
     def save_config(self, config: Dict[str, Any], filename: str = "config.yaml"):
@@ -144,20 +129,16 @@ class OutputManager:
         """Get path for a specific report
 
         Args:
-            report_type: Type of report ('comparison', 'evaluation')
+            report_type: Type of report
             identifier: Report identifier
 
         Returns:
             Path to report file
         """
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-
-        if report_type == 'comparison':
-            return self.paths['reports'] / 'comparisons' / f"comparison_{identifier}_{timestamp}.md"
-        elif report_type == 'evaluation':
-            return self.paths['reports'] / 'evaluations' / f"evaluation_{identifier}_{timestamp}.json"
-        else:
-            return self.paths['reports'] / f"{report_type}_{identifier}_{timestamp}.md"
+        reports_dir = self.run_dir / 'reports'
+        self._ensure_directory(reports_dir)
+        return reports_dir / f"{report_type}_{identifier}_{timestamp}.json"
 
     def get_visualization_path(self, viz_name: str, extension: str = "png") -> Path:
         """Get path for a visualization file
@@ -169,7 +150,9 @@ class OutputManager:
         Returns:
             Path to visualization file
         """
-        return self.paths['analysis'] / 'visualizations' / f"{viz_name}.{extension}"
+        viz_dir = self.run_dir / 'analysis'
+        self._ensure_directory(viz_dir)
+        return viz_dir / f"{viz_name}.{extension}"
 
     def get_log_path(self, log_name: str = "training") -> Path:
         """Get path for a log file

@@ -36,7 +36,7 @@ class EvolutionAnalyzer:
         self.checkpoint_dir = self.output_dir / "checkpoints"
         self.history_file = self.output_dir / "history" / "evolution_history.json"
         self.analysis_dir = self.output_dir / "analysis" / "visualizations"
-        self.analysis_dir.mkdir(exist_ok=True, parents=True)
+        # Directory will be created when needed
 
         self.history = None
         self.variants = {}  # variant_id -> variant data
@@ -83,6 +83,7 @@ class EvolutionAnalyzer:
         # Generate report
         self._generate_report()
 
+        self.analysis_dir.mkdir(parents=True, exist_ok=True)
         logger.info(f"Analysis complete. Results saved to {self.analysis_dir}")
 
     def _build_variant_database(self):
@@ -240,6 +241,7 @@ class EvolutionAnalyzer:
         ax.axis('off')
 
         plt.tight_layout()
+        self.analysis_dir.mkdir(parents=True, exist_ok=True)
         plt.savefig(self.analysis_dir / 'family_tree.png', dpi=150, bbox_inches='tight')
         plt.close()
 
