@@ -22,7 +22,7 @@ echo Method: GRPO (Group Relative Policy Optimization)
 echo.
 
 REM Run evolution with Gemma3 GRPO config
-python run_evolution.py --config loralab/config/gemma3_grpo_config.yaml
+python run_evolution.py evolve --config loralab/config/gemma3_grpo_config.yaml
 
 echo.
 echo Gemma3 GRPO Evolution complete!

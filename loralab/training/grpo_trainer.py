@@ -425,11 +425,15 @@ Then provide your final answer between {solution_start} and {solution_end}."""
         # Train and collect metrics
         train_output = trainer.train()
 
-        # Extract metrics
+        # Extract metrics - look for various reward keys
+        reward_value = train_output.metrics.get('train_reward',
+                      train_output.metrics.get('reward',
+                      train_output.metrics.get('rewards/custom_reward_func/mean', 0.0)))
+
         metrics = {
             'final_loss': train_output.metrics.get('train_loss', float('inf')),
             'total_steps': train_output.metrics.get('train_steps', 0),
-            'rewards': train_output.metrics.get('train_reward', 0.0),
+            'rewards': reward_value,
         }
 
         logger.info(f"GRPO training completed for {variant_id}")

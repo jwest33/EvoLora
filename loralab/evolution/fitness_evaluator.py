@@ -6,8 +6,12 @@ Evaluates the performance of LoRA variants on validation datasets.
 import logging
 import torch
 import numpy as np
+import os
 from typing import Dict, List, Any
 from tqdm import tqdm
+
+# Enable logits for Unsloth models
+os.environ['UNSLOTH_RETURN_LOGITS'] = '1'
 
 logger = logging.getLogger(__name__)
 
@@ -127,7 +131,21 @@ class FitnessEvaluator:
             return_tensors="pt",
             truncation=True,
             max_length=256  # Reduced from 512
-        ).to(device)
+        )
+
+        # Get model dtype for float tensors
+        model_dtype = next(model.parameters()).dtype
+
+        # Move tensors to device with proper dtype handling
+        for key in inputs.keys():
+            if inputs[key] is None:
+                continue
+            # input_ids and attention_mask should remain as long tensors
+            if key in ['input_ids', 'attention_mask', 'token_type_ids']:
+                inputs[key] = inputs[key].to(device)
+            # Convert float tensors to match model dtype
+            elif hasattr(inputs[key], 'dtype') and inputs[key].dtype.is_floating_point:
+                inputs[key] = inputs[key].to(device).to(model_dtype)
 
         # Generate answer with faster settings
         with torch.no_grad():
@@ -191,7 +209,21 @@ class FitnessEvaluator:
             truncation=True,
             padding=True,
             max_length=256  # Reduced from 512
-        ).to(device)
+        )
+
+        # Get model dtype for float tensors
+        model_dtype = next(model.parameters()).dtype
+
+        # Move tensors to device with proper dtype handling
+        for key in encodings.keys():
+            if encodings[key] is None:
+                continue
+            # input_ids and attention_mask should remain as long tensors
+            if key in ['input_ids', 'attention_mask', 'token_type_ids']:
+                encodings[key] = encodings[key].to(device)
+            # Convert float tensors to match model dtype
+            elif hasattr(encodings[key], 'dtype') and encodings[key].dtype.is_floating_point:
+                encodings[key] = encodings[key].to(device).to(model_dtype)
 
         # Calculate perplexity for batch
         with torch.no_grad():
@@ -328,13 +360,27 @@ class FitnessEvaluator:
         total_tokens = 0
         total_time = 0
 
+        # Get model dtype for float tensors
+        model_dtype = next(model.parameters()).dtype
+
         with torch.no_grad():
             for prompt in test_prompts:
                 inputs = self.tokenizer(
                     prompt,
                     return_tensors="pt",
                     truncation=True
-                ).to(device)
+                )
+
+                # Move tensors to device with proper dtype handling
+                for key in inputs.keys():
+                    if inputs[key] is None:
+                        continue
+                    # input_ids and attention_mask should remain as long tensors
+                    if key in ['input_ids', 'attention_mask', 'token_type_ids']:
+                        inputs[key] = inputs[key].to(device)
+                    # Convert float tensors to match model dtype
+                    elif hasattr(inputs[key], 'dtype') and inputs[key].dtype.is_floating_point:
+                        inputs[key] = inputs[key].to(device).to(model_dtype)
 
                 start_time = time.time()
 

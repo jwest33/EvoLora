@@ -95,12 +95,30 @@ class UnslothModelManager:
                 torch.cuda.empty_cache()
                 torch.cuda.synchronize()
 
+            # Determine dtype from config or model type
+            dtype = None
+            config_dtype = self.config.get('torch_dtype')
+
+            if config_dtype:
+                # Use explicit dtype from config
+                if config_dtype == 'float16':
+                    dtype = torch.float16
+                elif config_dtype == 'bfloat16':
+                    dtype = torch.bfloat16
+                elif config_dtype == 'float32':
+                    dtype = torch.float32
+                logger.info(f"Using configured dtype: {config_dtype}")
+            elif 'gemma' in model_path.lower() and not (load_in_4bit or load_in_8bit):
+                # Default to float16 for Gemma to avoid dtype conflicts
+                dtype = torch.float16
+                logger.info("Using float16 for Gemma model (avoiding BFloat16 conflicts)")
+
             self.model, self.tokenizer = FastLanguageModel.from_pretrained(
                 model_name=model_path,
                 max_seq_length=max_seq_length,
                 load_in_4bit=load_in_4bit,
                 load_in_8bit=load_in_8bit,
-                dtype=None,  # Auto-detect optimal dtype
+                dtype=dtype,  # Use explicit dtype
                 # No vLLM settings since we're not using it
             )
 

@@ -29,6 +29,7 @@ if platform.system() == 'Windows':
     os.environ["DATASETS_PARALLEL_DOWNLOADS"] = "false"
     os.environ["UNSLOTH_NUM_PROC"] = "1"
     os.environ["DATASETS_NUM_PROC"] = "1"
+    os.environ["UNSLOTH_RETURN_LOGITS"] = "1"  # Enable logits for evaluation
 
     # Suppress Windows multiprocessing redirect warnings
     warnings.filterwarnings("ignore", message=".*Redirects are currently not supported in Windows.*")

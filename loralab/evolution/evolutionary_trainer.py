@@ -12,6 +12,9 @@ import json
 from tqdm import tqdm
 import os
 
+# Enable logits for Unsloth models during evaluation
+os.environ['UNSLOTH_RETURN_LOGITS'] = '1'
+
 from ..core.model_manager import ModelManager, ModelCheckpoint
 from ..core.lora_factory import LoRAFactory, LoRAVariant
 from .population import PopulationManager
