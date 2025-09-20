@@ -48,6 +48,30 @@ class DatasetLoader:
             'answer_field': 'answer',
             'subset': 'main'
         },
+        'simple-math': {
+            'name': 'fblgit/simple-math',
+            'split': 'train',
+            'question_field': 'instruction',
+            'answer_field': 'output',
+            'subset': None,
+            'process_answer': lambda x: str(round(float(x), 2)) if x else ''
+        },
+        'arithmetic-add': {
+            'name': 'deepmind/math_dataset',
+            'split': 'train',
+            'question_field': 'question',
+            'answer_field': 'answer',
+            'subset': 'arithmetic__add_or_sub',  # Simple addition/subtraction
+            'process_answer': lambda x: x if isinstance(x, str) else str(x)
+        },
+        'arithmetic-mul': {
+            'name': 'deepmind/math_dataset',
+            'split': 'train',
+            'question_field': 'question',
+            'answer_field': 'answer',
+            'subset': 'arithmetic__mul',  # Simple multiplication
+            'process_answer': lambda x: x if isinstance(x, str) else str(x)
+        },
         'squad': {
             'name': 'squad',
             'split': 'train',

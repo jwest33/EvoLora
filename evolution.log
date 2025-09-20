@@ -1,195 +1,762 @@
-2025-09-20 10:24:16,776 - loralab.config.config_loader - INFO - Loaded configuration from loralab\config\gemma_config.yaml
-2025-09-20 10:24:16,777 - loralab.utils.output_manager - INFO - Output manager initialized at: lora_runs_gemma\run_20250920_102416
-2025-09-20 10:24:16,777 - loralab.evolution.evolutionary_trainer - INFO - Using unsloth backend
-2025-09-20 10:24:16,780 - loralab.utils.output_manager - INFO - Config saved to: lora_runs_gemma\run_20250920_102416\config\config.yaml
-2025-09-20 10:24:16,895 - loralab.core.unsloth_manager - INFO - Loading Unsloth model: unsloth/gemma-3-270m-it with none quantization
-2025-09-20 10:24:16,895 - loralab.core.unsloth_manager - INFO - Using configured dtype: float16
-2025-09-20 10:24:21,995 - loralab.core.unsloth_manager - INFO - Applied chat template: gemma3
-2025-09-20 10:24:21,996 - loralab.datasets.dataset_loader - INFO - Loading dataset: gsm8k
-2025-09-20 10:24:21,996 - loralab.datasets.dataset_loader - INFO - Fetching gsm8k from HuggingFace...
-2025-09-20 10:24:25,540 - loralab.datasets.dataset_loader - INFO - Loaded 2000 training and 100 evaluation examples
-2025-09-20 10:24:25,540 - loralab.evolution.evolutionary_trainer - INFO - 
+2025-09-20 11:13:11,897 - loralab.config.config_loader - INFO - Loaded configuration from loralab\config\gemma_config.yaml
+2025-09-20 11:13:11,897 - loralab.utils.output_manager - INFO - Output manager initialized at: lora_runs_gemma\run_20250920_111311
+2025-09-20 11:13:11,897 - loralab.evolution.evolutionary_trainer - INFO - Using unsloth backend
+2025-09-20 11:13:11,900 - loralab.utils.output_manager - INFO - Config saved to: lora_runs_gemma\run_20250920_111311\config\config.yaml
+2025-09-20 11:13:12,013 - loralab.core.unsloth_manager - INFO - Loading Unsloth model: unsloth/gemma-3-270m-it with none quantization
+2025-09-20 11:13:12,013 - loralab.core.unsloth_manager - INFO - Using configured dtype: float16
+2025-09-20 11:13:17,252 - loralab.core.unsloth_manager - INFO - Applied chat template: gemma3
+2025-09-20 11:13:17,254 - loralab.datasets.dataset_loader - INFO - Loading dataset: simple-math
+2025-09-20 11:13:17,254 - loralab.datasets.dataset_loader - INFO - Fetching simple-math from HuggingFace...
+2025-09-20 11:13:26,186 - loralab.datasets.dataset_loader - WARNING - Failed with trust_remote_code=True: {'arithmetic.float34_valid', 'arithmetic.float3_train', 'arithmetic.float2_train', 'arithmetic.float2_valid', 'arithmetic.float3_valid', 'arithmetic.float4_valid', 'arithmetic.float4_train', 'arithmetic.float34_train'}
+2025-09-20 11:13:28,220 - loralab.datasets.dataset_loader - ERROR - Failed to load dataset from HuggingFace: {'arithmetic.float34_valid', 'arithmetic.float3_train', 'arithmetic.float2_train', 'arithmetic.float2_valid', 'arithmetic.float3_valid', 'arithmetic.float4_valid', 'arithmetic.float4_train', 'arithmetic.float34_train'}
+2025-09-20 11:13:28,221 - loralab.datasets.dataset_loader - WARNING - Creating dummy dataset for testing
+2025-09-20 11:13:28,221 - loralab.evolution.evolutionary_trainer - INFO - 
 ================================================================================
-2025-09-20 10:24:25,540 - loralab.evolution.evolutionary_trainer - INFO - STARTING EVOLUTIONARY OPTIMIZATION
-2025-09-20 10:24:25,541 - loralab.evolution.evolutionary_trainer - INFO - ================================================================================
-2025-09-20 10:24:25,541 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r8_lr1e-04 (hash: 0209a7c3)
-2025-09-20 10:24:25,541 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r16_lr5e-05 (hash: 7b13c093)
-2025-09-20 10:24:25,541 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r8_lr1e-04 (hash: cc916834)
-2025-09-20 10:24:25,541 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r4_lr2e-04 (hash: 3d608301)
-2025-09-20 10:24:25,541 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r32_lr1e-04 (hash: 8054b9a9)
-2025-09-20 10:24:25,541 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r4_lr2e-04 (hash: f1ee4565)
-2025-09-20 10:24:25,541 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r32_lr5e-05 (hash: baf5e86d)
-2025-09-20 10:24:25,542 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r16_lr2e-04 (hash: c1bea809)
-2025-09-20 10:24:25,542 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r16_lr1e-04 (hash: 239a06ae)
-2025-09-20 10:24:25,542 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r4_lr2e-04 (hash: 0ba659fd)
-2025-09-20 10:24:25,542 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r8_lr2e-04 (hash: a448aa76)
-2025-09-20 10:24:25,542 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r8_lr1e-04 (hash: 2dec99bc)
-2025-09-20 10:24:26,585 - loralab.core.unsloth_manager - INFO - LoRA variant created with Unsloth optimizations:
-2025-09-20 10:24:26,586 - loralab.core.unsloth_manager - INFO -   Rank: 8, Alpha: 8 (multiplier: 1)
-2025-09-20 10:24:26,586 - loralab.core.unsloth_manager - INFO -   Trainable params: 737,280 (0.27%)
-2025-09-20 10:24:26,587 - loralab.core.unsloth_manager - INFO -   Gradient checkpointing: unsloth
-2025-09-20 10:24:26,587 - loralab.core.unsloth_manager - INFO -   RSLoRA: True
-2025-09-20 10:24:26,587 - loralab.evolution.evolutionary_trainer - INFO - Train data has 2000 total examples
-2025-09-20 10:24:26,587 - loralab.evolution.evolutionary_trainer - INFO - Requesting 5 format examples
-2025-09-20 10:24:26,587 - loralab.evolution.evolutionary_trainer - INFO - Actually got 5 format examples
-2025-09-20 10:24:26,587 - loralab.evolution.evolutionary_trainer - INFO - Pre-training on format with 5 examples for 1 epochs
-2025-09-20 10:24:26,587 - loralab.training.grpo_trainer - INFO - Pre-training model on format examples...
-2025-09-20 10:24:26,629 - loralab.training.grpo_trainer - INFO - Pre-training configuration:
-2025-09-20 10:24:26,630 - loralab.training.grpo_trainer - INFO -   - Examples: 5
-2025-09-20 10:24:26,630 - loralab.training.grpo_trainer - INFO -   - Batch size: 1
-2025-09-20 10:24:26,630 - loralab.training.grpo_trainer - INFO -   - Gradient accumulation: 2
-2025-09-20 10:24:26,630 - loralab.training.grpo_trainer - INFO -   - Effective batch size: 2
-2025-09-20 10:24:26,630 - loralab.training.grpo_trainer - INFO -   - Epochs: 1
-2025-09-20 10:24:26,630 - loralab.training.grpo_trainer - INFO -   - Expected training steps: 5
-2025-09-20 10:24:26,632 - loralab.training.grpo_trainer - INFO - Created pre-training dataset with 5 examples
-2025-09-20 10:24:30,546 - loralab.training.grpo_trainer - INFO - Pre-training completed with final loss: 2.8983
-2025-09-20 10:24:30,547 - loralab.training.grpo_trainer - INFO - Starting GRPO training for gen0_r8_lr1e-04
-2025-09-20 10:24:41,634 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
-2025-09-20 10:24:41,634 - loralab.training.grpo_trainer - INFO -   Text: Here's how we can break down the problem step-by-step:
-
-1. **Calculate the total score of the team:**
-   * Riley's score: 3 mistakes
-   * Ofelia's score: 5 more than Riley's score: 3 mistakes + 5 more mistakes = 8 mistakes
-
-2. **Calculate the difference in scores:**
-   * Riley's score - Ofelia's score = 3 mistakes - 8 mistakes = -5 mistakes
-
-3. **Calculate the number of incorrect answers:**
-   * T...
-2025-09-20 10:24:41,635 - loralab.training.grpo_trainer - INFO -   Reward: -3.10 (range: -15 to +15)
-2025-09-20 10:24:41,635 - loralab.training.grpo_trainer - INFO -   Expected answer: Riley's score is 35 - 3 = <<35-3=32>>32.
-Half of Riley's score is 32/2 = <<32/2=16>>16.
-So Ofelia's score is 16 + 5 = <<16+5=21>>21.
-Hence, Ofelia got 35 - 21 = <<35-21=14>>14 incorrect answers.
-Therefore, their team got 3 + 14 = <<3+14=17>>17 incorrect answers.
-#### 17
-2025-09-20 10:25:00,274 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
-2025-09-20 10:25:00,274 - loralab.training.grpo_trainer - INFO -   Text: Here's how we can solve this:
-
-1. **Initial setup:** Lily has 5 tickets to sell.
-2. **Selling the first ticket:** She sells the first ticket for $1.
-3. **Selling each successive ticket:** She sells each successive ticket for $1 + $1 = $2.
-4. **Profit:** She has $4 left over.
-5. **Prize:** She gives the remaining $4 as the prize.
-
-Therefore, the winner will receive $4.
+2025-09-20 11:13:28,221 - loralab.evolution.evolutionary_trainer - INFO - STARTING EVOLUTIONARY OPTIMIZATION
+2025-09-20 11:13:28,221 - loralab.evolution.evolutionary_trainer - INFO - ================================================================================
+2025-09-20 11:13:28,221 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r4_lr2e-04 (hash: 137bde62)
+2025-09-20 11:13:28,221 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r16_lr2e-04 (hash: 4105229f)
+2025-09-20 11:13:28,222 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r8_lr1e-04 (hash: bda713af)
+2025-09-20 11:13:28,222 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r8_lr2e-04 (hash: 7fe9591c)
+2025-09-20 11:13:29,254 - loralab.core.unsloth_manager - INFO - LoRA variant created with Unsloth optimizations:
+2025-09-20 11:13:29,255 - loralab.core.unsloth_manager - INFO -   Rank: 4, Alpha: 8 (multiplier: 2)
+2025-09-20 11:13:29,255 - loralab.core.unsloth_manager - INFO -   Trainable params: 368,640 (0.14%)
+2025-09-20 11:13:29,255 - loralab.core.unsloth_manager - INFO -   Gradient checkpointing: unsloth
+2025-09-20 11:13:29,255 - loralab.core.unsloth_manager - INFO -   RSLoRA: True
+2025-09-20 11:13:29,255 - loralab.evolution.evolutionary_trainer - INFO - Train data has 500 total examples
+2025-09-20 11:13:29,256 - loralab.evolution.evolutionary_trainer - INFO - Requesting 5 format examples
+2025-09-20 11:13:29,256 - loralab.evolution.evolutionary_trainer - INFO - Actually got 5 format examples
+2025-09-20 11:13:29,256 - loralab.evolution.evolutionary_trainer - INFO - Pre-training on format with 5 examples for 1 epochs
+2025-09-20 11:13:29,256 - loralab.training.grpo_trainer - INFO - Pre-training model on format examples...
+2025-09-20 11:13:29,301 - loralab.training.grpo_trainer - INFO - Pre-training configuration:
+2025-09-20 11:13:29,302 - loralab.training.grpo_trainer - INFO -   - Examples: 5
+2025-09-20 11:13:29,302 - loralab.training.grpo_trainer - INFO -   - Batch size: 1
+2025-09-20 11:13:29,302 - loralab.training.grpo_trainer - INFO -   - Gradient accumulation: 2
+2025-09-20 11:13:29,302 - loralab.training.grpo_trainer - INFO -   - Effective batch size: 2
+2025-09-20 11:13:29,302 - loralab.training.grpo_trainer - INFO -   - Epochs: 1
+2025-09-20 11:13:29,302 - loralab.training.grpo_trainer - INFO -   - Expected training steps: 5
+2025-09-20 11:13:29,304 - loralab.training.grpo_trainer - INFO - Created pre-training dataset with 5 examples
+2025-09-20 11:13:33,179 - loralab.training.grpo_trainer - INFO - Pre-training completed with final loss: 3.4014
+2025-09-20 11:13:33,179 - loralab.training.grpo_trainer - INFO - Starting GRPO training for gen0_r4_lr2e-04
+2025-09-20 11:13:40,061 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:13:40,061 - loralab.training.grpo_trainer - INFO -   Text: Okay, I understand. Let's begin.
 ...
-2025-09-20 10:25:00,275 - loralab.training.grpo_trainer - INFO -   Reward: -3.30 (range: -15 to +15)
-2025-09-20 10:25:00,275 - loralab.training.grpo_trainer - INFO -   Expected answer: The second ticket sold will cost $1 + $1 = $<<1+1=2>>2.
-The third ticket sold will cost $2 + $1 = $<<2+1=3>>3.
-The fourth ticket sold will cost $3 + $1 = $<<3+1=4>>4.
-The fifth ticket sold will cost $4 + $1 = $<<4+1=5>>5.
-The total money collected is $1 + $2 + $3 + $4 + $5 = $<<1+2+3+4+5=15>>15.
-After taking profit, the total prize money will be $15 - $4 = $<<15-4=11>>11.
-#### 11
-2025-09-20 10:25:10,491 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
-2025-09-20 10:25:10,492 - loralab.training.grpo_trainer - INFO -   Text: Here's the breakdown:
+2025-09-20 11:13:40,062 - loralab.training.grpo_trainer - INFO -   Reward: -12.50 (range: -15 to +15)
+2025-09-20 11:13:40,062 - loralab.training.grpo_trainer - INFO -   Expected answer: 3
+2025-09-20 11:13:51,722 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:13:51,722 - loralab.training.grpo_trainer - INFO -   Text: Here's the breakdown:
 
-1. **Calculate the number of cumulonimbus clouds:** 12 cumulonimbus clouds * 4 = 48 cumulonimbus clouds
+1. **Think:** What are the days in a week?
+2. **Think:** What are the days in a week?
+3. **Think:** What are the days in a week?
+4. **Think:** What are the days in a week?
+5. **Think:** What are the days in a week?
+6. **Think:** What are the days in a week?
 
-2. **Calculate the total number of cirrus clouds:** 48 cumulonimbus clouds + 48 cumulonimbus clouds = 96 cirrus clouds
+Therefore, there are 6 days in a week....
+2025-09-20 11:13:51,723 - loralab.training.grpo_trainer - INFO -   Reward: -3.30 (range: -15 to +15)
+2025-09-20 11:13:51,723 - loralab.training.grpo_trainer - INFO -   Expected answer: 7
+2025-09-20 11:13:56,130 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:13:56,131 - loralab.training.grpo_trainer - INFO -   Text: Here's my reasoning:
 
-Therefore, there are 96 cirrus clouds in the sky at this moment....
-2025-09-20 10:25:10,492 - loralab.training.grpo_trainer - INFO -   Reward: -3.10 (range: -15 to +15)
-2025-09-20 10:25:10,492 - loralab.training.grpo_trainer - INFO -   Expected answer: The sky has 3*12=<<3*12=36>>36 cumulus clouds.
-The sky has 4*36=<<4*36=144>>144 cirrus clouds.
-#### 144
-2025-09-20 10:25:34,527 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
-2025-09-20 10:25:34,527 - loralab.training.grpo_trainer - INFO -   Text: Here's how we can break down the problem step-by-step:
+1.  **Think:** I need to determine the number of continents.
+2.  **Think:** I need to determine the number of continents.
+3.  **Think:** I need to determine the number of continents.
+4.  **Think:** I need to determine the number of continents.
 
-1. **Cost of Pineapples:** Jonah bought 6 pineapples for $3 each.
-2. **Number of Rings:** Each pineapple could be cut into 12 pineapple rings.
-3. **Selling Price:** Jonah sold 4 pineapple rings for $5 each.
-4. **Profit:** Jonah made a profit of $5 - $5 = $0.
-
-Therefore, Jonah made a profit of $0....
-2025-09-20 10:25:34,527 - loralab.training.grpo_trainer - INFO -   Reward: -3.30 (range: -15 to +15)
-2025-09-20 10:25:34,527 - loralab.training.grpo_trainer - INFO -   Expected answer: Jonah spent 6 x $3 = $<<6*3=18>>18
-He made a total of 6 x 12 = <<6*12=72>>72 pineapple rings.
-He sold 72/4 = <<72/4=18>>18 sets of pineapple rings.
-He made 18 x $5 = $<<18*5=90>>90
-His profit was $90 - $18 = $<<90-18=72>>72
-#### 72
-2025-09-20 10:25:58,576 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
-2025-09-20 10:25:58,576 - loralab.training.grpo_trainer - INFO -   Text: Here's the breakdown:
-
-1. **Calculate the total revenue:**
-   * Mrs. Oaklyn buys 20 rugs at $40 each.
-   * Total revenue = 20 * $40 = $800
-
-2. **Calculate the profit:**
-   * Profit = Total revenue - Total cost
-   * Profit = $800 - $40 = $760
-
-Therefore, Mrs. Oaklyn will make a profit of $760 from selling the rugs.
+Therefore, there are 4 continents.
 ...
-2025-09-20 10:25:58,577 - loralab.training.grpo_trainer - INFO -   Reward: -3.10 (range: -15 to +15)
-2025-09-20 10:25:58,577 - loralab.training.grpo_trainer - INFO -   Expected answer: Since she buys one rug at $40 and sells it at $60, she makes a profit of $60-$40 = $<<60-40=20>>20
-If she bought 20 rugs at $40 and sold them at $60 each, she made a profit of 20*$20 = $400
-#### 400
-2025-09-20 10:26:03,517 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
-2025-09-20 10:26:03,518 - loralab.training.grpo_trainer - INFO -   Text: Here's the breakdown:
+2025-09-20 11:13:56,131 - loralab.training.grpo_trainer - INFO -   Reward: -3.30 (range: -15 to +15)
+2025-09-20 11:13:56,131 - loralab.training.grpo_trainer - INFO -   Expected answer: 7
+2025-09-20 11:14:02,231 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:14:02,232 - loralab.training.grpo_trainer - INFO -   Text: Okay, I'm ready. Let's begin.
+...
+2025-09-20 11:14:02,232 - loralab.training.grpo_trainer - INFO -   Reward: -12.50 (range: -15 to +15)
+2025-09-20 11:14:02,232 - loralab.training.grpo_trainer - INFO -   Expected answer: William Shakespeare
+2025-09-20 11:14:13,670 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:14:13,670 - loralab.training.grpo_trainer - INFO -   Text: Okay, I'm ready to think through problems step-by-step.
+...
+2025-09-20 11:14:13,670 - loralab.training.grpo_trainer - INFO -   Reward: -9.90 (range: -15 to +15)
+2025-09-20 11:14:13,670 - loralab.training.grpo_trainer - INFO -   Expected answer: 299,792,458 meters per second
+2025-09-20 11:14:14,783 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:14:14,783 - loralab.training.grpo_trainer - INFO -   Text: Okay, I'm ready. Let's begin.
+...
+2025-09-20 11:14:14,784 - loralab.training.grpo_trainer - INFO -   Reward: -12.50 (range: -15 to +15)
+2025-09-20 11:14:14,784 - loralab.training.grpo_trainer - INFO -   Expected answer: Leonardo da Vinci
+2025-09-20 11:14:21,008 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:14:21,009 - loralab.training.grpo_trainer - INFO -   Text: Here's how to solve this:
+*   **Think:** What are the sides of a triangle?
+*   **Think:** What are the sides of a triangle?
+*   **Think:** What are the sides of a triangle?
+*   **Think:** What are the sides of a triangle?
 
-1. **Think:** The instructor spends thirty minutes on learning the first step.
-2. **Reasoning:** The second step is mastered in half the time.
-3. **Final Answer:** The instructor spent 30 minutes learning the three steps....
-2025-09-20 10:26:03,518 - loralab.training.grpo_trainer - INFO -   Reward: -0.50 (range: -15 to +15)
-2025-09-20 10:26:03,518 - loralab.training.grpo_trainer - INFO -   Expected answer: Arabella spent 30 / 2 = <<30/2=15>>15 minutes on the second step.
-She took 30 + 15 = <<30+15=45>>45 minutes to learn the third step.
-Therefore, Arabella spent 30 + 15 + 45 = <<30+15+45=90>>90 minutes learning all three steps.
-#### 90
-2025-09-20 10:26:07,170 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
-2025-09-20 10:26:07,171 - loralab.training.grpo_trainer - INFO -   Text: Here's how we can break down the problem step-by-step:
+The sides of a triangle are opposite to the angles formed at the vertices.
+...
+2025-09-20 11:14:21,009 - loralab.training.grpo_trainer - INFO -   Reward: -7.00 (range: -15 to +15)
+2025-09-20 11:14:21,009 - loralab.training.grpo_trainer - INFO -   Expected answer: 3
+2025-09-20 11:14:33,134 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:14:33,135 - loralab.training.grpo_trainer - INFO -   Text: Okay, I'm ready to think through problems step-by-step.
+...
+2025-09-20 11:14:33,135 - loralab.training.grpo_trainer - INFO -   Reward: -9.90 (range: -15 to +15)
+2025-09-20 11:14:33,135 - loralab.training.grpo_trainer - INFO -   Expected answer: 299,792,458 meters per second
+2025-09-20 11:14:40,139 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:14:40,140 - loralab.training.grpo_trainer - INFO -   Text: Okay, I'm ready to think through problems step-by-step.
+...
+2025-09-20 11:14:40,140 - loralab.training.grpo_trainer - INFO -   Reward: -9.90 (range: -15 to +15)
+2025-09-20 11:14:40,140 - loralab.training.grpo_trainer - INFO -   Expected answer: Paris
+2025-09-20 11:14:47,591 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:14:47,592 - loralab.training.grpo_trainer - INFO -   Text: Okay, I'm ready to analyze the problem step-by-step.
+...
+2025-09-20 11:14:47,592 - loralab.training.grpo_trainer - INFO -   Reward: -9.90 (range: -15 to +15)
+2025-09-20 11:14:47,592 - loralab.training.grpo_trainer - INFO -   Expected answer: William Shakespeare
+2025-09-20 11:15:00,120 - loralab.training.grpo_trainer - INFO - Found reward value -6.6333 from key 'reward' in log history
+2025-09-20 11:15:00,120 - loralab.training.grpo_trainer - INFO - GRPO training completed for gen0_r4_lr2e-04
+2025-09-20 11:15:00,120 - loralab.training.grpo_trainer - INFO -   Final loss: 0.2700
+2025-09-20 11:15:00,120 - loralab.training.grpo_trainer - INFO -   Average reward: -6.6333
+2025-09-20 11:15:24,464 - loralab.evolution.fitness_evaluator - INFO - Evaluation complete for gen0_r4_lr2e-04: Accuracy=80.00%, Perplexity=512.97
+2025-09-20 11:15:24,466 - loralab.core.lora_factory - INFO - Saved variant to lora_runs_gemma\run_20250920_111311\checkpoints\generations\gen0\gen0_r4_lr2e-04\config.json
+2025-09-20 11:15:26,995 - loralab.core.unsloth_manager - INFO - LoRA variant created with Unsloth optimizations:
+2025-09-20 11:15:26,996 - loralab.core.unsloth_manager - INFO -   Rank: 16, Alpha: 32 (multiplier: 2)
+2025-09-20 11:15:26,996 - loralab.core.unsloth_manager - INFO -   Trainable params: 1,474,560 (0.55%)
+2025-09-20 11:15:26,996 - loralab.core.unsloth_manager - INFO -   Gradient checkpointing: unsloth
+2025-09-20 11:15:26,996 - loralab.core.unsloth_manager - INFO -   RSLoRA: True
+2025-09-20 11:15:26,996 - loralab.evolution.evolutionary_trainer - INFO - Train data has 500 total examples
+2025-09-20 11:15:26,997 - loralab.evolution.evolutionary_trainer - INFO - Requesting 5 format examples
+2025-09-20 11:15:26,997 - loralab.evolution.evolutionary_trainer - INFO - Actually got 5 format examples
+2025-09-20 11:15:26,997 - loralab.evolution.evolutionary_trainer - INFO - Pre-training on format with 5 examples for 1 epochs
+2025-09-20 11:15:26,997 - loralab.training.grpo_trainer - INFO - Pre-training model on format examples...
+2025-09-20 11:15:27,029 - loralab.training.grpo_trainer - INFO - Pre-training configuration:
+2025-09-20 11:15:27,030 - loralab.training.grpo_trainer - INFO -   - Examples: 5
+2025-09-20 11:15:27,030 - loralab.training.grpo_trainer - INFO -   - Batch size: 1
+2025-09-20 11:15:27,031 - loralab.training.grpo_trainer - INFO -   - Gradient accumulation: 2
+2025-09-20 11:15:27,031 - loralab.training.grpo_trainer - INFO -   - Effective batch size: 2
+2025-09-20 11:15:27,031 - loralab.training.grpo_trainer - INFO -   - Epochs: 1
+2025-09-20 11:15:27,031 - loralab.training.grpo_trainer - INFO -   - Expected training steps: 5
+2025-09-20 11:15:27,032 - loralab.training.grpo_trainer - INFO - Created pre-training dataset with 5 examples
+2025-09-20 11:15:28,663 - loralab.training.grpo_trainer - INFO - Pre-training completed with final loss: 3.1923
+2025-09-20 11:15:28,664 - loralab.training.grpo_trainer - INFO - Starting GRPO training for gen0_r16_lr2e-04
+2025-09-20 11:15:37,393 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:15:37,393 - loralab.training.grpo_trainer - INFO -   Text: Okay, I understand. Let's begin.
+...
+2025-09-20 11:15:37,393 - loralab.training.grpo_trainer - INFO -   Reward: -12.50 (range: -15 to +15)
+2025-09-20 11:15:37,393 - loralab.training.grpo_trainer - INFO -   Expected answer: 3
+2025-09-20 11:15:45,955 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:15:45,956 - loralab.training.grpo_trainer - INFO -   Text: Okay, I'm ready to think through problems step-by-step. Let's begin.
+...
+2025-09-20 11:15:45,956 - loralab.training.grpo_trainer - INFO -   Reward: -9.90 (range: -15 to +15)
+2025-09-20 11:15:45,956 - loralab.training.grpo_trainer - INFO -   Expected answer: 7
+2025-09-20 11:15:47,300 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:15:47,300 - loralab.training.grpo_trainer - INFO -   Text: Okay, I understand. I will think through problems step-by-step and provide my final answer between <solution> and </solution>.
+...
+2025-09-20 11:15:47,300 - loralab.training.grpo_trainer - INFO -   Reward: -5.60 (range: -15 to +15)
+2025-09-20 11:15:47,301 - loralab.training.grpo_trainer - INFO -   Expected answer: 7
+2025-09-20 11:15:54,761 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:15:54,762 - loralab.training.grpo_trainer - INFO -   Text: Okay, I understand. I will think through each step and provide my final answer between <think> and </think> and <solution> and </solution>.
+...
+2025-09-20 11:15:54,762 - loralab.training.grpo_trainer - INFO -   Reward: -4.90 (range: -15 to +15)
+2025-09-20 11:15:54,762 - loralab.training.grpo_trainer - INFO -   Expected answer: William Shakespeare
+2025-09-20 11:16:03,974 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:16:03,975 - loralab.training.grpo_trainer - INFO -   Text: Okay, I will think step-by-step to answer your question.
+...
+2025-09-20 11:16:03,976 - loralab.training.grpo_trainer - INFO -   Reward: -9.90 (range: -15 to +15)
+2025-09-20 11:16:03,976 - loralab.training.grpo_trainer - INFO -   Expected answer: 299,792,458 meters per second
+2025-09-20 11:16:06,933 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:16:06,934 - loralab.training.grpo_trainer - INFO -   Text: Okay, I will think step-by-step to provide a reasoning between <think> and </think> and <solution> and </solution>.
+...
+2025-09-20 11:16:06,934 - loralab.training.grpo_trainer - INFO -   Reward: -7.30 (range: -15 to +15)
+2025-09-20 11:16:06,934 - loralab.training.grpo_trainer - INFO -   Expected answer: Leonardo da Vinci
+2025-09-20 11:16:08,976 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:16:08,977 - loralab.training.grpo_trainer - INFO -   Text: Okay, I will think step by step and provide a reasoning between <think> and </think> and <solution> and </solution>.
+...
+2025-09-20 11:16:08,978 - loralab.training.grpo_trainer - INFO -   Reward: -7.90 (range: -15 to +15)
+2025-09-20 11:16:08,978 - loralab.training.grpo_trainer - INFO -   Expected answer: 3
+2025-09-20 11:16:18,654 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:16:18,654 - loralab.training.grpo_trainer - INFO -   Text: Okay, I will think step by step to provide a reasoning between <think> and </think> and <solution> and </solution>.
+...
+2025-09-20 11:16:18,654 - loralab.training.grpo_trainer - INFO -   Reward: -7.90 (range: -15 to +15)
+2025-09-20 11:16:18,654 - loralab.training.grpo_trainer - INFO -   Expected answer: 299,792,458 meters per second
+2025-09-20 11:16:23,549 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:16:23,550 - loralab.training.grpo_trainer - INFO -   Text: Okay, I will analyze the provided text and provide a reasoning step-by-step. I will then present my reasoning between <think> and </think> and then provide a final answer.
+...
+2025-09-20 11:16:23,550 - loralab.training.grpo_trainer - INFO -   Reward: -5.60 (range: -15 to +15)
+2025-09-20 11:16:23,550 - loralab.training.grpo_trainer - INFO -   Expected answer: Paris
+2025-09-20 11:16:30,517 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:16:30,518 - loralab.training.grpo_trainer - INFO -   Text: Okay, I will analyze the provided text and provide a reasoning step-by-step. I will then provide a final answer between <think> and </think> and <solution> and </solution>.
+...
+2025-09-20 11:16:30,518 - loralab.training.grpo_trainer - INFO -   Reward: -4.30 (range: -15 to +15)
+2025-09-20 11:16:30,518 - loralab.training.grpo_trainer - INFO -   Expected answer: William Shakespeare
+2025-09-20 11:16:36,664 - loralab.training.grpo_trainer - INFO - Found reward value -5.5500 from key 'reward' in log history
+2025-09-20 11:16:36,664 - loralab.training.grpo_trainer - INFO - GRPO training completed for gen0_r16_lr2e-04
+2025-09-20 11:16:36,665 - loralab.training.grpo_trainer - INFO -   Final loss: 40.7964
+2025-09-20 11:16:36,665 - loralab.training.grpo_trainer - INFO -   Average reward: -5.5500
+2025-09-20 11:17:04,355 - loralab.evolution.fitness_evaluator - INFO - Evaluation complete for gen0_r16_lr2e-04: Accuracy=60.00%, Perplexity=468.04
+2025-09-20 11:17:04,356 - loralab.core.lora_factory - INFO - Saved variant to lora_runs_gemma\run_20250920_111311\checkpoints\generations\gen0\gen0_r16_lr2e-04\config.json
+2025-09-20 11:17:06,929 - loralab.core.unsloth_manager - INFO - LoRA variant created with Unsloth optimizations:
+2025-09-20 11:17:06,929 - loralab.core.unsloth_manager - INFO -   Rank: 8, Alpha: 8 (multiplier: 1)
+2025-09-20 11:17:06,930 - loralab.core.unsloth_manager - INFO -   Trainable params: 737,280 (0.27%)
+2025-09-20 11:17:06,930 - loralab.core.unsloth_manager - INFO -   Gradient checkpointing: unsloth
+2025-09-20 11:17:06,930 - loralab.core.unsloth_manager - INFO -   RSLoRA: False
+2025-09-20 11:17:06,930 - loralab.evolution.evolutionary_trainer - INFO - Train data has 500 total examples
+2025-09-20 11:17:06,930 - loralab.evolution.evolutionary_trainer - INFO - Requesting 5 format examples
+2025-09-20 11:17:06,930 - loralab.evolution.evolutionary_trainer - INFO - Actually got 5 format examples
+2025-09-20 11:17:06,930 - loralab.evolution.evolutionary_trainer - INFO - Pre-training on format with 5 examples for 1 epochs
+2025-09-20 11:17:06,930 - loralab.training.grpo_trainer - INFO - Pre-training model on format examples...
+2025-09-20 11:17:06,974 - loralab.training.grpo_trainer - INFO - Pre-training configuration:
+2025-09-20 11:17:06,974 - loralab.training.grpo_trainer - INFO -   - Examples: 5
+2025-09-20 11:17:06,974 - loralab.training.grpo_trainer - INFO -   - Batch size: 1
+2025-09-20 11:17:06,975 - loralab.training.grpo_trainer - INFO -   - Gradient accumulation: 2
+2025-09-20 11:17:06,975 - loralab.training.grpo_trainer - INFO -   - Effective batch size: 2
+2025-09-20 11:17:06,975 - loralab.training.grpo_trainer - INFO -   - Epochs: 1
+2025-09-20 11:17:06,975 - loralab.training.grpo_trainer - INFO -   - Expected training steps: 5
+2025-09-20 11:17:06,976 - loralab.training.grpo_trainer - INFO - Created pre-training dataset with 5 examples
+2025-09-20 11:17:08,561 - loralab.training.grpo_trainer - INFO - Pre-training completed with final loss: 3.4408
+2025-09-20 11:17:08,561 - loralab.training.grpo_trainer - INFO - Starting GRPO training for gen0_r8_lr1e-04
+2025-09-20 11:17:17,599 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:17:17,599 - loralab.training.grpo_trainer - INFO -   Text: Okay, I understand. Let's begin.
+...
+2025-09-20 11:17:17,599 - loralab.training.grpo_trainer - INFO -   Reward: -12.50 (range: -15 to +15)
+2025-09-20 11:17:17,599 - loralab.training.grpo_trainer - INFO -   Expected answer: 3
+2025-09-20 11:17:21,730 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:17:21,731 - loralab.training.grpo_trainer - INFO -   Text: Here's how we can break down the problem:
+* **Think:** A week is a full week.
+* **Think:** There are 7 days in a week.
 
-1. **Identify the number of boys:** 60 students * 28 boys/student = 1680 boys
-2. **Identify the number of girls:** 50 students * 28 girls/student = 1400 girls
-3. **Calculate the total number of students:** 1680 boys + 1400 girls = 2880 students
+**Final Answer:** 7...
+2025-09-20 11:17:21,731 - loralab.training.grpo_trainer - INFO -   Reward: 13.00 (range: -15 to +15)
+2025-09-20 11:17:21,731 - loralab.training.grpo_trainer - INFO -   Expected answer: 7
+2025-09-20 11:17:23,102 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:17:23,103 - loralab.training.grpo_trainer - INFO -   Text: Okay, I'm ready. Let's begin.
+...
+2025-09-20 11:17:23,103 - loralab.training.grpo_trainer - INFO -   Reward: -12.50 (range: -15 to +15)
+2025-09-20 11:17:23,103 - loralab.training.grpo_trainer - INFO -   Expected answer: 7
+2025-09-20 11:17:30,354 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:17:30,355 - loralab.training.grpo_trainer - INFO -   Text: Okay, I'm ready to think through the problem.
+...
+2025-09-20 11:17:30,355 - loralab.training.grpo_trainer - INFO -   Reward: -12.50 (range: -15 to +15)
+2025-09-20 11:17:30,355 - loralab.training.grpo_trainer - INFO -   Expected answer: William Shakespeare
+2025-09-20 11:17:37,453 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:17:37,453 - loralab.training.grpo_trainer - INFO -   Text: Okay, I understand. I will think through the problem step-by-step and provide my final answer between <solution> and </solution>.
+...
+2025-09-20 11:17:37,454 - loralab.training.grpo_trainer - INFO -   Reward: -5.60 (range: -15 to +15)
+2025-09-20 11:17:37,454 - loralab.training.grpo_trainer - INFO -   Expected answer: 299,792,458 meters per second
+2025-09-20 11:17:42,108 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:17:42,109 - loralab.training.grpo_trainer - INFO -   Text: Okay, I'm ready. Let's begin.
+...
+2025-09-20 11:17:42,109 - loralab.training.grpo_trainer - INFO -   Reward: -12.50 (range: -15 to +15)
+2025-09-20 11:17:42,109 - loralab.training.grpo_trainer - INFO -   Expected answer: Leonardo da Vinci
+2025-09-20 11:17:47,067 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:17:47,068 - loralab.training.grpo_trainer - INFO -   Text: Here's how to solve this:
+*   **Think:** A triangle has three sides.
+*   **Reasoning:** A triangle has three sides.
 
-**Therefore, there are 2880 girls.**...
-2025-09-20 10:26:07,171 - loralab.training.grpo_trainer - INFO -   Reward: -3.10 (range: -15 to +15)
-2025-09-20 10:26:07,171 - loralab.training.grpo_trainer - INFO -   Expected answer: There are a total of 5 vans x 28 students = <<5*28=140>>140 students.
-If 60 are boys, then 140 - 60 = <<140-60=80>>80 of these students are girls.
-#### 80
-2025-09-20 10:26:35,188 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
-2025-09-20 10:26:35,188 - loralab.training.grpo_trainer - INFO -   Text: Here's the step-by-step reasoning:
+Therefore, there are 3 sides in a triangle.
+...
+2025-09-20 11:17:47,068 - loralab.training.grpo_trainer - INFO -   Reward: 6.20 (range: -15 to +15)
+2025-09-20 11:17:47,068 - loralab.training.grpo_trainer - INFO -   Expected answer: 3
+2025-09-20 11:17:53,943 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:17:53,943 - loralab.training.grpo_trainer - INFO -   Text: Okay, I understand. I will analyze the problem and provide a reasoning step-by-step, followed by my final answer.
+...
+2025-09-20 11:17:53,943 - loralab.training.grpo_trainer - INFO -   Reward: -6.90 (range: -15 to +15)
+2025-09-20 11:17:53,943 - loralab.training.grpo_trainer - INFO -   Expected answer: 299,792,458 meters per second
+2025-09-20 11:18:04,482 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:18:04,483 - loralab.training.grpo_trainer - INFO -   Text: Okay, I understand. I will analyze the problem and provide a reasoning step-by-step.
+...
+2025-09-20 11:18:04,483 - loralab.training.grpo_trainer - INFO -   Reward: -9.90 (range: -15 to +15)
+2025-09-20 11:18:04,483 - loralab.training.grpo_trainer - INFO -   Expected answer: Paris
+2025-09-20 11:18:11,555 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:18:11,555 - loralab.training.grpo_trainer - INFO -   Text: Okay, I'm ready to think through these problems.
+...
+2025-09-20 11:18:11,555 - loralab.training.grpo_trainer - INFO -   Reward: -12.50 (range: -15 to +15)
+2025-09-20 11:18:11,555 - loralab.training.grpo_trainer - INFO -   Expected answer: William Shakespeare
+2025-09-20 11:18:21,535 - loralab.training.grpo_trainer - INFO - Found reward value -6.7000 from key 'reward' in log history
+2025-09-20 11:18:21,536 - loralab.training.grpo_trainer - INFO - GRPO training completed for gen0_r8_lr1e-04
+2025-09-20 11:18:21,536 - loralab.training.grpo_trainer - INFO -   Final loss: 0.1023
+2025-09-20 11:18:21,536 - loralab.training.grpo_trainer - INFO -   Average reward: -6.7000
+2025-09-20 11:18:41,557 - loralab.evolution.fitness_evaluator - INFO - Evaluation complete for gen0_r8_lr1e-04: Accuracy=80.00%, Perplexity=530.25
+2025-09-20 11:18:41,559 - loralab.core.lora_factory - INFO - Saved variant to lora_runs_gemma\run_20250920_111311\checkpoints\generations\gen0\gen0_r8_lr1e-04\config.json
+2025-09-20 11:18:44,287 - loralab.core.unsloth_manager - INFO - LoRA variant created with Unsloth optimizations:
+2025-09-20 11:18:44,288 - loralab.core.unsloth_manager - INFO -   Rank: 8, Alpha: 8 (multiplier: 1)
+2025-09-20 11:18:44,288 - loralab.core.unsloth_manager - INFO -   Trainable params: 1,898,496 (0.70%)
+2025-09-20 11:18:44,288 - loralab.core.unsloth_manager - INFO -   Gradient checkpointing: unsloth
+2025-09-20 11:18:44,288 - loralab.core.unsloth_manager - INFO -   RSLoRA: False
+2025-09-20 11:18:44,288 - loralab.evolution.evolutionary_trainer - INFO - Train data has 500 total examples
+2025-09-20 11:18:44,288 - loralab.evolution.evolutionary_trainer - INFO - Requesting 5 format examples
+2025-09-20 11:18:44,289 - loralab.evolution.evolutionary_trainer - INFO - Actually got 5 format examples
+2025-09-20 11:18:44,289 - loralab.evolution.evolutionary_trainer - INFO - Pre-training on format with 5 examples for 1 epochs
+2025-09-20 11:18:44,289 - loralab.training.grpo_trainer - INFO - Pre-training model on format examples...
+2025-09-20 11:18:44,323 - loralab.training.grpo_trainer - INFO - Pre-training configuration:
+2025-09-20 11:18:44,323 - loralab.training.grpo_trainer - INFO -   - Examples: 5
+2025-09-20 11:18:44,323 - loralab.training.grpo_trainer - INFO -   - Batch size: 1
+2025-09-20 11:18:44,323 - loralab.training.grpo_trainer - INFO -   - Gradient accumulation: 2
+2025-09-20 11:18:44,323 - loralab.training.grpo_trainer - INFO -   - Effective batch size: 2
+2025-09-20 11:18:44,323 - loralab.training.grpo_trainer - INFO -   - Epochs: 1
+2025-09-20 11:18:44,323 - loralab.training.grpo_trainer - INFO -   - Expected training steps: 5
+2025-09-20 11:18:44,325 - loralab.training.grpo_trainer - INFO - Created pre-training dataset with 5 examples
+2025-09-20 11:18:49,848 - loralab.training.grpo_trainer - INFO - Pre-training completed with final loss: 3.3876
+2025-09-20 11:18:49,849 - loralab.training.grpo_trainer - INFO - Starting GRPO training for gen0_r8_lr2e-04
+2025-09-20 11:18:55,748 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:18:55,749 - loralab.training.grpo_trainer - INFO -   Text: Okay, I understand. Let's begin.
+...
+2025-09-20 11:18:55,749 - loralab.training.grpo_trainer - INFO -   Reward: -12.50 (range: -15 to +15)
+2025-09-20 11:18:55,749 - loralab.training.grpo_trainer - INFO -   Expected answer: 3
+2025-09-20 11:19:00,333 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:19:00,333 - loralab.training.grpo_trainer - INFO -   Text: Here's the reasoning:
+*   **Think:** We need to determine the number of days in a week.
+*   **Think:** The number of days in a week is 7 days.
+*   **Think:** Therefore, there are 7 days in a week.
 
-1. **Calculate the volume of the cube:**
-   * Volume = side * side * side = 6 cm * 6 cm * 6 cm = 216 cubic centimeters
+**Answer:** There are 7 days in a week....
+2025-09-20 11:19:00,334 - loralab.training.grpo_trainer - INFO -   Reward: 9.20 (range: -15 to +15)
+2025-09-20 11:19:00,334 - loralab.training.grpo_trainer - INFO -   Expected answer: 7
+2025-09-20 11:19:01,590 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:19:01,590 - loralab.training.grpo_trainer - INFO -   Text: Okay, I understand. Let's begin.
+...
+2025-09-20 11:19:01,591 - loralab.training.grpo_trainer - INFO -   Reward: -12.50 (range: -15 to +15)
+2025-09-20 11:19:01,591 - loralab.training.grpo_trainer - INFO -   Expected answer: 7
+2025-09-20 11:19:05,774 - loralab.training.grpo_trainer - ERROR - CUDA error during GRPO training: CUDA error: device-side assert triggered
+Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
 
-2. **Calculate the density of gold:**
-   * Density = 19 grams per cubic centimeter = 19 * 1000 = 19000 grams/cm³
+2025-09-20 11:19:05,774 - loralab.training.grpo_trainer - ERROR - This may be due to GRPO incompatibility. Try: 1) Using SFT mode, 2) Reducing batch size, 3) Disabling torch.compile
+2025-09-20 11:24:44,636 - loralab.config.config_loader - INFO - Loaded configuration from loralab\config\gemma_config.yaml
+2025-09-20 11:24:44,636 - loralab.utils.output_manager - INFO - Output manager initialized at: lora_runs_gemma\run_20250920_112444
+2025-09-20 11:24:44,637 - loralab.evolution.evolutionary_trainer - INFO - Using unsloth backend
+2025-09-20 11:24:44,639 - loralab.utils.output_manager - INFO - Config saved to: lora_runs_gemma\run_20250920_112444\config\config.yaml
+2025-09-20 11:24:44,752 - loralab.core.unsloth_manager - INFO - Loading Unsloth model: unsloth/gemma-3-270m-it with none quantization
+2025-09-20 11:24:44,752 - loralab.core.unsloth_manager - INFO - Using configured dtype: float16
+2025-09-20 11:24:49,898 - loralab.core.unsloth_manager - INFO - Applied chat template: gemma3
+2025-09-20 11:24:49,899 - loralab.datasets.dataset_loader - INFO - Loading dataset: simple-math
+2025-09-20 11:24:49,900 - loralab.datasets.dataset_loader - INFO - Fetching simple-math from HuggingFace...
+2025-09-20 11:24:52,706 - loralab.datasets.dataset_loader - WARNING - Failed with trust_remote_code=True: {'arithmetic.float2_valid', 'arithmetic.float4_train', 'arithmetic.float3_valid', 'arithmetic.float34_train', 'arithmetic.float34_valid', 'arithmetic.float2_train', 'arithmetic.float3_train', 'arithmetic.float4_valid'}
+2025-09-20 11:24:54,362 - loralab.datasets.dataset_loader - ERROR - Failed to load dataset from HuggingFace: {'arithmetic.float2_valid', 'arithmetic.float4_train', 'arithmetic.float3_valid', 'arithmetic.float34_train', 'arithmetic.float34_valid', 'arithmetic.float2_train', 'arithmetic.float3_train', 'arithmetic.float4_valid'}
+2025-09-20 11:24:54,362 - loralab.datasets.dataset_loader - WARNING - Creating dummy dataset for testing
+2025-09-20 11:24:54,362 - loralab.evolution.evolutionary_trainer - INFO - 
+================================================================================
+2025-09-20 11:24:54,362 - loralab.evolution.evolutionary_trainer - INFO - STARTING EVOLUTIONARY OPTIMIZATION
+2025-09-20 11:24:54,362 - loralab.evolution.evolutionary_trainer - INFO - ================================================================================
+2025-09-20 11:24:54,363 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r4_lr1e-05 (hash: da56924d)
+2025-09-20 11:24:54,363 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r16_lr5e-05 (hash: 73c536b6)
+2025-09-20 11:24:54,363 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r8_lr2e-05 (hash: 8cd9bdf0)
+2025-09-20 11:24:54,363 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r16_lr5e-05 (hash: 8f837382)
+2025-09-20 11:24:55,427 - loralab.core.unsloth_manager - INFO - LoRA variant created with Unsloth optimizations:
+2025-09-20 11:24:55,428 - loralab.core.unsloth_manager - INFO -   Rank: 4, Alpha: 4 (multiplier: 1)
+2025-09-20 11:24:55,428 - loralab.core.unsloth_manager - INFO -   Trainable params: 949,248 (0.35%)
+2025-09-20 11:24:55,428 - loralab.core.unsloth_manager - INFO -   Gradient checkpointing: unsloth
+2025-09-20 11:24:55,428 - loralab.core.unsloth_manager - INFO -   RSLoRA: True
+2025-09-20 11:24:55,428 - loralab.evolution.evolutionary_trainer - INFO - Train data has 1000 total examples
+2025-09-20 11:24:55,428 - loralab.evolution.evolutionary_trainer - INFO - Requesting 5 format examples
+2025-09-20 11:24:55,428 - loralab.evolution.evolutionary_trainer - INFO - Actually got 5 format examples
+2025-09-20 11:24:55,428 - loralab.evolution.evolutionary_trainer - INFO - Pre-training on format with 5 examples for 1 epochs
+2025-09-20 11:24:55,429 - loralab.training.grpo_trainer - INFO - Pre-training model on format examples...
+2025-09-20 11:24:55,469 - loralab.training.grpo_trainer - INFO - Pre-training configuration:
+2025-09-20 11:24:55,469 - loralab.training.grpo_trainer - INFO -   - Examples: 5
+2025-09-20 11:24:55,469 - loralab.training.grpo_trainer - INFO -   - Batch size: 1
+2025-09-20 11:24:55,469 - loralab.training.grpo_trainer - INFO -   - Gradient accumulation: 2
+2025-09-20 11:24:55,469 - loralab.training.grpo_trainer - INFO -   - Effective batch size: 2
+2025-09-20 11:24:55,470 - loralab.training.grpo_trainer - INFO -   - Epochs: 1
+2025-09-20 11:24:55,470 - loralab.training.grpo_trainer - INFO -   - Expected training steps: 5
+2025-09-20 11:24:55,471 - loralab.training.grpo_trainer - INFO - Created pre-training dataset with 5 examples
+2025-09-20 11:25:08,276 - loralab.training.grpo_trainer - INFO - Pre-training completed with final loss: 3.4471
+2025-09-20 11:25:08,277 - loralab.training.grpo_trainer - INFO - Starting GRPO training for gen0_r4_lr1e-05
+2025-09-20 11:25:17,095 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:25:17,095 - loralab.training.grpo_trainer - INFO -   Text: Here's how to solve this:
+* **Think:** A triangle has three sides.
+* **Reasoning:** A triangle has three sides, so it has three sides.
 
-3. **Calculate the cost of the gold:**
-   * Cost = 60 grams * $60/gram = $3600
+**Final Answer:** 3...
+2025-09-20 11:25:17,095 - loralab.training.grpo_trainer - INFO -   Reward: 11.00 (range: -15 to +15)
+2025-09-20 11:25:17,096 - loralab.training.grpo_trainer - INFO -   Expected answer: 3
+2025-09-20 11:25:37,413 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:25:37,413 - loralab.training.grpo_trainer - INFO -   Text: Here's how we can break down the problem:
 
-4. **Calculate the selling price of the gold:**
-  ...
-2025-09-20 10:26:35,188 - loralab.training.grpo_trainer - INFO -   Reward: -0.30 (range: -15 to +15)
-2025-09-20 10:26:35,188 - loralab.training.grpo_trainer - INFO -   Expected answer: The cube is 6*6*6=<<6*6*6=216>>216 cubic cm
-So it has a mass of 216*19=<<216*19=4104>>4104 grams
-So it uses 60*4104=$<<60*4104=246240>>246240
-That means he sells it for 246240*1.5=$<<246240*1.5=369360>>369360
-So he has a profit of 369360-246240=$<<369360-246240=123120>>123,120
-#### 123120
-2025-09-20 10:27:03,006 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
-2025-09-20 10:27:03,006 - loralab.training.grpo_trainer - INFO -   Text: Here's the breakdown of the problem:
+*   **Think:** We need to find the number of days in a week.
+*   **Think:** A week has 7 days.
+*   **Think:** Therefore, there are 7 days in a week.
 
-1. **Calculate the total number of pages needed:**
-   * Book 1: 180 pages
-   * Book 2: 100 pages
+**Final Answer:**...
+2025-09-20 11:25:37,413 - loralab.training.grpo_trainer - INFO -   Reward: 8.20 (range: -15 to +15)
+2025-09-20 11:25:37,413 - loralab.training.grpo_trainer - INFO -   Expected answer: 7
+2025-09-20 11:25:41,241 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:25:41,241 - loralab.training.grpo_trainer - INFO -   Text: Okay, I'm ready to think through the problem.
+...
+2025-09-20 11:25:41,242 - loralab.training.grpo_trainer - INFO -   Reward: -12.50 (range: -15 to +15)
+2025-09-20 11:25:41,242 - loralab.training.grpo_trainer - INFO -   Expected answer: 7
+2025-09-20 11:25:49,937 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:25:49,938 - loralab.training.grpo_trainer - INFO -   Text: Okay, I'm ready to think through these problems.
+...
+2025-09-20 11:25:49,938 - loralab.training.grpo_trainer - INFO -   Reward: -12.50 (range: -15 to +15)
+2025-09-20 11:25:49,938 - loralab.training.grpo_trainer - INFO -   Expected answer: William Shakespeare
+2025-09-20 11:25:55,143 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:25:55,144 - loralab.training.grpo_trainer - INFO -   Text: Okay, let's break this down step by step.
 
-2. **Determine the number of pages needed for each book:**
-   * Book 1: 180 pages / 2 pages/day = 90 days
-   * Book 2: 100 pages / 2 pages/day = 50 days
+1.  **Think:** The problem is 2 + 2.
+2.  **Reasoning:** 2 + 2 = 4
 
-3. **Calculate the number of days needed to read both books:**
-   * Total days needed: 2 weeks * 7 days/week =...
-2025-09-20 10:27:03,006 - loralab.training.grpo_trainer - INFO -   Reward: -3.30 (range: -15 to +15)
-2025-09-20 10:27:03,006 - loralab.training.grpo_trainer - INFO -   Expected answer: The total number of pages is 180 + 100 = <<180+100=280>>280 pages
-The number of pages Yasna needs to read every day for two weeks is 280 / 14 = <<280/14=20>>20 pages
-#### 20
-2025-09-20 10:27:13,675 - loralab.training.grpo_trainer - INFO - Available metrics: []
-2025-09-20 10:27:13,675 - loralab.training.grpo_trainer - WARNING - No reward metric found in training output, defaulting to 0.0
-2025-09-20 10:27:13,675 - loralab.training.grpo_trainer - INFO - GRPO training completed for gen0_r8_lr1e-04
-2025-09-20 10:27:13,676 - loralab.training.grpo_trainer - INFO -   Final loss: 0.5498
-2025-09-20 10:27:13,676 - loralab.training.grpo_trainer - INFO -   Average reward: 0.0000
+Therefore, the answer is 4.
+...
+2025-09-20 11:25:55,144 - loralab.training.grpo_trainer - INFO -   Reward: 9.70 (range: -15 to +15)
+2025-09-20 11:25:55,144 - loralab.training.grpo_trainer - INFO -   Expected answer: 4
+2025-09-20 11:25:58,636 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:25:58,637 - loralab.training.grpo_trainer - INFO -   Text: Here's my reasoning:
+
+1.  **Think:** The Mona Lisa was painted by Leonardo da Vinci.
+2.  **Reasoning:** Da Vinci was a renowned artist and scientist. Therefore, he was likely familiar with the painting and could have painted it.
+3.  **Solution:** Leonardo da...
+2025-09-20 11:25:58,637 - loralab.training.grpo_trainer - INFO -   Reward: 9.70 (range: -15 to +15)
+2025-09-20 11:25:58,638 - loralab.training.grpo_trainer - INFO -   Expected answer: Leonardo da Vinci
+2025-09-20 11:26:02,300 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:26:02,300 - loralab.training.grpo_trainer - INFO -   Text: Here's my reasoning:
+
+1.  **Think:** The Mona Lisa was painted by Leonardo da Vinci.
+2.  **Think:** Da Vinci was a renowned artist and scientist.
+3.  **Think:** The Mona Lisa was painted by Leonardo da Vinci.
+4.  **Answer:** Leonardo...
+2025-09-20 11:26:02,301 - loralab.training.grpo_trainer - INFO -   Reward: 9.50 (range: -15 to +15)
+2025-09-20 11:26:02,301 - loralab.training.grpo_trainer - INFO -   Expected answer: Leonardo da Vinci
+2025-09-20 11:26:10,204 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:26:10,205 - loralab.training.grpo_trainer - INFO -   Text: Okay, I understand. Let's start with the reasoning.
+...
+2025-09-20 11:26:10,205 - loralab.training.grpo_trainer - INFO -   Reward: -12.50 (range: -15 to +15)
+2025-09-20 11:26:10,205 - loralab.training.grpo_trainer - INFO -   Expected answer: 299,792,458 meters per second
+2025-09-20 11:26:16,256 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:26:16,257 - loralab.training.grpo_trainer - INFO -   Text: Okay, I'm ready. Let's begin.
+...
+2025-09-20 11:26:16,257 - loralab.training.grpo_trainer - INFO -   Reward: -12.50 (range: -15 to +15)
+2025-09-20 11:26:16,257 - loralab.training.grpo_trainer - INFO -   Expected answer: 299,792,458 meters per second
+2025-09-20 11:26:23,663 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:26:23,663 - loralab.training.grpo_trainer - INFO -   Text: Okay, I'm ready to think through problems step-by-step.
+...
+2025-09-20 11:26:23,663 - loralab.training.grpo_trainer - INFO -   Reward: -9.90 (range: -15 to +15)
+2025-09-20 11:26:23,663 - loralab.training.grpo_trainer - INFO -   Expected answer: 7
+2025-09-20 11:26:29,221 - loralab.training.grpo_trainer - INFO - Found reward value -12.5000 from key 'reward' in log history
+2025-09-20 11:26:29,221 - loralab.training.grpo_trainer - INFO - GRPO training completed for gen0_r4_lr1e-05
+2025-09-20 11:26:29,221 - loralab.training.grpo_trainer - INFO -   Final loss: 0.0008
+2025-09-20 11:26:29,221 - loralab.training.grpo_trainer - INFO -   Average reward: -12.5000
+2025-09-20 11:27:20,414 - loralab.evolution.fitness_evaluator - INFO - Evaluation complete for gen0_r4_lr1e-05: Accuracy=80.00%, Perplexity=555.17
+2025-09-20 11:27:20,416 - loralab.core.lora_factory - INFO - Saved variant to lora_runs_gemma\run_20250920_112444\checkpoints\generations\gen0\gen0_r4_lr1e-05\config.json
+2025-09-20 11:27:23,777 - loralab.core.unsloth_manager - INFO - LoRA variant created with Unsloth optimizations:
+2025-09-20 11:27:23,778 - loralab.core.unsloth_manager - INFO -   Rank: 16, Alpha: 32 (multiplier: 2)
+2025-09-20 11:27:23,779 - loralab.core.unsloth_manager - INFO -   Trainable params: 3,796,992 (1.40%)
+2025-09-20 11:27:23,779 - loralab.core.unsloth_manager - INFO -   Gradient checkpointing: unsloth
+2025-09-20 11:27:23,779 - loralab.core.unsloth_manager - INFO -   RSLoRA: True
+2025-09-20 11:27:23,779 - loralab.evolution.evolutionary_trainer - INFO - Train data has 1000 total examples
+2025-09-20 11:27:23,779 - loralab.evolution.evolutionary_trainer - INFO - Requesting 5 format examples
+2025-09-20 11:27:23,779 - loralab.evolution.evolutionary_trainer - INFO - Actually got 5 format examples
+2025-09-20 11:27:23,779 - loralab.evolution.evolutionary_trainer - INFO - Pre-training on format with 5 examples for 1 epochs
+2025-09-20 11:27:23,779 - loralab.training.grpo_trainer - INFO - Pre-training model on format examples...
+2025-09-20 11:27:23,821 - loralab.training.grpo_trainer - INFO - Pre-training configuration:
+2025-09-20 11:27:23,822 - loralab.training.grpo_trainer - INFO -   - Examples: 5
+2025-09-20 11:27:23,822 - loralab.training.grpo_trainer - INFO -   - Batch size: 1
+2025-09-20 11:27:23,822 - loralab.training.grpo_trainer - INFO -   - Gradient accumulation: 2
+2025-09-20 11:27:23,822 - loralab.training.grpo_trainer - INFO -   - Effective batch size: 2
+2025-09-20 11:27:23,822 - loralab.training.grpo_trainer - INFO -   - Epochs: 1
+2025-09-20 11:27:23,822 - loralab.training.grpo_trainer - INFO -   - Expected training steps: 5
+2025-09-20 11:27:23,824 - loralab.training.grpo_trainer - INFO - Created pre-training dataset with 5 examples
+2025-09-20 11:27:29,055 - loralab.training.grpo_trainer - INFO - Pre-training completed with final loss: 3.3006
+2025-09-20 11:27:29,056 - loralab.training.grpo_trainer - INFO - Starting GRPO training for gen0_r16_lr5e-05
+2025-09-20 11:27:33,309 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:27:33,309 - loralab.training.grpo_trainer - INFO -   Text: Okay, I understand. I will analyze the problem and provide a reasoning between <think> and </think> and then provide my final answer between <solution> and </solution>.
+...
+2025-09-20 11:27:33,309 - loralab.training.grpo_trainer - INFO -   Reward: -4.90 (range: -15 to +15)
+2025-09-20 11:27:33,309 - loralab.training.grpo_trainer - INFO -   Expected answer: 3
+2025-09-20 11:27:38,763 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:27:38,763 - loralab.training.grpo_trainer - INFO -   Text: Here's how we can break down the problem:
+*   **Think:** How many days in a week?
+*   **Think:** We need to find the number of days in a week.
+*   **Think:** We need to find the number of days in a week.
+*   **...
+2025-09-20 11:27:38,763 - loralab.training.grpo_trainer - INFO -   Reward: -7.00 (range: -15 to +15)
+2025-09-20 11:27:38,764 - loralab.training.grpo_trainer - INFO -   Expected answer: 7
+2025-09-20 11:27:40,296 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:27:40,296 - loralab.training.grpo_trainer - INFO -   Text: Okay, I'm ready. Let's begin.
+...
+2025-09-20 11:27:40,296 - loralab.training.grpo_trainer - INFO -   Reward: -12.50 (range: -15 to +15)
+2025-09-20 11:27:40,297 - loralab.training.grpo_trainer - INFO -   Expected answer: 7
+2025-09-20 11:27:46,468 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:27:46,468 - loralab.training.grpo_trainer - INFO -   Text: Okay, I'm ready to think through problems step-by-step.
+...
+2025-09-20 11:27:46,469 - loralab.training.grpo_trainer - INFO -   Reward: -9.90 (range: -15 to +15)
+2025-09-20 11:27:46,469 - loralab.training.grpo_trainer - INFO -   Expected answer: William Shakespeare
+2025-09-20 11:27:56,627 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:27:56,627 - loralab.training.grpo_trainer - INFO -   Text: Here's how we can solve this:
+1. We know 2 + 2 = 4
+2. We know that 4 is a whole number.
+3. Therefore, 2 + 2 = 4
+
+So the answer is 4.
+...
+2025-09-20 11:27:56,628 - loralab.training.grpo_trainer - INFO -   Reward: 9.40 (range: -15 to +15)
+2025-09-20 11:27:56,628 - loralab.training.grpo_trainer - INFO -   Expected answer: 4
+2025-09-20 11:28:00,931 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:28:00,932 - loralab.training.grpo_trainer - INFO -   Text: Here's my reasoning:
+
+1.  **Think:** The Mona Lisa is a famous painting by Leonardo da Vinci.
+2.  **Think:** The painting was painted by Leonardo da Vinci.
+3.  **Think:** The Mona Lisa was painted by Leonardo da Vinci.
+4.  **Think...
+2025-09-20 11:28:00,932 - loralab.training.grpo_trainer - INFO -   Reward: 9.50 (range: -15 to +15)
+2025-09-20 11:28:00,932 - loralab.training.grpo_trainer - INFO -   Expected answer: Leonardo da Vinci
+2025-09-20 11:28:03,570 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:28:03,570 - loralab.training.grpo_trainer - INFO -   Text: Here's my reasoning:
+
+1.  **Think:** The Mona Lisa was painted by Leonardo da Vinci.
+2.  **Underlying Idea:** Da Vinci was a renowned artist and scientist.
+3.  **Reasoning:** Da Vinci's work was a hallmark of the Renaissance. The Mona Lisa...
+2025-09-20 11:28:03,570 - loralab.training.grpo_trainer - INFO -   Reward: 9.50 (range: -15 to +15)
+2025-09-20 11:28:03,571 - loralab.training.grpo_trainer - INFO -   Expected answer: Leonardo da Vinci
+2025-09-20 11:28:13,592 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:28:13,592 - loralab.training.grpo_trainer - INFO -   Text: Okay, I'm ready to think through problems.
+...
+2025-09-20 11:28:13,592 - loralab.training.grpo_trainer - INFO -   Reward: -12.50 (range: -15 to +15)
+2025-09-20 11:28:13,592 - loralab.training.grpo_trainer - INFO -   Expected answer: 299,792,458 meters per second
+2025-09-20 11:28:22,768 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:28:22,768 - loralab.training.grpo_trainer - INFO -   Text: Okay, I'm ready to think through problems.
+...
+2025-09-20 11:28:22,769 - loralab.training.grpo_trainer - INFO -   Reward: -12.50 (range: -15 to +15)
+2025-09-20 11:28:22,769 - loralab.training.grpo_trainer - INFO -   Expected answer: 299,792,458 meters per second
+2025-09-20 11:28:33,273 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:28:33,274 - loralab.training.grpo_trainer - INFO -   Text: Here's my reasoning:
+
+1. **Think:** I need to figure out the number of continents.
+2. **Think:** I need to determine the number of continents.
+3. **Think:** I need to determine the number of continents.
+4. **Think:** I need to determine the number...
+2025-09-20 11:28:33,274 - loralab.training.grpo_trainer - INFO -   Reward: -3.50 (range: -15 to +15)
+2025-09-20 11:28:33,274 - loralab.training.grpo_trainer - INFO -   Expected answer: 7
+2025-09-20 11:28:41,933 - loralab.training.grpo_trainer - INFO - Found reward value -11.8500 from key 'reward' in log history
+2025-09-20 11:28:41,933 - loralab.training.grpo_trainer - INFO - GRPO training completed for gen0_r16_lr5e-05
+2025-09-20 11:28:41,933 - loralab.training.grpo_trainer - INFO -   Final loss: 0.3281
+2025-09-20 11:28:41,934 - loralab.training.grpo_trainer - INFO -   Average reward: -11.8500
+2025-09-20 11:29:39,478 - loralab.evolution.fitness_evaluator - INFO - Evaluation complete for gen0_r16_lr5e-05: Accuracy=70.00%, Perplexity=494.24
+2025-09-20 11:29:39,480 - loralab.core.lora_factory - INFO - Saved variant to lora_runs_gemma\run_20250920_112444\checkpoints\generations\gen0\gen0_r16_lr5e-05\config.json
+2025-09-20 11:29:43,120 - loralab.core.unsloth_manager - INFO - LoRA variant created with Unsloth optimizations:
+2025-09-20 11:29:43,121 - loralab.core.unsloth_manager - INFO -   Rank: 8, Alpha: 8 (multiplier: 1)
+2025-09-20 11:29:43,121 - loralab.core.unsloth_manager - INFO -   Trainable params: 1,898,496 (0.70%)
+2025-09-20 11:29:43,121 - loralab.core.unsloth_manager - INFO -   Gradient checkpointing: unsloth
+2025-09-20 11:29:43,121 - loralab.core.unsloth_manager - INFO -   RSLoRA: False
+2025-09-20 11:29:43,121 - loralab.evolution.evolutionary_trainer - INFO - Train data has 1000 total examples
+2025-09-20 11:29:43,122 - loralab.evolution.evolutionary_trainer - INFO - Requesting 5 format examples
+2025-09-20 11:29:43,122 - loralab.evolution.evolutionary_trainer - INFO - Actually got 5 format examples
+2025-09-20 11:29:43,122 - loralab.evolution.evolutionary_trainer - INFO - Pre-training on format with 5 examples for 1 epochs
+2025-09-20 11:29:43,122 - loralab.training.grpo_trainer - INFO - Pre-training model on format examples...
+2025-09-20 11:29:43,169 - loralab.training.grpo_trainer - INFO - Pre-training configuration:
+2025-09-20 11:29:43,170 - loralab.training.grpo_trainer - INFO -   - Examples: 5
+2025-09-20 11:29:43,170 - loralab.training.grpo_trainer - INFO -   - Batch size: 1
+2025-09-20 11:29:43,170 - loralab.training.grpo_trainer - INFO -   - Gradient accumulation: 2
+2025-09-20 11:29:43,170 - loralab.training.grpo_trainer - INFO -   - Effective batch size: 2
+2025-09-20 11:29:43,170 - loralab.training.grpo_trainer - INFO -   - Epochs: 1
+2025-09-20 11:29:43,170 - loralab.training.grpo_trainer - INFO -   - Expected training steps: 5
+2025-09-20 11:29:43,172 - loralab.training.grpo_trainer - INFO - Created pre-training dataset with 5 examples
+2025-09-20 11:29:47,970 - loralab.training.grpo_trainer - INFO - Pre-training completed with final loss: 3.4449
+2025-09-20 11:29:47,970 - loralab.training.grpo_trainer - INFO - Starting GRPO training for gen0_r8_lr2e-05
+2025-09-20 11:29:52,262 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:29:52,262 - loralab.training.grpo_trainer - INFO -   Text: Here's how to solve this:
+* **Think:** A triangle has three sides.
+* **Reasoning:** A triangle has three sides, so it has three sides.
+
+**Final Answer:** 3...
+2025-09-20 11:29:52,262 - loralab.training.grpo_trainer - INFO -   Reward: 11.00 (range: -15 to +15)
+2025-09-20 11:29:52,263 - loralab.training.grpo_trainer - INFO -   Expected answer: 3
+2025-09-20 11:29:57,212 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:29:57,212 - loralab.training.grpo_trainer - INFO -   Text: Here's how we can break down the problem:
+
+*   **Think:** We need to find the number of days in a week.
+*   **Think:** A week has 7 days.
+*   **Think:** Therefore, there are 7 days in a week.
+
+**Final Answer:**...
+2025-09-20 11:29:57,212 - loralab.training.grpo_trainer - INFO -   Reward: 8.20 (range: -15 to +15)
+2025-09-20 11:29:57,212 - loralab.training.grpo_trainer - INFO -   Expected answer: 7
+2025-09-20 11:30:00,671 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:30:00,671 - loralab.training.grpo_trainer - INFO -   Text: Okay, I'm ready to think through the problem.
+...
+2025-09-20 11:30:00,672 - loralab.training.grpo_trainer - INFO -   Reward: -12.50 (range: -15 to +15)
+2025-09-20 11:30:00,672 - loralab.training.grpo_trainer - INFO -   Expected answer: 7
+2025-09-20 11:30:09,000 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:30:09,001 - loralab.training.grpo_trainer - INFO -   Text: Okay, I'm ready to think through these problems.
+...
+2025-09-20 11:30:09,002 - loralab.training.grpo_trainer - INFO -   Reward: -12.50 (range: -15 to +15)
+2025-09-20 11:30:09,002 - loralab.training.grpo_trainer - INFO -   Expected answer: William Shakespeare
+2025-09-20 11:30:18,855 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:30:18,856 - loralab.training.grpo_trainer - INFO -   Text: Here's the reasoning:
+
+1. **Think:** 2 + 2 = 4
+2. **Reasoning:** 2 + 2 = 4
+
+Therefore, the answer is 4.
+...
+2025-09-20 11:30:18,856 - loralab.training.grpo_trainer - INFO -   Reward: 9.70 (range: -15 to +15)
+2025-09-20 11:30:18,857 - loralab.training.grpo_trainer - INFO -   Expected answer: 4
+2025-09-20 11:30:19,925 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:30:19,926 - loralab.training.grpo_trainer - INFO -   Text: Okay, I'm ready. Let's begin.
+...
+2025-09-20 11:30:19,926 - loralab.training.grpo_trainer - INFO -   Reward: -12.50 (range: -15 to +15)
+2025-09-20 11:30:19,927 - loralab.training.grpo_trainer - INFO -   Expected answer: Leonardo da Vinci
+2025-09-20 11:30:20,938 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:30:20,938 - loralab.training.grpo_trainer - INFO -   Text: Okay, I'm ready to analyze the problem.
+...
+2025-09-20 11:30:20,938 - loralab.training.grpo_trainer - INFO -   Reward: -12.50 (range: -15 to +15)
+2025-09-20 11:30:20,938 - loralab.training.grpo_trainer - INFO -   Expected answer: Leonardo da Vinci
+2025-09-20 11:30:29,611 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:30:29,611 - loralab.training.grpo_trainer - INFO -   Text: Okay, I'm ready to think through problems step-by-step.
+...
+2025-09-20 11:30:29,611 - loralab.training.grpo_trainer - INFO -   Reward: -9.90 (range: -15 to +15)
+2025-09-20 11:30:29,611 - loralab.training.grpo_trainer - INFO -   Expected answer: 299,792,458 meters per second
+2025-09-20 11:30:37,862 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:30:37,863 - loralab.training.grpo_trainer - INFO -   Text: Okay, I'm ready. Let's begin.
+...
+2025-09-20 11:30:37,863 - loralab.training.grpo_trainer - INFO -   Reward: -12.50 (range: -15 to +15)
+2025-09-20 11:30:37,863 - loralab.training.grpo_trainer - INFO -   Expected answer: 299,792,458 meters per second
+2025-09-20 11:30:44,900 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:30:44,900 - loralab.training.grpo_trainer - INFO -   Text: Okay, I'm ready to think through problems step-by-step.
+...
+2025-09-20 11:30:44,901 - loralab.training.grpo_trainer - INFO -   Reward: -9.90 (range: -15 to +15)
+2025-09-20 11:30:44,901 - loralab.training.grpo_trainer - INFO -   Expected answer: 7
+2025-09-20 11:30:52,435 - loralab.training.grpo_trainer - INFO - Found reward value -7.0000 from key 'reward' in log history
+2025-09-20 11:30:52,435 - loralab.training.grpo_trainer - INFO - GRPO training completed for gen0_r8_lr2e-05
+2025-09-20 11:30:52,436 - loralab.training.grpo_trainer - INFO -   Final loss: 0.0077
+2025-09-20 11:30:52,436 - loralab.training.grpo_trainer - INFO -   Average reward: -7.0000
+2025-09-20 11:31:40,853 - loralab.evolution.fitness_evaluator - INFO - Evaluation complete for gen0_r8_lr2e-05: Accuracy=80.00%, Perplexity=553.81
+2025-09-20 11:31:40,855 - loralab.core.lora_factory - INFO - Saved variant to lora_runs_gemma\run_20250920_112444\checkpoints\generations\gen0\gen0_r8_lr2e-05\config.json
+2025-09-20 11:31:44,770 - loralab.core.unsloth_manager - INFO - LoRA variant created with Unsloth optimizations:
+2025-09-20 11:31:44,771 - loralab.core.unsloth_manager - INFO -   Rank: 16, Alpha: 16 (multiplier: 1)
+2025-09-20 11:31:44,771 - loralab.core.unsloth_manager - INFO -   Trainable params: 2,635,776 (0.97%)
+2025-09-20 11:31:44,771 - loralab.core.unsloth_manager - INFO -   Gradient checkpointing: unsloth
+2025-09-20 11:31:44,772 - loralab.core.unsloth_manager - INFO -   RSLoRA: True
+2025-09-20 11:31:44,772 - loralab.evolution.evolutionary_trainer - INFO - Train data has 1000 total examples
+2025-09-20 11:31:44,772 - loralab.evolution.evolutionary_trainer - INFO - Requesting 5 format examples
+2025-09-20 11:31:44,772 - loralab.evolution.evolutionary_trainer - INFO - Actually got 5 format examples
+2025-09-20 11:31:44,772 - loralab.evolution.evolutionary_trainer - INFO - Pre-training on format with 5 examples for 1 epochs
+2025-09-20 11:31:44,772 - loralab.training.grpo_trainer - INFO - Pre-training model on format examples...
+2025-09-20 11:31:44,815 - loralab.training.grpo_trainer - INFO - Pre-training configuration:
+2025-09-20 11:31:44,816 - loralab.training.grpo_trainer - INFO -   - Examples: 5
+2025-09-20 11:31:44,816 - loralab.training.grpo_trainer - INFO -   - Batch size: 1
+2025-09-20 11:31:44,816 - loralab.training.grpo_trainer - INFO -   - Gradient accumulation: 2
+2025-09-20 11:31:44,816 - loralab.training.grpo_trainer - INFO -   - Effective batch size: 2
+2025-09-20 11:31:44,816 - loralab.training.grpo_trainer - INFO -   - Epochs: 1
+2025-09-20 11:31:44,816 - loralab.training.grpo_trainer - INFO -   - Expected training steps: 5
+2025-09-20 11:31:44,818 - loralab.training.grpo_trainer - INFO - Created pre-training dataset with 5 examples
+2025-09-20 11:31:47,146 - loralab.training.grpo_trainer - INFO - Pre-training completed with final loss: 3.3629
+2025-09-20 11:31:47,147 - loralab.training.grpo_trainer - INFO - Starting GRPO training for gen0_r16_lr5e-05
+2025-09-20 11:31:51,829 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:31:51,830 - loralab.training.grpo_trainer - INFO -   Text: Okay, I'm ready to think through problems step-by-step. Let's begin.
+...
+2025-09-20 11:31:51,830 - loralab.training.grpo_trainer - INFO -   Reward: -9.90 (range: -15 to +15)
+2025-09-20 11:31:51,832 - loralab.training.grpo_trainer - INFO -   Expected answer: 3
+2025-09-20 11:31:54,659 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:31:54,660 - loralab.training.grpo_trainer - INFO -   Text: Here's how we can break down the problem:
+*   **Think:** How many days in a week?
+*   **Think:** The number of days in a week is 7.
+
+**Final Answer:** 7...
+2025-09-20 11:31:54,660 - loralab.training.grpo_trainer - INFO -   Reward: 13.00 (range: -15 to +15)
+2025-09-20 11:31:54,660 - loralab.training.grpo_trainer - INFO -   Expected answer: 7
+2025-09-20 11:31:56,815 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:31:56,816 - loralab.training.grpo_trainer - INFO -   Text: Okay, I'm ready to think through problems step-by-step.
+...
+2025-09-20 11:31:56,816 - loralab.training.grpo_trainer - INFO -   Reward: -9.90 (range: -15 to +15)
+2025-09-20 11:31:56,816 - loralab.training.grpo_trainer - INFO -   Expected answer: 7
+2025-09-20 11:32:05,157 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:32:05,158 - loralab.training.grpo_trainer - INFO -   Text: Okay, I'm ready. Let's begin.
+...
+2025-09-20 11:32:05,158 - loralab.training.grpo_trainer - INFO -   Reward: -12.50 (range: -15 to +15)
+2025-09-20 11:32:05,159 - loralab.training.grpo_trainer - INFO -   Expected answer: William Shakespeare
+2025-09-20 11:32:11,056 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:32:11,056 - loralab.training.grpo_trainer - INFO -   Text: Okay, let's break down the problem step-by-step.
+
+1.  **Think:** I need to find the value of 2 + 2.
+
+2.  **Think:** 2 + 2 = 4
+
+3.  **Think:** Therefore, 2 + 2...
+2025-09-20 11:32:11,056 - loralab.training.grpo_trainer - INFO -   Reward: 9.70 (range: -15 to +15)
+2025-09-20 11:32:11,057 - loralab.training.grpo_trainer - INFO -   Expected answer: 4
+2025-09-20 11:32:14,030 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:32:14,030 - loralab.training.grpo_trainer - INFO -   Text: Okay, I'm ready. Let's begin.
+...
+2025-09-20 11:32:14,031 - loralab.training.grpo_trainer - INFO -   Reward: -12.50 (range: -15 to +15)
+2025-09-20 11:32:14,031 - loralab.training.grpo_trainer - INFO -   Expected answer: Leonardo da Vinci
+2025-09-20 11:32:16,547 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:32:16,547 - loralab.training.grpo_trainer - INFO -   Text: Okay, I'm ready. Let's begin.
+...
+2025-09-20 11:32:16,547 - loralab.training.grpo_trainer - INFO -   Reward: -12.50 (range: -15 to +15)
+2025-09-20 11:32:16,547 - loralab.training.grpo_trainer - INFO -   Expected answer: Leonardo da Vinci
+2025-09-20 11:32:25,450 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:32:25,451 - loralab.training.grpo_trainer - INFO -   Text: Okay, I'm ready to analyze the problem.
+...
+2025-09-20 11:32:25,451 - loralab.training.grpo_trainer - INFO -   Reward: -12.50 (range: -15 to +15)
+2025-09-20 11:32:25,451 - loralab.training.grpo_trainer - INFO -   Expected answer: 299,792,458 meters per second
+2025-09-20 11:32:32,550 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:32:32,551 - loralab.training.grpo_trainer - INFO -   Text: Okay, I understand. Let's begin.
+...
+2025-09-20 11:32:32,551 - loralab.training.grpo_trainer - INFO -   Reward: -12.50 (range: -15 to +15)
+2025-09-20 11:32:32,552 - loralab.training.grpo_trainer - INFO -   Expected answer: 299,792,458 meters per second
+2025-09-20 11:32:38,953 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:32:38,954 - loralab.training.grpo_trainer - INFO -   Text: Okay, I'm ready to think through the problem step-by-step.
+...
+2025-09-20 11:32:38,954 - loralab.training.grpo_trainer - INFO -   Reward: -9.90 (range: -15 to +15)
+2025-09-20 11:32:38,955 - loralab.training.grpo_trainer - INFO -   Expected answer: 7
+2025-09-20 11:32:46,084 - loralab.training.grpo_trainer - INFO - Found reward value -6.3500 from key 'reward' in log history
+2025-09-20 11:32:46,085 - loralab.training.grpo_trainer - INFO - GRPO training completed for gen0_r16_lr5e-05
+2025-09-20 11:32:46,085 - loralab.training.grpo_trainer - INFO -   Final loss: 0.0406
+2025-09-20 11:32:46,085 - loralab.training.grpo_trainer - INFO -   Average reward: -6.3500
+2025-09-20 11:33:34,517 - loralab.evolution.fitness_evaluator - INFO - Evaluation complete for gen0_r16_lr5e-05: Accuracy=80.00%, Perplexity=528.74
+2025-09-20 11:33:34,518 - loralab.core.lora_factory - INFO - Saved variant to lora_runs_gemma\run_20250920_112444\checkpoints\generations\gen0\gen0_r16_lr5e-05\config.json
+2025-09-20 11:33:34,741 - loralab.evolution.population - INFO - Selected 2 survivors from population of 4
+2025-09-20 11:33:34,742 - loralab.core.lora_factory - INFO - Saved variant to lora_runs_gemma\run_20250920_112444\models\best\config.json
+2025-09-20 11:33:35,212 - loralab.evolution.evolutionary_trainer - INFO - [+] New best variant saved: gen0_r16_lr5e-05 (accuracy: 80.00%)
+2025-09-20 11:33:35,215 - loralab.evolution.evolutionary_trainer - INFO - Checkpoint saved to lora_runs_gemma\run_20250920_112444\checkpoints\evolution_gen0.json
+2025-09-20 11:33:35,216 - loralab.core.lora_factory - INFO - Created unique mutated variant: gen1_r8_lr2e-05 (parent: gen0_r8_lr2e-05, hash: b1e98d74)
+2025-09-20 11:33:35,216 - loralab.core.lora_factory - INFO - Created unique mutated variant: gen1_r8_lr2e-05 (parent: gen0_r16_lr5e-05, hash: de7a0df4)
+2025-09-20 11:33:35,217 - loralab.core.lora_factory - INFO - Evolved to generation 1: 2 survivors, 2 mutations, 0 crossovers
+2025-09-20 11:33:37,987 - loralab.core.unsloth_manager - INFO - LoRA variant created with Unsloth optimizations:
+2025-09-20 11:33:37,987 - loralab.core.unsloth_manager - INFO -   Rank: 16, Alpha: 16 (multiplier: 1)
+2025-09-20 11:33:37,988 - loralab.core.unsloth_manager - INFO -   Trainable params: 2,635,776 (0.97%)
+2025-09-20 11:33:37,988 - loralab.core.unsloth_manager - INFO -   Gradient checkpointing: unsloth
+2025-09-20 11:33:37,988 - loralab.core.unsloth_manager - INFO -   RSLoRA: True
+2025-09-20 11:33:37,988 - loralab.evolution.evolutionary_trainer - INFO - Train data has 1000 total examples
+2025-09-20 11:33:37,988 - loralab.evolution.evolutionary_trainer - INFO - Requesting 5 format examples
+2025-09-20 11:33:37,988 - loralab.evolution.evolutionary_trainer - INFO - Actually got 5 format examples
+2025-09-20 11:33:37,988 - loralab.evolution.evolutionary_trainer - INFO - Pre-training on format with 5 examples for 1 epochs
+2025-09-20 11:33:37,988 - loralab.training.grpo_trainer - INFO - Pre-training model on format examples...
+2025-09-20 11:33:38,045 - loralab.training.grpo_trainer - INFO - Pre-training configuration:
+2025-09-20 11:33:38,045 - loralab.training.grpo_trainer - INFO -   - Examples: 5
+2025-09-20 11:33:38,045 - loralab.training.grpo_trainer - INFO -   - Batch size: 1
+2025-09-20 11:33:38,046 - loralab.training.grpo_trainer - INFO -   - Gradient accumulation: 2
+2025-09-20 11:33:38,046 - loralab.training.grpo_trainer - INFO -   - Effective batch size: 2
+2025-09-20 11:33:38,046 - loralab.training.grpo_trainer - INFO -   - Epochs: 1
+2025-09-20 11:33:38,046 - loralab.training.grpo_trainer - INFO -   - Expected training steps: 5
+2025-09-20 11:33:38,047 - loralab.training.grpo_trainer - INFO - Created pre-training dataset with 5 examples
+2025-09-20 11:33:40,417 - loralab.training.grpo_trainer - INFO - Pre-training completed with final loss: 3.2652
+2025-09-20 11:33:40,418 - loralab.training.grpo_trainer - INFO - Starting GRPO training for gen0_r16_lr5e-05
+2025-09-20 11:33:44,325 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:33:44,326 - loralab.training.grpo_trainer - INFO -   Text: Okay, I understand. I will analyze the problem and provide a solution step-by-step.
+...
+2025-09-20 11:33:44,326 - loralab.training.grpo_trainer - INFO -   Reward: -9.90 (range: -15 to +15)
+2025-09-20 11:33:44,326 - loralab.training.grpo_trainer - INFO -   Expected answer: 3
+2025-09-20 11:33:47,432 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:33:47,432 - loralab.training.grpo_trainer - INFO -   Text: Here's how we can break down the problem:
+*   **Think:** How many days in a week?
+*   **Think:** The number of days in a week is 7.
+
+**Final Answer:** 7...
+2025-09-20 11:33:47,433 - loralab.training.grpo_trainer - INFO -   Reward: 13.00 (range: -15 to +15)
+2025-09-20 11:33:47,433 - loralab.training.grpo_trainer - INFO -   Expected answer: 7
+2025-09-20 11:33:50,079 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:33:50,079 - loralab.training.grpo_trainer - INFO -   Text: Okay, I'm ready to think through problems step-by-step.
+...
+2025-09-20 11:33:50,080 - loralab.training.grpo_trainer - INFO -   Reward: -9.90 (range: -15 to +15)
+2025-09-20 11:33:50,080 - loralab.training.grpo_trainer - INFO -   Expected answer: 7
+2025-09-20 11:34:00,000 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:34:00,001 - loralab.training.grpo_trainer - INFO -   Text: Okay, I'm ready. Let's begin.
+...
+2025-09-20 11:34:00,001 - loralab.training.grpo_trainer - INFO -   Reward: -12.50 (range: -15 to +15)
+2025-09-20 11:34:00,001 - loralab.training.grpo_trainer - INFO -   Expected answer: William Shakespeare
+2025-09-20 11:34:06,087 - loralab.training.grpo_trainer - INFO - [GRPO Reward] Sample completion (first 400 chars):
+2025-09-20 11:34:06,088 - loralab.training.grpo_trainer - INFO -   Text: Here's how we can solve this:
+1. **Start with the first statement:** 2 + 2 = 4
+2. **Move to the second statement:** 2 + 2 = 4
+3. **The final statement is now:** 4 + 0 = 4
+
+...
+2025-09-20 11:34:06,088 - loralab.training.grpo_trainer - INFO -   Reward: 14.50 (range: -15 to +15)
+2025-09-20 11:34:06,088 - loralab.training.grpo_trainer - INFO -   Expected answer: 4

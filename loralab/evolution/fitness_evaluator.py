@@ -227,6 +227,8 @@ class FitnessEvaluator:
             # Convert float tensors to match model dtype
             elif hasattr(encodings[key], 'dtype') and encodings[key].dtype.is_floating_point:
                 encodings[key] = encodings[key].to(device).to(model_dtype)
+                
+        os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
 
         # Calculate perplexity for batch
         with torch.no_grad():
@@ -242,7 +244,7 @@ class FitnessEvaluator:
                     # Try to access logits - this might raise NotImplementedError in Unsloth
                     # Manual loss calculation for per-sample losses
                     from torch.nn import CrossEntropyLoss
-                    os.environ['UNSLOTH_RETURN_LOGITS'] = '1'
+                               
                     loss_fct = CrossEntropyLoss(reduction='none')
                     shift_logits = outputs.logits[..., :-1, :].contiguous()
                     shift_labels = encodings['input_ids'][..., 1:].contiguous()

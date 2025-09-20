@@ -389,28 +389,28 @@ Then provide your final answer between {solution_start} and {solution_end}."""
         # Create GRPO training arguments with valid parameters only
         training_args = GRPOConfig(
             # Generation parameters
-            temperature=grpo_config.get('temperature', 0.6),  # Lower for stability
-            top_k=grpo_config.get('top_k', 50),  # Valid generation parameter
-            top_p=grpo_config.get('top_p', 0.9),  # Valid generation parameter
-            # Training parameters
-            learning_rate=learning_rate * 0.5,  # Reduce LR for GRPO stability
-            weight_decay=self.training_config.get('weight_decay', 0.05),  # More regularization
-            warmup_ratio=self.training_config.get('warmup_ratio', 0.2),  # More warmup
-            lr_scheduler_type="cosine",  # Gentler schedule
+            temperature=grpo_config.get('temperature', 0.5),  # Lower for stability
+            top_k=grpo_config.get('top_k', 30),  # More restricted sampling
+            top_p=grpo_config.get('top_p', 0.85),  # Tighter nucleus sampling
+            # Training parameters - VERY conservative for stability
+            learning_rate=learning_rate * 0.1,  # Much lower LR for small model stability
+            weight_decay=self.training_config.get('weight_decay', 0.1),  # Strong regularization
+            warmup_ratio=self.training_config.get('warmup_ratio', 0.3),  # More warmup
+            lr_scheduler_type="constant_with_warmup",  # Safer schedule
             optim="adamw_8bit",
             logging_steps=1,
             logging_strategy="steps",
             per_device_train_batch_size=batch_size,  # Must be 1 or multiple of num_generations
-            gradient_accumulation_steps=self.training_config.get('gradient_accumulation_steps', 4),
+            gradient_accumulation_steps=2,  # Reduced for stability
             num_generations=self.num_generations,  # Number of completions per prompt
-            max_prompt_length=min(max_prompt_length, 256),  # Limit prompt length
-            max_completion_length=min(max_completion_length, 256),  # Limit completion length
+            max_prompt_length=min(max_prompt_length, 128),  # Shorter prompts
+            max_completion_length=min(max_completion_length, 64),  # Much shorter completions
             max_steps=max_steps,
             save_steps=max_steps,  # Save only at the end
-            # Stability settings
-            max_grad_norm=0.5,  # Aggressive gradient clipping
-            beta=grpo_config.get('beta', 0.1),  # KL coefficient (replaces kl_penalty)
-            epsilon=grpo_config.get('epsilon', 0.2),  # Clipping epsilon
+            # Stability settings - CRITICAL
+            max_grad_norm=0.3,  # Very aggressive gradient clipping
+            beta=grpo_config.get('beta', 0.5),  # High KL penalty
+            epsilon=grpo_config.get('epsilon', 0.1),  # Small clipping epsilon
             # Don't use loss_type or scale_rewards - they cause errors in Unsloth
             mask_truncated_completions=True,  # Exclude truncated completions from loss
             # Misc settings
@@ -502,33 +502,46 @@ Then provide your final answer between {solution_start} and {solution_end}."""
                     # Try to find the answer in various formats
                     answer_found = False
 
-                    # Look for exact match
-                    if correct_answer in text:
-                        answer_found = True
-                        # Check if it's at the end (best case)
-                        if text.strip().endswith(correct_answer):
-                            reward += 8.0  # Huge reward for correct answer at end
-                        else:
-                            reward += 5.0  # Good reward for correct answer elsewhere
-
-                    # Look for "answer is X" or "= X" patterns
-                    if not answer_found:
-                        answer_patterns = [
-                            rf'answer\s*[:=]\s*{re.escape(correct_answer)}',
-                            rf'=\s*{re.escape(correct_answer)}(?:\D|$)',
-                            rf'total\s*[:=]\s*{re.escape(correct_answer)}',
-                            rf'result\s*[:=]\s*{re.escape(correct_answer)}'
+                    # For simple arithmetic, also check numeric equivalence
+                    try:
+                        # Try to extract a numeric answer from the text
+                        # Look for patterns like "= 42" or "answer: 42"
+                        numeric_patterns = [
+                            r'=\s*([-+]?\d*\.?\d+)\s*$',  # Ends with = number
+                            r'answer\s*[:=]\s*([-+]?\d*\.?\d+)',
+                            r'result\s*[:=]\s*([-+]?\d*\.?\d+)',
+                            r'([-+]?\d*\.?\d+)\s*$'  # Just ends with a number
                         ]
-                        for pattern in answer_patterns:
-                            if re.search(pattern, text, re.IGNORECASE):
-                                answer_found = True
-                                reward += 6.0  # Good reward for formatted answer
-                                break
+
+                        for pattern in numeric_patterns:
+                            match = re.search(pattern, text, re.IGNORECASE)
+                            if match:
+                                extracted = match.group(1)
+                                # Check if numerically equivalent
+                                try:
+                                    extracted_num = float(extracted)
+                                    correct_num = float(correct_answer)
+                                    if abs(extracted_num - correct_num) < 0.01:  # Allow small rounding errors
+                                        answer_found = True
+                                        if text.strip().endswith(extracted):
+                                            reward += 10.0  # Perfect for simple math
+                                        else:
+                                            reward += 7.0
+                                        break
+                                except:
+                                    pass
+                    except:
+                        pass
+
+                    # Look for exact string match as fallback
+                    if not answer_found and correct_answer in text:
+                        answer_found = True
+                        reward += 5.0
 
                     # Heavy penalty for wrong or missing answer
                     if not answer_found:
                         # Check if there's any final answer attempt
-                        if re.search(r'answer\s*[:=]|final answer|the answer is', text, re.IGNORECASE):
+                        if re.search(r'answer\s*[:=]|final answer|the answer is|=\s*\d+', text, re.IGNORECASE):
                             reward -= 5.0  # Wrong answer is very bad
                         else:
                             reward -= 8.0  # No answer attempt is worst
@@ -553,11 +566,20 @@ Then provide your final answer between {solution_start} and {solution_end}."""
             # Enhanced logging for debugging
             import random
             if random.random() < 0.3:  # Log 30% of the time for better debugging
+                # Clean text for ASCII-safe logging
+                sample_text = completion_texts[0][:400] if completion_texts else 'None'
+                # Replace problematic Unicode characters
+                sample_text = sample_text.replace('\u2212', '-').replace('−', '-').replace('–', '-')
+                sample_text = sample_text.encode('ascii', 'replace').decode('ascii')
+
                 logger.info(f"[GRPO Reward] Sample completion (first 400 chars):")
-                logger.info(f"  Text: {completion_texts[0][:400] if completion_texts else 'None'}...")
+                logger.info(f"  Text: {sample_text}...")
                 logger.info(f"  Reward: {rewards[0]:.2f} (range: -15 to +15)")
                 if answer and len(answer) > 0:
-                    logger.info(f"  Expected answer: {answer[0]}")
+                    # Clean answer text too
+                    answer_text = str(answer[0]).replace('\u2212', '-').replace('−', '-').replace('–', '-')
+                    answer_text = answer_text.encode('ascii', 'replace').decode('ascii')
+                    logger.info(f"  Expected answer: {answer_text}")
 
             return rewards
 

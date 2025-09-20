@@ -29,9 +29,9 @@ model:
 # ============================================================================
 
 evolution:
-  population_size: 12                   # More variants to explore search space
-  generations: 15                       # More generations for better convergence
-  keep_top: 3                           # Keep more top performers
+  population_size: 4                   # More variants to explore search space
+  generations: 10                       # More generations for better convergence
+  keep_top: 2                           # Keep more top performers
   mutation_rate: 0.4                    # Higher mutation for exploration
   crossover_rate: 0.3                   # Increased crossover for diversity
   skip_perplexity: false                # Use full evaluation for small model
@@ -42,10 +42,10 @@ evolution:
 
 lora_search_space:
   # Research recommends rank 4-8 for small models, with some higher options
-  rank: [4, 8, 16, 32]                  # Lower ranks to prevent overfitting
+  rank: [4, 8, 16]                      # Lower ranks for small model (removed 32)
   alpha_multiplier: [1, 2]              # Alpha = rank * multiplier (research: 2x is good heuristic)
-  dropout: [0.0, 0.1]                   # Light dropout for regularization
-  learning_rate: [5e-5, 1e-4, 2e-4]    # Conservative LRs for stability
+  dropout: [0.05, 0.1]                  # Light dropout for regularization
+  learning_rate: [1e-5, 2e-5, 5e-5]    # Much lower LRs for GRPO stability
   # Training hyperparameters - stronger regularization for small model
   weight_decay: [0.01, 0.05, 0.1]      # Stronger regularization to prevent overfitting
   warmup_ratio: [0.05, 0.1, 0.15]      # Warmup helps stability
@@ -74,8 +74,8 @@ training:
   dataloader_pin_memory: true           # Pin memory
   dataloader_prefetch_factor: 2         # Prefetch batches
   # Early stopping to prevent overfitting
-  eval_steps: 50                         # Evaluate frequently
-  save_steps: 50                         # Save checkpoints frequently
+  eval_steps: 10                         # Evaluate frequently
+  save_steps: 10                         # Save checkpoints frequently
   early_stopping_patience: 3             # Stop if no improvement for 3 evals
 
 # ============================================================================
@@ -84,14 +84,14 @@ training:
 
 grpo:
   enabled: false                        # Enabled via command line flag
-  max_steps: 20                         # Very few steps to avoid instability
-  num_generations: 3                    # Minimum 2 required for GRPO advantage calculation
-  temperature: 0.6                      # Lower temperature for stability
-  max_prompt_length: 512                # Shorter prompts for small model
-  max_completion_length: 512            # Shorter completions for stability
-  # KL regularization
-  beta: 0.1                             # KL coefficient for reference model
-  epsilon: 0.2                          # Clipping epsilon
+  max_steps: 25                         # Very few steps to avoid instability
+  num_generations: 2                    # Minimum 2 for GRPO (3 can be unstable)
+  temperature: 0.5                      # Lower temperature for more stability
+  max_prompt_length: 256                # Shorter for stability
+  max_completion_length: 128            # Much shorter to prevent divergence
+  # KL regularization - CRITICAL for stability
+  beta: 0.5                             # Higher KL penalty to prevent divergence
+  epsilon: 0.1                          # Smaller clipping for stability
   # Generation parameters for stability
   top_k: 50                             # Limit sampling
   top_p: 0.9                            # Nucleus sampling
@@ -114,9 +114,9 @@ grpo:
 
 dataset:
   sources:
-    - "gsm8k"
-  train_size: 2000                      # Larger dataset to reduce overfitting
-  eval_size: 100                        # Larger eval set for better metrics
+    - "simple-math"                     # Much simpler arithmetic problems
+  train_size: 1000                     # Reduced for GRPO stability testing
+  eval_size: 100                       # Smaller eval for faster testing
   seed: 42
   max_seq_length: 512
   use_cache: true
