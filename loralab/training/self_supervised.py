@@ -11,6 +11,8 @@ from typing import Dict, List, Any, Optional
 from tqdm import tqdm
 import time
 from ..utils.memory_monitor import MemoryMonitor
+import os
+os.environ['UNSLOTH_RETURN_LOGITS'] = '1'
 
 logger = logging.getLogger(__name__)
 
@@ -161,6 +163,7 @@ class SelfSupervisedTrainer:
         Returns:
             Average training loss
         """
+        os.environ['UNSLOTH_RETURN_LOGITS'] = '1'
         logger.info(f"Starting training for {variant_id}")
         device = next(model.parameters()).device
 
@@ -232,7 +235,7 @@ class SelfSupervisedTrainer:
 
         # Initialize memory monitor if requested
         memory_monitor = MemoryMonitor(log_interval=10) if monitor_memory else None
-
+        os.environ['UNSLOTH_RETURN_LOGITS'] = '1'
         # Training loop
         model.train()
         total_loss = 0
@@ -358,7 +361,7 @@ class SelfSupervisedTrainer:
         best_val_loss = float('inf')
         train_losses = []
         val_losses = []
-
+        os.environ['UNSLOTH_RETURN_LOGITS'] = '1'
         for epoch in range(epochs):
             # Training
             avg_train_loss = self.train(
@@ -431,7 +434,7 @@ class SelfSupervisedTrainer:
                 num_batches += 1
 
         avg_loss = total_loss / num_batches if num_batches > 0 else float('inf')
-
+        os.environ['UNSLOTH_RETURN_LOGITS'] = '1'
         model.train()  # Set back to training mode
         return avg_loss
 

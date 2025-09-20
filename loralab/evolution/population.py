@@ -10,7 +10,8 @@ import numpy as np
 from ..core.lora_factory import LoRAVariant
 
 logger = logging.getLogger(__name__)
-
+import os
+os.environ['UNSLOTH_RETURN_LOGITS'] = '1'
 
 class PopulationManager:
     """Manages populations of LoRA variants"""

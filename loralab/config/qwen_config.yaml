@@ -79,7 +79,7 @@ grpo:
   enabled: false                        # Enabled via command line flag
   max_steps: 100                        # Training steps for GRPO
   temperature: 0.8                      # Generation temperature
-  num_generations: 4                    # Generations per batch
+  # num_generations removed - uses evolution.generations instead
   max_prompt_length: 512                # Max prompt length
   max_completion_length: 512            # Max completion length
   # Reward function weights

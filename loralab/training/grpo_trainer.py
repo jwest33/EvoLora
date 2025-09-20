@@ -10,7 +10,9 @@ from typing import Dict, List, Any, Optional, Callable, Tuple
 import torch
 from tqdm import tqdm
 import numpy as np
+from transformers import TrainerCallback
 import os
+os.environ['UNSLOTH_RETURN_LOGITS'] = '1'
 
 try:
     from trl import GRPOConfig, GRPOTrainer as TRLGRPOTrainer
@@ -19,7 +21,59 @@ except ImportError:
     TRL_AVAILABLE = False
     logging.warning("TRL not installed. Install with: pip install trl")
 
+try:
+    from ..utils.cli_formatter import CLIFormatter
+    FORMATTER_AVAILABLE = True
+except ImportError:
+    FORMATTER_AVAILABLE = False
+
 logger = logging.getLogger(__name__)
+
+# Suppress default transformers logging to avoid raw dict output
+try:
+    import transformers
+    transformers.logging.set_verbosity_error()
+except ImportError:
+    pass
+
+
+class FormattedLoggingCallback(TrainerCallback):
+    """Custom callback to format training metrics using CLIFormatter"""
+
+    def __init__(self, variant_id: str = "", use_formatter: bool = True):
+        self.variant_id = variant_id
+        self.step_count = 0
+        self.total_steps = None
+        self.use_formatter = use_formatter and FORMATTER_AVAILABLE
+        self.last_log = {}
+
+    def on_train_begin(self, args, state, control, **kwargs):
+        """Called at the beginning of training"""
+        self.total_steps = state.max_steps if state else None
+        if self.use_formatter and self.variant_id:
+            CLIFormatter.print_subheader(f"Training {self.variant_id}")
+
+    def on_log(self, args, state, control, logs=None, **kwargs):
+        """Called when metrics are logged"""
+        if logs and self.use_formatter:
+            # Filter out duplicate logs
+            if logs != self.last_log:
+                self.last_log = logs.copy()
+                self.step_count = state.global_step if state else self.step_count + 1
+
+                # Use CLIFormatter to display metrics
+                if 'loss' in logs:
+                    CLIFormatter.format_training_metrics(
+                        logs,
+                        step=self.step_count,
+                        total_steps=self.total_steps
+                    )
+        return control
+
+    def on_train_end(self, args, state, control, **kwargs):
+        """Called at the end of training"""
+        if self.use_formatter and self.variant_id:
+            CLIFormatter.print_success(f"Training completed for {self.variant_id}")
 
 
 class RewardFunctions:
@@ -238,20 +292,27 @@ class RewardFunctions:
 class GRPOTrainer:
     """GRPO trainer for reasoning-focused LoRA evolution"""
 
-    def __init__(self, model_manager, training_config: Dict[str, Any]):
+    def __init__(self, model_manager, training_config: Dict[str, Any], full_config: Dict[str, Any] = None):
         """Initialize GRPO trainer
 
         Args:
             model_manager: UnslothModelManager or ModelManager instance
             training_config: Training configuration
+            full_config: Full configuration (optional, for accessing evolution config)
         """
         if not TRL_AVAILABLE:
             raise ImportError("TRL is required for GRPO training. Install with: pip install trl")
 
         self.model_manager = model_manager
         self.training_config = training_config
+        self.full_config = full_config or {}
         self.tokenizer = model_manager.get_tokenizer()
         self.reward_functions = RewardFunctions(training_config.get('grpo', {}))
+
+        # Use evolution.generations from full config if available
+        evolution_config = self.full_config.get('evolution', {})
+        self.num_generations = evolution_config.get('generations',
+                                training_config.get('grpo', {}).get('num_generations', 4))
 
     def prepare_dataset_for_grpo(self, dataset: List[Dict]) -> List[Dict]:
         """Prepare dataset for GRPO training
@@ -309,6 +370,8 @@ Then provide your final answer between {solution_start} and {solution_end}."""
         """
         logger.info(f"Starting GRPO training for {variant_id}")
 
+        os.environ['UNSLOTH_RETURN_LOGITS'] = '1'
+        
         # Prepare dataset
         grpo_dataset = self.prepare_dataset_for_grpo(train_data)
 
@@ -326,15 +389,17 @@ Then provide your final answer between {solution_start} and {solution_end}."""
             lr_scheduler_type="linear",
             optim="adamw_8bit",
             logging_steps=1,
+            logging_strategy="steps",
             per_device_train_batch_size=self.training_config.get('batch_size', 1),
             gradient_accumulation_steps=self.training_config.get('gradient_accumulation_steps', 4),
-            num_generations=grpo_config.get('num_generations', 4),
+            num_generations=self.num_generations,
             max_prompt_length=max_prompt_length,
             max_completion_length=max_completion_length,
             max_steps=max_steps,
             save_steps=max_steps,  # Save only at the end
             report_to="none",
             output_dir=f"outputs/grpo_{variant_id}",
+            disable_tqdm=True,  # Disable progress bars to reduce clutter
         )
 
         # Get reward function weights
@@ -412,13 +477,17 @@ Then provide your final answer between {solution_start} and {solution_end}."""
 
         reward_funcs = [custom_reward_func]
 
-        # Create GRPO trainer
+        # Create custom callback for formatted logging
+        formatted_callback = FormattedLoggingCallback(variant_id=variant_id)
+
+        # Create GRPO trainer with custom callback
         trainer = TRLGRPOTrainer(
             model=model,
             processing_class=self.tokenizer,
             reward_funcs=reward_funcs,
             args=training_args,
             train_dataset=grpo_dataset,
+            callbacks=[formatted_callback] if FORMATTER_AVAILABLE else [],
         )
 
         os.environ['UNSLOTH_RETURN_LOGITS'] = '1'
@@ -426,9 +495,23 @@ Then provide your final answer between {solution_start} and {solution_end}."""
         train_output = trainer.train()
 
         # Extract metrics - look for various reward keys
-        reward_value = train_output.metrics.get('train_reward',
-                      train_output.metrics.get('reward',
-                      train_output.metrics.get('rewards/custom_reward_func/mean', 0.0)))
+        # Debug: show all available metrics keys
+        logger.debug(f"All metric keys: {list(train_output.metrics.keys())}")
+        reward_keys = [k for k in train_output.metrics.keys() if 'reward' in k.lower()]
+        if reward_keys:
+            logger.debug(f"Available reward keys: {reward_keys}")
+            # Try to get the first reward key found
+            for key in reward_keys:
+                reward_value = train_output.metrics.get(key, 0.0)
+                if reward_value != 0.0:
+                    logger.debug(f"Using reward from key '{key}': {reward_value}")
+                    break
+        else:
+            # Fallback to known keys
+            reward_value = train_output.metrics.get('train_reward',
+                          train_output.metrics.get('train_rewards/custom_reward_func/mean',
+                          train_output.metrics.get('reward',
+                          train_output.metrics.get('rewards/custom_reward_func/mean', 0.0))))
 
         metrics = {
             'final_loss': train_output.metrics.get('train_loss', float('inf')),
@@ -480,25 +563,55 @@ Then provide your final answer between {solution_start} and {solution_end}."""
             formatted_texts.append(text)
 
         # Create SFT training config
+        # For pre-training with small datasets, use batch size of 1 to get more training steps
+        num_examples = len(formatted_texts)
+
+        # Use batch size of 1 for pre-training to ensure proper training
+        batch_size = 1
+
+        # Keep gradient accumulation small for pre-training
+        grad_accum_steps = min(2, num_examples)  # Max 2 for pre-training
+
         sft_config = SFTConfig(
             dataset_text_field="text",
             dataset_num_proc=1,  # Force single process for Windows compatibility
-            per_device_train_batch_size=self.training_config.get('batch_size', 1),
-            gradient_accumulation_steps=self.training_config.get('gradient_accumulation_steps', 4),
+            per_device_train_batch_size=batch_size,
+            gradient_accumulation_steps=grad_accum_steps,
             warmup_steps=5,
             num_train_epochs=epochs,
             learning_rate=learning_rate,
             logging_steps=1,
+            logging_strategy="steps",
             optim="adamw_8bit",
             weight_decay=0.01,
             lr_scheduler_type="linear",
             seed=3407,
             report_to="none",
+            disable_tqdm=True,  # Disable progress bars for cleaner output
         )
+
+        # Calculate training steps
+        effective_batch_size = batch_size * grad_accum_steps
+        # For pre-training, each example should be seen individually
+        steps_per_epoch = len(formatted_texts)  # One step per example with batch_size=1
+        total_steps = steps_per_epoch * epochs
+
+        logger.info(f"Pre-training configuration:")
+        logger.info(f"  - Examples: {len(formatted_texts)}")
+        logger.info(f"  - Batch size: {batch_size}")
+        logger.info(f"  - Gradient accumulation: {grad_accum_steps}")
+        logger.info(f"  - Effective batch size: {effective_batch_size}")
+        logger.info(f"  - Epochs: {epochs}")
+        logger.info(f"  - Expected training steps: {total_steps}")
 
         # Create dataset
         from datasets import Dataset
         pre_train_dataset = Dataset.from_dict({"text": formatted_texts})
+
+        logger.info(f"Created pre-training dataset with {len(pre_train_dataset)} examples")
+
+        # Create custom callback for formatted logging
+        formatted_callback = FormattedLoggingCallback(variant_id="pre-training")
 
         # Create trainer
         trainer = SFTTrainer(
@@ -506,6 +619,7 @@ Then provide your final answer between {solution_start} and {solution_end}."""
             tokenizer=self.tokenizer,
             train_dataset=pre_train_dataset,
             args=sft_config,
+            callbacks=[formatted_callback] if FORMATTER_AVAILABLE else [],
         )
         
         os.environ['UNSLOTH_RETURN_LOGITS'] = '1'

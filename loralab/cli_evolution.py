@@ -8,6 +8,7 @@ import logging
 from pathlib import Path
 import sys
 import os
+os.environ['UNSLOTH_RETURN_LOGITS'] = '1'
 
 from .config.config_loader import ConfigLoader
 from .evolution.evolutionary_trainer import EvolutionaryTrainer
@@ -24,14 +25,35 @@ logger = logging.getLogger(__name__)
 
 def evolve_command(args):
     """Run evolutionary optimization"""
-    # Check CUDA availability
     import torch
+
+    # Print welcome header with mode information
+    CLIFormatter.print_header("GEMMA MODEL EVOLUTION", char="=")
+
+    # Determine and display mode early
+    if args.grpo:
+        CLIFormatter.print_status("Mode", "GRPO (Group Relative Policy Optimization)",
+                                 label_color=Fore.CYAN, value_color=Fore.GREEN)
+    else:
+        CLIFormatter.print_status("Mode", "Standard SFT (Supervised Fine-Tuning)",
+                                 label_color=Fore.CYAN, value_color=Fore.YELLOW)
+
+    CLIFormatter.print_status("Model", "Gemma3-270M-IT",
+                             label_color=Fore.CYAN, value_color=Fore.WHITE)
+
+    print()  # Add spacing
+
+    # Check CUDA availability
     if torch.cuda.is_available():
         CLIFormatter.print_info(f"CUDA available: {torch.cuda.get_device_name(0)}")
         total_memory_gb = torch.cuda.get_device_properties(0).total_memory / 1024**3
-        CLIFormatter.print_metric("CUDA memory", total_memory_gb, "GB")
+        CLIFormatter.print_metric("  CUDA memory", total_memory_gb, "GB")
     else:
         CLIFormatter.print_warning("CUDA not available - will use CPU (much slower)")
+
+    print()  # Add spacing
+    CLIFormatter.print_info("Starting evolutionary optimization...")
+    print()
 
     # Load configuration
     if args.config:
@@ -92,10 +114,11 @@ def evolve_command(args):
 
     # Apply GRPO flag
     if args.grpo:
-        CLIFormatter.print_info("GRPO mode enabled - using Group Relative Policy Optimization")
+        # Already displayed mode at the start, just configure
         ss_config['training']['method'] = 'grpo'
         if 'grpo' in ss_config:
             ss_config['grpo']['enabled'] = True
+        CLIFormatter.print_info("Using GRPO configuration...")
 
     # Initialize trainer
     trainer = EvolutionaryTrainer(ss_config)
@@ -110,6 +133,8 @@ def evolve_command(args):
         eval_size=ss_config['dataset']['eval_size']
     )
 
+    os.environ['UNSLOTH_RETURN_LOGITS'] = '1'
+    
     # Run evolution
     best_variant = trainer.evolve(
         train_data=data['train'],
@@ -359,9 +384,9 @@ def list_runs_command(args):
 
         status_items = []
         if has_history:
-            status_items.append(f"{Fore.GREEN}✓ History{Style.RESET_ALL}")
+            status_items.append(f"{Fore.GREEN}[OK] History{Style.RESET_ALL}")
         if has_best:
-            status_items.append(f"{Fore.GREEN}✓ Best Model{Style.RESET_ALL}")
+            status_items.append(f"{Fore.GREEN}[OK] Best Model{Style.RESET_ALL}")
 
         if status_items:
             info_str += f" [{', '.join(status_items)}]"

@@ -9,7 +9,9 @@ from typing import Dict, List, Any, Optional, Union
 import torch
 from tqdm import tqdm
 from pathlib import Path
+from transformers import TrainerCallback
 import os
+os.environ['UNSLOTH_RETURN_LOGITS'] = '1'
 
 try:
     from trl import SFTTrainer, SFTConfig
@@ -28,7 +30,59 @@ except ImportError:
     DATASETS_AVAILABLE = False
     logging.warning("Datasets library not installed")
 
+try:
+    from ..utils.cli_formatter import CLIFormatter
+    FORMATTER_AVAILABLE = True
+except ImportError:
+    FORMATTER_AVAILABLE = False
+
 logger = logging.getLogger(__name__)
+
+# Suppress default transformers logging to avoid raw dict output
+try:
+    import transformers
+    transformers.logging.set_verbosity_error()
+except ImportError:
+    pass
+
+
+class FormattedLoggingCallback(TrainerCallback):
+    """Custom callback to format training metrics using CLIFormatter"""
+
+    def __init__(self, variant_id: str = "", use_formatter: bool = True):
+        self.variant_id = variant_id
+        self.step_count = 0
+        self.total_steps = None
+        self.use_formatter = use_formatter and FORMATTER_AVAILABLE
+        self.last_log = {}
+
+    def on_train_begin(self, args, state, control, **kwargs):
+        """Called at the beginning of training"""
+        self.total_steps = state.max_steps if state else None
+        if self.use_formatter and self.variant_id:
+            CLIFormatter.print_subheader(f"Training {self.variant_id}")
+
+    def on_log(self, args, state, control, logs=None, **kwargs):
+        """Called when metrics are logged"""
+        if logs and self.use_formatter:
+            # Filter out duplicate logs
+            if logs != self.last_log:
+                self.last_log = logs.copy()
+                self.step_count = state.global_step if state else self.step_count + 1
+
+                # Use CLIFormatter to display metrics
+                if 'loss' in logs:
+                    CLIFormatter.format_training_metrics(
+                        logs,
+                        step=self.step_count,
+                        total_steps=self.total_steps
+                    )
+        return control
+
+    def on_train_end(self, args, state, control, **kwargs):
+        """Called at the end of training"""
+        if self.use_formatter and self.variant_id:
+            CLIFormatter.print_success(f"Training completed for {self.variant_id}")
 
 
 class UnslothSFTTrainer:
@@ -174,6 +228,8 @@ class UnslothSFTTrainer:
         """
         logger.info(f"Starting Unsloth SFT training for {variant_id}")
 
+        os.environ['UNSLOTH_RETURN_LOGITS'] = '1'
+
         # Prepare datasets
         train_dataset = self.prepare_dataset(train_data)
         eval_dataset = self.prepare_dataset(val_data) if val_data else None
@@ -193,6 +249,8 @@ class UnslothSFTTrainer:
             num_train_epochs=epochs,
             learning_rate=learning_rate,
             logging_steps=1,
+            logging_strategy="steps",
+            disable_tqdm=True,  # Disable progress bars for cleaner output
             optim="adamw_8bit",  # 8-bit optimizer for memory efficiency
             weight_decay=self.training_config.get('weight_decay', 0.01),
             lr_scheduler_type="linear",
@@ -214,6 +272,9 @@ class UnslothSFTTrainer:
             ddp_find_unused_parameters=False if torch.cuda.device_count() > 1 else None,
         )
 
+        # Create custom callback for formatted logging
+        formatted_callback = FormattedLoggingCallback(variant_id=variant_id)
+
         # Create trainer
         trainer = SFTTrainer(
             model=model,
@@ -221,6 +282,7 @@ class UnslothSFTTrainer:
             train_dataset=train_dataset,
             eval_dataset=eval_dataset,
             args=sft_config,
+            callbacks=[formatted_callback] if FORMATTER_AVAILABLE else [],
         )
 
         # Apply response-only training if requested and Unsloth is available
@@ -308,6 +370,8 @@ class UnslothSFTTrainer:
         epochs_without_improvement = 0
         best_metrics = {}
 
+        os.environ['UNSLOTH_RETURN_LOGITS'] = '1'
+        
         for epoch in range(max_epochs):
             # Train for one epoch
             metrics = self.train(
@@ -337,12 +401,13 @@ class UnslothSFTTrainer:
         return best_metrics
 
 
-def create_trainer(model_manager, training_config: Dict[str, Any]) -> Any:
+def create_trainer(model_manager, training_config: Dict[str, Any], full_config: Dict[str, Any] = None) -> Any:
     """Factory function to create appropriate trainer
 
     Args:
         model_manager: Model manager instance
         training_config: Training configuration
+        full_config: Full configuration (optional, for GRPO trainer)
 
     Returns:
         Appropriate trainer based on configuration
@@ -355,7 +420,7 @@ def create_trainer(model_manager, training_config: Dict[str, Any]) -> Any:
         return UnslothSFTTrainer(model_manager, training_config)
     elif method == 'grpo':
         from .grpo_trainer import GRPOTrainer
-        return GRPOTrainer(model_manager, training_config)
+        return GRPOTrainer(model_manager, training_config, full_config)
     else:
         # Fall back to original self-supervised trainer
         from .self_supervised import SelfSupervisedTrainer

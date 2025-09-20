@@ -99,6 +99,8 @@ class OutputManager:
             config: Configuration dictionary
             filename: Config filename
         """
+        # Ensure config directory exists
+        self._ensure_directory(self.paths['config'])
         config_path = self.paths['config'] / filename
 
         if filename.endswith('.yaml'):
@@ -119,6 +121,9 @@ class OutputManager:
             filename: History filename
         """
         history_path = self.paths['history'] / filename
+
+        # Ensure history directory exists
+        history_path.parent.mkdir(parents=True, exist_ok=True)
 
         with open(history_path, 'w') as f:
             json.dump(history, f, indent=2)

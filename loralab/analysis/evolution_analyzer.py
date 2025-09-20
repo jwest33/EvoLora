@@ -469,11 +469,11 @@ class EvolutionAnalyzer:
                 # Track what changed and performance delta
                 mutations = []
                 if variant_data['rank'] != parent['rank']:
-                    mutations.append(f"Rank: {parent['rank']}→{variant_data['rank']}")
+                    mutations.append(f"Rank: {parent['rank']}->{variant_data['rank']}")
                 if variant_data['learning_rate'] != parent['learning_rate']:
-                    mutations.append(f"LR: {parent['learning_rate']:.0e}→{variant_data['learning_rate']:.0e}")
+                    mutations.append(f"LR: {parent['learning_rate']:.0e}->{variant_data['learning_rate']:.0e}")
                 if variant_data['dropout'] != parent['dropout']:
-                    mutations.append(f"Dropout: {parent['dropout']}→{variant_data['dropout']}")
+                    mutations.append(f"Dropout: {parent['dropout']}->{variant_data['dropout']}")
 
                 if mutations:
                     accuracy_delta = variant_data['accuracy'] - parent['accuracy']

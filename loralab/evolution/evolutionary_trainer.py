@@ -97,7 +97,7 @@ class EvolutionaryTrainer:
 
     def initialize(self):
         """Initialize the training system"""
-        CLIFormatter.print_header("INITIALIZING EVOLUTIONARY LORA TRAINER")
+        CLIFormatter.print_header("INITIALIZING EVOLORA")
 
         # Save configuration for this run
         self.output_manager.save_config(self.config)
@@ -118,14 +118,16 @@ class EvolutionaryTrainer:
             CLIFormatter.print_info("Using GRPO trainer for reasoning tasks")
             self.trainer = GRPOTrainer(
                 model_manager=self.model_manager,
-                training_config=self.config['training']
+                training_config=self.config['training'],
+                full_config=self.config
             )
         elif ADVANCED_TRAINERS and create_trainer:
             # Use factory to create appropriate trainer
             CLIFormatter.print_info(f"Using {training_method.upper()} training method")
             self.trainer = create_trainer(
                 model_manager=self.model_manager,
-                training_config=self.config['training']
+                training_config=self.config['training'],
+                full_config=self.config
             )
         else:
             # Fall back to original self-supervised trainer
@@ -197,12 +199,26 @@ class EvolutionaryTrainer:
 
             # Pre-train on format if requested
             if grpo_config.get('pre_train_format', False):
-                format_examples = train_data[:grpo_config.get('format_examples', 50)]
+                # Use configured number of format examples (default to 5 for efficiency)
+                num_format_examples = grpo_config.get('format_examples', 5)
+
+                logger.info(f"Train data has {len(train_data)} total examples")
+                logger.info(f"Requesting {num_format_examples} format examples")
+
+                format_examples = train_data[:num_format_examples]
+
+                logger.info(f"Actually got {len(format_examples)} format examples")
+
+                # Get pre-training epochs from config or use default
+                pre_train_epochs = grpo_config.get('pre_train_epochs', 2)
+
+                logger.info(f"Pre-training on format with {len(format_examples)} examples for {pre_train_epochs} epochs")
+
                 self.trainer.pre_train_formatting(
                     model=lora_model,
                     format_examples=format_examples,
                     learning_rate=variant.learning_rate * 2,  # Higher LR for pre-training
-                    epochs=2
+                    epochs=pre_train_epochs
                 )
             os.environ['UNSLOTH_RETURN_LOGITS'] = '1'
             # Main GRPO training
@@ -266,7 +282,9 @@ class EvolutionaryTrainer:
         """
         if variant.model is None:
             raise ValueError(f"Variant {variant.variant_id} has no trained model")
-
+        
+        os.environ['UNSLOTH_RETURN_LOGITS'] = '1'
+        
         metrics = self.evaluator.evaluate(
             model=variant.model,
             eval_data=eval_data,
@@ -294,6 +312,7 @@ class EvolutionaryTrainer:
         Returns:
             Selected survivors for next generation
         """
+        os.environ['UNSLOTH_RETURN_LOGITS'] = '1'
         CLIFormatter.print_generation_header(
             self.current_generation,
             self.config['evolution']['generations']
@@ -446,7 +465,20 @@ class EvolutionaryTrainer:
         # Save configuration
         self.lora_factory.save_variant(variant, str(best_dir / "config.json"))
 
-        # Save model if it exists
+        # Save model - reload if necessary
+        if variant.model is None:
+            # Model was cleaned up, need to reload it to save
+            logger.debug(f"Reloading model for best variant {variant.variant_id} to save adapter")
+            # Try to load from checkpoint if it exists
+            checkpoint_path = self.checkpoint_dir / f"generations/gen{variant.generation}/{variant.variant_id}/adapter"
+            if checkpoint_path.exists():
+                from peft import PeftModel
+                base_model = self.model_manager.get_model()
+                variant.model = PeftModel.from_pretrained(base_model, str(checkpoint_path))
+                logger.debug(f"Loaded adapter from checkpoint: {checkpoint_path}")
+            else:
+                logger.warning(f"Could not find checkpoint for {variant.variant_id}, skipping adapter save")
+
         if variant.model is not None:
             variant.model.save_pretrained(str(best_dir / "adapter"))
             self.model_manager.get_tokenizer().save_pretrained(str(best_dir / "adapter"))
@@ -474,7 +506,7 @@ class EvolutionaryTrainer:
 
                     logger.info(f"Exported best model in formats: {list(export_paths.keys())}")
 
-        logger.info(f"✓ New best variant saved: {variant.variant_id} "
+        logger.info(f"[+] New best variant saved: {variant.variant_id} "
                    f"(accuracy: {variant.eval_accuracy:.2%})")
 
     def _save_checkpoint(self, survivors: List[LoRAVariant]):
@@ -626,14 +658,16 @@ class EvolutionaryTrainer:
             os.environ['UNSLOTH_RETURN_LOGITS'] = '1'
             
             lora_model = PeftModel.from_pretrained(
-                self.model_manager.base_model,
+                self.model_manager.get_model(),
                 str(best_dir)
             )
 
             # Generate comparison
+            reports_dir = self.output_manager.get_path('base') / 'reports'
+            reports_dir.mkdir(exist_ok=True)
             comparator = ComparativeEvaluator(
                 self.model_manager,
-                output_dir=str(self.output_manager.get_path('reports'))
+                output_dir=str(reports_dir)
             )
 
             comparison = comparator.compare_models(
@@ -647,7 +681,7 @@ class EvolutionaryTrainer:
                 self.best_variant_overall.variant_id
             )
 
-            logger.info(f"✓ Comparison report saved to: {report_path}")
+            logger.info(f"[SUCCESS] Comparison report saved to: {report_path}")
 
             # Print summary
             summary = comparison['summary']

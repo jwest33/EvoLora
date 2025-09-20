@@ -46,6 +46,7 @@ class FitnessEvaluator:
         Returns:
             Dictionary with evaluation metrics
         """
+        os.environ['UNSLOTH_RETURN_LOGITS'] = '1'
         model.eval()
         device = next(model.parameters()).device
 
@@ -108,6 +109,7 @@ class FitnessEvaluator:
         Returns:
             1.0 if correct, 0.0 otherwise
         """
+        os.environ['UNSLOTH_RETURN_LOGITS'] = '1'
         question = item.get('question', item.get('text', ''))
         true_answer = item.get('answer', item.get('label', ''))
 
@@ -196,6 +198,7 @@ class FitnessEvaluator:
         Returns:
             List of perplexity values
         """
+        os.environ['UNSLOTH_RETURN_LOGITS'] = '1'
         texts = []
         for item in batch_data:
             question = item.get('question', item.get('text', ''))
@@ -233,25 +236,37 @@ class FitnessEvaluator:
                 labels=encodings['input_ids']
             )
 
-            # Get per-sample loss using reduction='none'
-            if hasattr(outputs, 'logits'):
-                # Manual loss calculation for per-sample losses
-                from torch.nn import CrossEntropyLoss
-                loss_fct = CrossEntropyLoss(reduction='none')
-                shift_logits = outputs.logits[..., :-1, :].contiguous()
-                shift_labels = encodings['input_ids'][..., 1:].contiguous()
-                loss_per_token = loss_fct(
-                    shift_logits.view(-1, shift_logits.size(-1)),
-                    shift_labels.view(-1)
-                ).view(shift_labels.size())
+            # Try to get per-sample loss using logits
+            try:
+                if hasattr(outputs, 'logits'):
+                    # Try to access logits - this might raise NotImplementedError in Unsloth
+                    # Manual loss calculation for per-sample losses
+                    from torch.nn import CrossEntropyLoss
+                    os.environ['UNSLOTH_RETURN_LOGITS'] = '1'
+                    loss_fct = CrossEntropyLoss(reduction='none')
+                    shift_logits = outputs.logits[..., :-1, :].contiguous()
+                    shift_labels = encodings['input_ids'][..., 1:].contiguous()
+                    loss_per_token = loss_fct(
+                        shift_logits.view(-1, shift_logits.size(-1)),
+                        shift_labels.view(-1)
+                    ).view(shift_labels.size())
 
-                # Average loss per sample
-                loss_per_sample = loss_per_token.mean(dim=1)
-                perplexities = torch.exp(loss_per_sample).tolist()
-            else:
+                    # Average loss per sample
+                    loss_per_sample = loss_per_token.mean(dim=1)
+                    perplexities = torch.exp(loss_per_sample).tolist()
+                else:
+                    # No logits attribute, use loss
+                    raise AttributeError("No logits in output")
+            except (NotImplementedError, AttributeError) as e:
                 # Fallback: use single loss value for all samples
-                perplexity = torch.exp(outputs.loss).item()
-                perplexities = [perplexity] * len(batch_data)
+                # This happens with Unsloth when UNSLOTH_RETURN_LOGITS is not set
+                if hasattr(outputs, 'loss') and outputs.loss is not None:
+                    perplexity = torch.exp(outputs.loss).item()
+                    perplexities = [perplexity] * len(batch_data)
+                else:
+                    # If no loss either, use a high perplexity as penalty
+                    logger.warning(f"Could not compute perplexity: {e}. Using default high value.")
+                    perplexities = [100.0] * len(batch_data)
 
             # Cap perplexities
             perplexities = [min(p, 1000.0) for p in perplexities]
@@ -323,6 +338,7 @@ class FitnessEvaluator:
         Returns:
             List of metric dictionaries
         """
+        os.environ['UNSLOTH_RETURN_LOGITS'] = '1'
         results = []
 
         for model, variant_id in zip(models, variant_ids):

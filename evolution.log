@@ -1,0 +1,864 @@
+2025-09-20 04:56:09,774 - loralab.config.config_loader - INFO - Loaded configuration from loralab\config\gemma_config.yaml
+2025-09-20 04:56:09,775 - loralab.utils.output_manager - INFO - Output manager initialized at: lora_runs_gemma\run_20250920_045609
+2025-09-20 04:56:09,775 - loralab.evolution.evolutionary_trainer - INFO - Using unsloth backend
+2025-09-20 04:56:09,777 - loralab.utils.output_manager - INFO - Config saved to: lora_runs_gemma\run_20250920_045609\config\config.yaml
+2025-09-20 04:56:09,890 - loralab.core.unsloth_manager - INFO - Loading Unsloth model: unsloth/gemma-3-270m-it with none quantization
+2025-09-20 04:56:09,890 - loralab.core.unsloth_manager - INFO - Using configured dtype: float16
+2025-09-20 04:56:14,965 - loralab.core.unsloth_manager - INFO - Applied chat template: gemma3
+2025-09-20 04:56:14,967 - loralab.datasets.dataset_loader - INFO - Loading dataset: gsm8k
+2025-09-20 04:56:14,967 - loralab.datasets.dataset_loader - INFO - Fetching gsm8k from HuggingFace...
+2025-09-20 04:56:18,752 - loralab.datasets.dataset_loader - INFO - Loaded 1000 training and 200 evaluation examples
+2025-09-20 04:56:18,752 - loralab.evolution.evolutionary_trainer - INFO - 
+================================================================================
+2025-09-20 04:56:18,752 - loralab.evolution.evolutionary_trainer - INFO - STARTING EVOLUTIONARY OPTIMIZATION
+2025-09-20 04:56:18,752 - loralab.evolution.evolutionary_trainer - INFO - ================================================================================
+2025-09-20 04:56:18,752 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r32_lr2e-04 (hash: 280d81c3)
+2025-09-20 04:56:18,752 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r256_lr2e-04 (hash: b5cc5e75)
+2025-09-20 04:56:18,753 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r64_lr5e-04 (hash: cd0e6cd7)
+2025-09-20 04:56:18,753 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r128_lr5e-04 (hash: 896d27b7)
+2025-09-20 04:56:19,821 - loralab.core.unsloth_manager - INFO - LoRA variant created with Unsloth optimizations:
+2025-09-20 04:56:19,823 - loralab.core.unsloth_manager - INFO -   Rank: 32, Alpha: 32 (multiplier: 1)
+2025-09-20 04:56:19,823 - loralab.core.unsloth_manager - INFO -   Trainable params: 2,949,120 (1.09%)
+2025-09-20 04:56:19,823 - loralab.core.unsloth_manager - INFO -   Gradient checkpointing: unsloth
+2025-09-20 04:56:19,823 - loralab.core.unsloth_manager - INFO -   RSLoRA: False
+2025-09-20 04:56:19,823 - loralab.training.grpo_trainer - INFO - Pre-training model on format examples...
+2025-09-20 04:56:27,271 - loralab.training.grpo_trainer - INFO - Pre-training completed with final loss: 2.3763
+2025-09-20 04:56:27,271 - loralab.training.grpo_trainer - INFO - Starting GRPO training for gen0_r32_lr2e-04
+2025-09-20 04:57:13,990 - loralab.training.grpo_trainer - INFO - GRPO training completed for gen0_r32_lr2e-04
+2025-09-20 04:57:13,990 - loralab.training.grpo_trainer - INFO -   Final loss: 0.0009
+2025-09-20 04:57:13,990 - loralab.training.grpo_trainer - INFO -   Average reward: 0.0000
+2025-09-20 04:57:49,659 - loralab.config.config_loader - INFO - Loaded configuration from loralab\config\gemma_config.yaml
+2025-09-20 04:57:49,660 - loralab.utils.output_manager - INFO - Output manager initialized at: lora_runs_gemma\run_20250920_045749
+2025-09-20 04:57:49,660 - loralab.evolution.evolutionary_trainer - INFO - Using unsloth backend
+2025-09-20 04:57:49,663 - loralab.utils.output_manager - INFO - Config saved to: lora_runs_gemma\run_20250920_045749\config\config.yaml
+2025-09-20 04:57:49,775 - loralab.core.unsloth_manager - INFO - Loading Unsloth model: unsloth/gemma-3-270m-it with none quantization
+2025-09-20 04:57:49,775 - loralab.core.unsloth_manager - INFO - Using configured dtype: float16
+2025-09-20 04:57:54,933 - loralab.core.unsloth_manager - INFO - Applied chat template: gemma3
+2025-09-20 04:57:54,935 - loralab.datasets.dataset_loader - INFO - Loading dataset: gsm8k
+2025-09-20 04:57:54,935 - loralab.datasets.dataset_loader - INFO - Fetching gsm8k from HuggingFace...
+2025-09-20 04:57:58,435 - loralab.datasets.dataset_loader - INFO - Loaded 1000 training and 200 evaluation examples
+2025-09-20 04:57:58,436 - loralab.evolution.evolutionary_trainer - INFO - 
+================================================================================
+2025-09-20 04:57:58,436 - loralab.evolution.evolutionary_trainer - INFO - STARTING EVOLUTIONARY OPTIMIZATION
+2025-09-20 04:57:58,437 - loralab.evolution.evolutionary_trainer - INFO - ================================================================================
+2025-09-20 04:57:58,437 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r32_lr2e-04 (hash: 280d81c3)
+2025-09-20 04:57:58,437 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r256_lr2e-04 (hash: b5cc5e75)
+2025-09-20 04:57:58,438 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r64_lr5e-04 (hash: cd0e6cd7)
+2025-09-20 04:57:58,438 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r128_lr5e-04 (hash: 896d27b7)
+2025-09-20 04:57:59,477 - loralab.core.unsloth_manager - INFO - LoRA variant created with Unsloth optimizations:
+2025-09-20 04:57:59,478 - loralab.core.unsloth_manager - INFO -   Rank: 32, Alpha: 32 (multiplier: 1)
+2025-09-20 04:57:59,478 - loralab.core.unsloth_manager - INFO -   Trainable params: 2,949,120 (1.09%)
+2025-09-20 04:57:59,478 - loralab.core.unsloth_manager - INFO -   Gradient checkpointing: unsloth
+2025-09-20 04:57:59,479 - loralab.core.unsloth_manager - INFO -   RSLoRA: False
+2025-09-20 04:57:59,479 - loralab.training.grpo_trainer - INFO - Pre-training model on format examples...
+2025-09-20 04:58:06,663 - loralab.training.grpo_trainer - INFO - Pre-training completed with final loss: 2.3763
+2025-09-20 04:58:06,663 - loralab.training.grpo_trainer - INFO - Starting GRPO training for gen0_r32_lr2e-04
+2025-09-20 04:58:52,953 - loralab.training.grpo_trainer - INFO - GRPO training completed for gen0_r32_lr2e-04
+2025-09-20 04:58:52,953 - loralab.training.grpo_trainer - INFO -   Final loss: 0.0009
+2025-09-20 04:58:52,953 - loralab.training.grpo_trainer - INFO -   Average reward: 0.0000
+2025-09-20 05:07:16,049 - loralab.config.config_loader - INFO - Loaded configuration from loralab\config\gemma_config.yaml
+2025-09-20 05:07:16,049 - loralab.utils.output_manager - INFO - Output manager initialized at: lora_runs_gemma\run_20250920_050716
+2025-09-20 05:07:16,049 - loralab.evolution.evolutionary_trainer - INFO - Using unsloth backend
+2025-09-20 05:07:16,052 - loralab.utils.output_manager - INFO - Config saved to: lora_runs_gemma\run_20250920_050716\config\config.yaml
+2025-09-20 05:07:16,163 - loralab.core.unsloth_manager - INFO - Loading Unsloth model: unsloth/gemma-3-270m-it with none quantization
+2025-09-20 05:07:16,163 - loralab.core.unsloth_manager - INFO - Using configured dtype: float16
+2025-09-20 05:07:21,430 - loralab.core.unsloth_manager - INFO - Applied chat template: gemma3
+2025-09-20 05:07:21,432 - loralab.datasets.dataset_loader - INFO - Loading dataset: gsm8k
+2025-09-20 05:07:21,432 - loralab.datasets.dataset_loader - INFO - Fetching gsm8k from HuggingFace...
+2025-09-20 05:07:25,031 - loralab.datasets.dataset_loader - INFO - Loaded 1000 training and 200 evaluation examples
+2025-09-20 05:07:25,032 - loralab.evolution.evolutionary_trainer - INFO - 
+================================================================================
+2025-09-20 05:07:25,032 - loralab.evolution.evolutionary_trainer - INFO - STARTING EVOLUTIONARY OPTIMIZATION
+2025-09-20 05:07:25,032 - loralab.evolution.evolutionary_trainer - INFO - ================================================================================
+2025-09-20 05:07:25,032 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r32_lr2e-04 (hash: 280d81c3)
+2025-09-20 05:07:25,033 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r256_lr2e-04 (hash: b5cc5e75)
+2025-09-20 05:07:25,033 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r64_lr5e-04 (hash: cd0e6cd7)
+2025-09-20 05:07:25,033 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r128_lr5e-04 (hash: 896d27b7)
+2025-09-20 05:07:26,063 - loralab.core.unsloth_manager - INFO - LoRA variant created with Unsloth optimizations:
+2025-09-20 05:07:26,063 - loralab.core.unsloth_manager - INFO -   Rank: 32, Alpha: 32 (multiplier: 1)
+2025-09-20 05:07:26,064 - loralab.core.unsloth_manager - INFO -   Trainable params: 2,949,120 (1.09%)
+2025-09-20 05:07:26,064 - loralab.core.unsloth_manager - INFO -   Gradient checkpointing: unsloth
+2025-09-20 05:07:26,064 - loralab.core.unsloth_manager - INFO -   RSLoRA: False
+2025-09-20 05:07:26,064 - loralab.training.grpo_trainer - INFO - Pre-training model on format examples...
+2025-09-20 05:07:33,141 - loralab.training.grpo_trainer - INFO - Pre-training completed with final loss: 2.3763
+2025-09-20 05:07:33,142 - loralab.training.grpo_trainer - INFO - Starting GRPO training for gen0_r32_lr2e-04
+2025-09-20 05:08:21,494 - loralab.training.grpo_trainer - INFO - GRPO training completed for gen0_r32_lr2e-04
+2025-09-20 05:08:21,495 - loralab.training.grpo_trainer - INFO -   Final loss: 0.0009
+2025-09-20 05:08:21,495 - loralab.training.grpo_trainer - INFO -   Average reward: 0.0000
+2025-09-20 05:08:50,960 - loralab.config.config_loader - INFO - Loaded configuration from loralab\config\gemma_config.yaml
+2025-09-20 05:08:50,960 - loralab.utils.output_manager - INFO - Output manager initialized at: lora_runs_gemma\run_20250920_050850
+2025-09-20 05:08:50,960 - loralab.evolution.evolutionary_trainer - INFO - Using unsloth backend
+2025-09-20 05:08:50,963 - loralab.utils.output_manager - INFO - Config saved to: lora_runs_gemma\run_20250920_050850\config\config.yaml
+2025-09-20 05:08:51,073 - loralab.core.unsloth_manager - INFO - Loading Unsloth model: unsloth/gemma-3-270m-it with none quantization
+2025-09-20 05:08:51,074 - loralab.core.unsloth_manager - INFO - Using configured dtype: float16
+2025-09-20 05:08:56,271 - loralab.core.unsloth_manager - INFO - Applied chat template: gemma3
+2025-09-20 05:08:56,272 - loralab.datasets.dataset_loader - INFO - Loading dataset: gsm8k
+2025-09-20 05:08:56,272 - loralab.datasets.dataset_loader - INFO - Fetching gsm8k from HuggingFace...
+2025-09-20 05:08:59,574 - loralab.datasets.dataset_loader - INFO - Loaded 1000 training and 200 evaluation examples
+2025-09-20 05:08:59,575 - loralab.evolution.evolutionary_trainer - INFO - 
+================================================================================
+2025-09-20 05:08:59,575 - loralab.evolution.evolutionary_trainer - INFO - STARTING EVOLUTIONARY OPTIMIZATION
+2025-09-20 05:08:59,575 - loralab.evolution.evolutionary_trainer - INFO - ================================================================================
+2025-09-20 05:08:59,576 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r32_lr2e-04 (hash: 280d81c3)
+2025-09-20 05:08:59,576 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r256_lr2e-04 (hash: b5cc5e75)
+2025-09-20 05:08:59,576 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r64_lr5e-04 (hash: cd0e6cd7)
+2025-09-20 05:08:59,576 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r128_lr5e-04 (hash: 896d27b7)
+2025-09-20 05:09:00,614 - loralab.core.unsloth_manager - INFO - LoRA variant created with Unsloth optimizations:
+2025-09-20 05:09:00,615 - loralab.core.unsloth_manager - INFO -   Rank: 32, Alpha: 32 (multiplier: 1)
+2025-09-20 05:09:00,616 - loralab.core.unsloth_manager - INFO -   Trainable params: 2,949,120 (1.09%)
+2025-09-20 05:09:00,616 - loralab.core.unsloth_manager - INFO -   Gradient checkpointing: unsloth
+2025-09-20 05:09:00,616 - loralab.core.unsloth_manager - INFO -   RSLoRA: False
+2025-09-20 05:09:00,616 - loralab.training.grpo_trainer - INFO - Pre-training model on format examples...
+2025-09-20 05:09:07,676 - loralab.training.grpo_trainer - INFO - Pre-training completed with final loss: 2.3763
+2025-09-20 05:09:07,676 - loralab.training.grpo_trainer - INFO - Starting GRPO training for gen0_r32_lr2e-04
+2025-09-20 05:09:55,483 - loralab.training.grpo_trainer - INFO - GRPO training completed for gen0_r32_lr2e-04
+2025-09-20 05:09:55,483 - loralab.training.grpo_trainer - INFO -   Final loss: 0.0009
+2025-09-20 05:09:55,483 - loralab.training.grpo_trainer - INFO -   Average reward: 0.0000
+2025-09-20 05:11:16,372 - loralab.config.config_loader - INFO - Loaded configuration from loralab\config\gemma_config.yaml
+2025-09-20 05:11:16,373 - loralab.utils.output_manager - INFO - Output manager initialized at: lora_runs_gemma\run_20250920_051116
+2025-09-20 05:11:16,373 - loralab.evolution.evolutionary_trainer - INFO - Using unsloth backend
+2025-09-20 05:11:16,376 - loralab.utils.output_manager - INFO - Config saved to: lora_runs_gemma\run_20250920_051116\config\config.yaml
+2025-09-20 05:11:16,485 - loralab.core.unsloth_manager - INFO - Loading Unsloth model: unsloth/gemma-3-270m-it with none quantization
+2025-09-20 05:11:16,485 - loralab.core.unsloth_manager - INFO - Using configured dtype: float16
+2025-09-20 05:11:21,754 - loralab.core.unsloth_manager - INFO - Applied chat template: gemma3
+2025-09-20 05:11:21,756 - loralab.datasets.dataset_loader - INFO - Loading dataset: gsm8k
+2025-09-20 05:11:21,756 - loralab.datasets.dataset_loader - INFO - Fetching gsm8k from HuggingFace...
+2025-09-20 05:11:25,023 - loralab.datasets.dataset_loader - INFO - Loaded 1000 training and 200 evaluation examples
+2025-09-20 05:11:25,024 - loralab.evolution.evolutionary_trainer - INFO - 
+================================================================================
+2025-09-20 05:11:25,024 - loralab.evolution.evolutionary_trainer - INFO - STARTING EVOLUTIONARY OPTIMIZATION
+2025-09-20 05:11:25,024 - loralab.evolution.evolutionary_trainer - INFO - ================================================================================
+2025-09-20 05:11:25,024 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r32_lr2e-04 (hash: 280d81c3)
+2025-09-20 05:11:25,024 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r256_lr2e-04 (hash: b5cc5e75)
+2025-09-20 05:11:25,024 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r64_lr5e-04 (hash: cd0e6cd7)
+2025-09-20 05:11:25,024 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r128_lr5e-04 (hash: 896d27b7)
+2025-09-20 05:11:26,117 - loralab.core.unsloth_manager - INFO - LoRA variant created with Unsloth optimizations:
+2025-09-20 05:11:26,118 - loralab.core.unsloth_manager - INFO -   Rank: 32, Alpha: 32 (multiplier: 1)
+2025-09-20 05:11:26,118 - loralab.core.unsloth_manager - INFO -   Trainable params: 2,949,120 (1.09%)
+2025-09-20 05:11:26,118 - loralab.core.unsloth_manager - INFO -   Gradient checkpointing: unsloth
+2025-09-20 05:11:26,118 - loralab.core.unsloth_manager - INFO -   RSLoRA: False
+2025-09-20 05:11:26,118 - loralab.training.grpo_trainer - INFO - Pre-training model on format examples...
+2025-09-20 05:11:33,402 - loralab.training.grpo_trainer - INFO - Pre-training completed with final loss: 2.3763
+2025-09-20 05:11:33,403 - loralab.training.grpo_trainer - INFO - Starting GRPO training for gen0_r32_lr2e-04
+2025-09-20 05:12:23,835 - loralab.training.grpo_trainer - INFO - GRPO training completed for gen0_r32_lr2e-04
+2025-09-20 05:12:23,835 - loralab.training.grpo_trainer - INFO -   Final loss: 0.0009
+2025-09-20 05:12:23,836 - loralab.training.grpo_trainer - INFO -   Average reward: 0.0000
+2025-09-20 05:14:27,234 - loralab.config.config_loader - INFO - Loaded configuration from loralab\config\gemma_config.yaml
+2025-09-20 05:14:27,235 - loralab.utils.output_manager - INFO - Output manager initialized at: lora_runs_gemma\run_20250920_051427
+2025-09-20 05:14:27,235 - loralab.evolution.evolutionary_trainer - INFO - Using unsloth backend
+2025-09-20 05:14:27,238 - loralab.utils.output_manager - INFO - Config saved to: lora_runs_gemma\run_20250920_051427\config\config.yaml
+2025-09-20 05:14:27,363 - loralab.core.unsloth_manager - INFO - Loading Unsloth model: unsloth/gemma-3-270m-it with none quantization
+2025-09-20 05:14:27,364 - loralab.core.unsloth_manager - INFO - Using configured dtype: float16
+2025-09-20 05:14:32,672 - loralab.core.unsloth_manager - INFO - Applied chat template: gemma3
+2025-09-20 05:14:32,673 - loralab.datasets.dataset_loader - INFO - Loading dataset: gsm8k
+2025-09-20 05:14:32,673 - loralab.datasets.dataset_loader - INFO - Fetching gsm8k from HuggingFace...
+2025-09-20 05:14:36,033 - loralab.datasets.dataset_loader - INFO - Loaded 1000 training and 200 evaluation examples
+2025-09-20 05:14:36,034 - loralab.evolution.evolutionary_trainer - INFO - 
+================================================================================
+2025-09-20 05:14:36,034 - loralab.evolution.evolutionary_trainer - INFO - STARTING EVOLUTIONARY OPTIMIZATION
+2025-09-20 05:14:36,034 - loralab.evolution.evolutionary_trainer - INFO - ================================================================================
+2025-09-20 05:14:36,035 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r32_lr2e-04 (hash: 280d81c3)
+2025-09-20 05:14:36,036 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r256_lr2e-04 (hash: b5cc5e75)
+2025-09-20 05:14:36,036 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r64_lr5e-04 (hash: cd0e6cd7)
+2025-09-20 05:14:36,036 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r128_lr5e-04 (hash: 896d27b7)
+2025-09-20 05:14:37,226 - loralab.core.unsloth_manager - INFO - LoRA variant created with Unsloth optimizations:
+2025-09-20 05:14:37,226 - loralab.core.unsloth_manager - INFO -   Rank: 32, Alpha: 32 (multiplier: 1)
+2025-09-20 05:14:37,227 - loralab.core.unsloth_manager - INFO -   Trainable params: 2,949,120 (1.09%)
+2025-09-20 05:14:37,227 - loralab.core.unsloth_manager - INFO -   Gradient checkpointing: unsloth
+2025-09-20 05:14:37,227 - loralab.core.unsloth_manager - INFO -   RSLoRA: False
+2025-09-20 05:14:37,227 - loralab.training.grpo_trainer - INFO - Pre-training model on format examples...
+2025-09-20 05:14:44,470 - loralab.training.grpo_trainer - INFO - Pre-training completed with final loss: 2.3763
+2025-09-20 05:14:44,470 - loralab.training.grpo_trainer - INFO - Starting GRPO training for gen0_r32_lr2e-04
+2025-09-20 05:15:32,397 - loralab.training.grpo_trainer - INFO - GRPO training completed for gen0_r32_lr2e-04
+2025-09-20 05:15:32,397 - loralab.training.grpo_trainer - INFO -   Final loss: 0.0009
+2025-09-20 05:15:32,398 - loralab.training.grpo_trainer - INFO -   Average reward: 0.0000
+2025-09-20 05:19:22,906 - loralab.config.config_loader - INFO - Loaded configuration from loralab\config\gemma_config.yaml
+2025-09-20 05:19:22,907 - loralab.utils.output_manager - INFO - Output manager initialized at: lora_runs_gemma\run_20250920_051922
+2025-09-20 05:19:22,907 - loralab.evolution.evolutionary_trainer - INFO - Using unsloth backend
+2025-09-20 05:19:22,909 - loralab.utils.output_manager - INFO - Config saved to: lora_runs_gemma\run_20250920_051922\config\config.yaml
+2025-09-20 05:19:23,022 - loralab.core.unsloth_manager - INFO - Loading Unsloth model: unsloth/gemma-3-270m-it with none quantization
+2025-09-20 05:19:23,022 - loralab.core.unsloth_manager - INFO - Using configured dtype: float16
+2025-09-20 05:19:28,640 - loralab.core.unsloth_manager - INFO - Applied chat template: gemma3
+2025-09-20 05:19:28,642 - loralab.datasets.dataset_loader - INFO - Loading dataset: gsm8k
+2025-09-20 05:19:28,642 - loralab.datasets.dataset_loader - INFO - Fetching gsm8k from HuggingFace...
+2025-09-20 05:19:32,188 - loralab.datasets.dataset_loader - INFO - Loaded 1000 training and 200 evaluation examples
+2025-09-20 05:19:32,189 - loralab.evolution.evolutionary_trainer - INFO - 
+================================================================================
+2025-09-20 05:19:32,190 - loralab.evolution.evolutionary_trainer - INFO - STARTING EVOLUTIONARY OPTIMIZATION
+2025-09-20 05:19:32,190 - loralab.evolution.evolutionary_trainer - INFO - ================================================================================
+2025-09-20 05:19:32,190 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r32_lr2e-04 (hash: 280d81c3)
+2025-09-20 05:19:32,190 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r256_lr2e-04 (hash: b5cc5e75)
+2025-09-20 05:19:32,190 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r64_lr5e-04 (hash: cd0e6cd7)
+2025-09-20 05:19:32,190 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r128_lr5e-04 (hash: 896d27b7)
+2025-09-20 05:19:33,247 - loralab.core.unsloth_manager - INFO - LoRA variant created with Unsloth optimizations:
+2025-09-20 05:19:33,247 - loralab.core.unsloth_manager - INFO -   Rank: 32, Alpha: 32 (multiplier: 1)
+2025-09-20 05:19:33,248 - loralab.core.unsloth_manager - INFO -   Trainable params: 2,949,120 (1.09%)
+2025-09-20 05:19:33,248 - loralab.core.unsloth_manager - INFO -   Gradient checkpointing: unsloth
+2025-09-20 05:19:33,248 - loralab.core.unsloth_manager - INFO -   RSLoRA: False
+2025-09-20 05:19:33,248 - loralab.training.grpo_trainer - INFO - Pre-training model on format examples...
+2025-09-20 05:19:40,400 - loralab.training.grpo_trainer - INFO - Pre-training completed with final loss: 2.3763
+2025-09-20 05:19:40,400 - loralab.training.grpo_trainer - INFO - Starting GRPO training for gen0_r32_lr2e-04
+2025-09-20 05:20:26,721 - loralab.training.grpo_trainer - INFO - GRPO training completed for gen0_r32_lr2e-04
+2025-09-20 05:20:26,721 - loralab.training.grpo_trainer - INFO -   Final loss: 0.0009
+2025-09-20 05:20:26,721 - loralab.training.grpo_trainer - INFO -   Average reward: 0.0000
+2025-09-20 05:21:22,899 - loralab.config.config_loader - INFO - Loaded configuration from loralab\config\gemma_config.yaml
+2025-09-20 05:21:22,900 - loralab.utils.output_manager - INFO - Output manager initialized at: lora_runs_gemma\run_20250920_052122
+2025-09-20 05:21:22,900 - loralab.evolution.evolutionary_trainer - INFO - Using unsloth backend
+2025-09-20 05:21:22,903 - loralab.utils.output_manager - INFO - Config saved to: lora_runs_gemma\run_20250920_052122\config\config.yaml
+2025-09-20 05:21:23,019 - loralab.core.unsloth_manager - INFO - Loading Unsloth model: unsloth/gemma-3-270m-it with none quantization
+2025-09-20 05:21:23,019 - loralab.core.unsloth_manager - INFO - Using configured dtype: float16
+2025-09-20 05:21:28,594 - loralab.core.unsloth_manager - INFO - Applied chat template: gemma3
+2025-09-20 05:21:28,595 - loralab.datasets.dataset_loader - INFO - Loading dataset: gsm8k
+2025-09-20 05:21:28,595 - loralab.datasets.dataset_loader - INFO - Fetching gsm8k from HuggingFace...
+2025-09-20 05:21:32,061 - loralab.datasets.dataset_loader - INFO - Loaded 1000 training and 200 evaluation examples
+2025-09-20 05:21:32,061 - loralab.evolution.evolutionary_trainer - INFO - 
+================================================================================
+2025-09-20 05:21:32,061 - loralab.evolution.evolutionary_trainer - INFO - STARTING EVOLUTIONARY OPTIMIZATION
+2025-09-20 05:21:32,062 - loralab.evolution.evolutionary_trainer - INFO - ================================================================================
+2025-09-20 05:21:32,062 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r32_lr2e-04 (hash: 280d81c3)
+2025-09-20 05:21:32,062 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r256_lr2e-04 (hash: b5cc5e75)
+2025-09-20 05:21:32,062 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r64_lr5e-04 (hash: cd0e6cd7)
+2025-09-20 05:21:32,062 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r128_lr5e-04 (hash: 896d27b7)
+2025-09-20 05:21:33,283 - loralab.core.unsloth_manager - INFO - LoRA variant created with Unsloth optimizations:
+2025-09-20 05:21:33,283 - loralab.core.unsloth_manager - INFO -   Rank: 32, Alpha: 32 (multiplier: 1)
+2025-09-20 05:21:33,284 - loralab.core.unsloth_manager - INFO -   Trainable params: 2,949,120 (1.09%)
+2025-09-20 05:21:33,284 - loralab.core.unsloth_manager - INFO -   Gradient checkpointing: unsloth
+2025-09-20 05:21:33,285 - loralab.core.unsloth_manager - INFO -   RSLoRA: False
+2025-09-20 05:21:33,285 - loralab.training.grpo_trainer - INFO - Pre-training model on format examples...
+2025-09-20 05:21:40,670 - loralab.training.grpo_trainer - INFO - Pre-training completed with final loss: 2.3763
+2025-09-20 05:21:40,671 - loralab.training.grpo_trainer - INFO - Starting GRPO training for gen0_r32_lr2e-04
+2025-09-20 05:22:27,285 - loralab.training.grpo_trainer - INFO - GRPO training completed for gen0_r32_lr2e-04
+2025-09-20 05:22:27,285 - loralab.training.grpo_trainer - INFO -   Final loss: 0.0009
+2025-09-20 05:22:27,286 - loralab.training.grpo_trainer - INFO -   Average reward: 0.0000
+2025-09-20 05:50:07,589 - loralab.config.config_loader - INFO - Loaded configuration from loralab\config\gemma_config.yaml
+2025-09-20 05:50:07,590 - loralab.utils.output_manager - INFO - Output manager initialized at: lora_runs_gemma\run_20250920_055007
+2025-09-20 05:50:07,590 - loralab.evolution.evolutionary_trainer - INFO - Using unsloth backend
+2025-09-20 05:50:07,593 - loralab.utils.output_manager - INFO - Config saved to: lora_runs_gemma\run_20250920_055007\config\config.yaml
+2025-09-20 05:50:07,723 - loralab.core.unsloth_manager - INFO - Loading Unsloth model: unsloth/gemma-3-270m-it with none quantization
+2025-09-20 05:50:07,724 - loralab.core.unsloth_manager - INFO - Using configured dtype: float16
+2025-09-20 05:50:13,168 - loralab.core.unsloth_manager - INFO - Applied chat template: gemma3
+2025-09-20 05:50:13,170 - loralab.datasets.dataset_loader - INFO - Loading dataset: gsm8k
+2025-09-20 05:50:13,170 - loralab.datasets.dataset_loader - INFO - Fetching gsm8k from HuggingFace...
+2025-09-20 05:50:16,745 - loralab.datasets.dataset_loader - INFO - Loaded 1000 training and 200 evaluation examples
+2025-09-20 05:50:16,745 - loralab.evolution.evolutionary_trainer - INFO - 
+================================================================================
+2025-09-20 05:50:16,746 - loralab.evolution.evolutionary_trainer - INFO - STARTING EVOLUTIONARY OPTIMIZATION
+2025-09-20 05:50:16,746 - loralab.evolution.evolutionary_trainer - INFO - ================================================================================
+2025-09-20 05:50:16,746 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r32_lr2e-04 (hash: 280d81c3)
+2025-09-20 05:50:16,746 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r256_lr2e-04 (hash: b5cc5e75)
+2025-09-20 05:50:16,746 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r64_lr5e-04 (hash: cd0e6cd7)
+2025-09-20 05:50:16,746 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r128_lr5e-04 (hash: 896d27b7)
+2025-09-20 05:50:17,932 - loralab.core.unsloth_manager - INFO - LoRA variant created with Unsloth optimizations:
+2025-09-20 05:50:17,932 - loralab.core.unsloth_manager - INFO -   Rank: 32, Alpha: 32 (multiplier: 1)
+2025-09-20 05:50:17,932 - loralab.core.unsloth_manager - INFO -   Trainable params: 2,949,120 (1.09%)
+2025-09-20 05:50:17,933 - loralab.core.unsloth_manager - INFO -   Gradient checkpointing: unsloth
+2025-09-20 05:50:17,933 - loralab.core.unsloth_manager - INFO -   RSLoRA: False
+2025-09-20 05:50:17,933 - loralab.training.grpo_trainer - INFO - Pre-training model on format examples...
+2025-09-20 05:50:25,380 - loralab.training.grpo_trainer - INFO - Pre-training completed with final loss: 2.3763
+2025-09-20 05:50:25,381 - loralab.training.grpo_trainer - INFO - Starting GRPO training for gen0_r32_lr2e-04
+2025-09-20 05:51:08,820 - loralab.training.grpo_trainer - INFO - GRPO training completed for gen0_r32_lr2e-04
+2025-09-20 05:51:08,821 - loralab.training.grpo_trainer - INFO -   Final loss: 0.0009
+2025-09-20 05:51:08,821 - loralab.training.grpo_trainer - INFO -   Average reward: 0.0000
+2025-09-20 05:53:27,829 - loralab.config.config_loader - INFO - Loaded configuration from loralab\config\gemma_config.yaml
+2025-09-20 05:53:27,829 - loralab.utils.output_manager - INFO - Output manager initialized at: lora_runs_gemma\run_20250920_055327
+2025-09-20 05:53:27,830 - loralab.evolution.evolutionary_trainer - INFO - Using unsloth backend
+2025-09-20 05:53:27,832 - loralab.utils.output_manager - INFO - Config saved to: lora_runs_gemma\run_20250920_055327\config\config.yaml
+2025-09-20 05:53:27,946 - loralab.core.unsloth_manager - INFO - Loading Unsloth model: unsloth/gemma-3-270m-it with none quantization
+2025-09-20 05:53:27,946 - loralab.core.unsloth_manager - INFO - Using configured dtype: float16
+2025-09-20 05:53:33,009 - loralab.core.unsloth_manager - INFO - Applied chat template: gemma3
+2025-09-20 05:53:33,011 - loralab.datasets.dataset_loader - INFO - Loading dataset: gsm8k
+2025-09-20 05:53:33,011 - loralab.datasets.dataset_loader - INFO - Fetching gsm8k from HuggingFace...
+2025-09-20 05:53:36,363 - loralab.datasets.dataset_loader - INFO - Loaded 1000 training and 200 evaluation examples
+2025-09-20 05:53:36,364 - loralab.evolution.evolutionary_trainer - INFO - 
+================================================================================
+2025-09-20 05:53:36,364 - loralab.evolution.evolutionary_trainer - INFO - STARTING EVOLUTIONARY OPTIMIZATION
+2025-09-20 05:53:36,364 - loralab.evolution.evolutionary_trainer - INFO - ================================================================================
+2025-09-20 05:53:36,364 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r32_lr2e-04 (hash: 280d81c3)
+2025-09-20 05:53:36,364 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r256_lr2e-04 (hash: b5cc5e75)
+2025-09-20 05:53:36,364 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r64_lr5e-04 (hash: cd0e6cd7)
+2025-09-20 05:53:36,364 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r128_lr5e-04 (hash: 896d27b7)
+2025-09-20 05:53:37,468 - loralab.core.unsloth_manager - INFO - LoRA variant created with Unsloth optimizations:
+2025-09-20 05:53:37,468 - loralab.core.unsloth_manager - INFO -   Rank: 32, Alpha: 32 (multiplier: 1)
+2025-09-20 05:53:37,469 - loralab.core.unsloth_manager - INFO -   Trainable params: 2,949,120 (1.09%)
+2025-09-20 05:53:37,469 - loralab.core.unsloth_manager - INFO -   Gradient checkpointing: unsloth
+2025-09-20 05:53:37,469 - loralab.core.unsloth_manager - INFO -   RSLoRA: False
+2025-09-20 05:53:37,469 - loralab.training.grpo_trainer - INFO - Pre-training model on format examples...
+2025-09-20 05:53:44,608 - loralab.training.grpo_trainer - INFO - Pre-training completed with final loss: 2.3763
+2025-09-20 05:53:44,608 - loralab.training.grpo_trainer - INFO - Starting GRPO training for gen0_r32_lr2e-04
+2025-09-20 05:54:31,067 - loralab.training.grpo_trainer - INFO - GRPO training completed for gen0_r32_lr2e-04
+2025-09-20 05:54:31,068 - loralab.training.grpo_trainer - INFO -   Final loss: 0.0009
+2025-09-20 05:54:31,068 - loralab.training.grpo_trainer - INFO -   Average reward: 0.0000
+2025-09-20 05:56:49,872 - loralab.config.config_loader - INFO - Loaded configuration from loralab\config\gemma_config.yaml
+2025-09-20 05:56:49,872 - loralab.utils.output_manager - INFO - Output manager initialized at: lora_runs_gemma\run_20250920_055649
+2025-09-20 05:56:49,873 - loralab.evolution.evolutionary_trainer - INFO - Using unsloth backend
+2025-09-20 05:56:49,875 - loralab.utils.output_manager - INFO - Config saved to: lora_runs_gemma\run_20250920_055649\config\config.yaml
+2025-09-20 05:56:49,988 - loralab.core.unsloth_manager - INFO - Loading Unsloth model: unsloth/gemma-3-270m-it with none quantization
+2025-09-20 05:56:49,988 - loralab.core.unsloth_manager - INFO - Using configured dtype: float32
+2025-09-20 05:56:56,031 - loralab.core.unsloth_manager - INFO - Applied chat template: gemma3
+2025-09-20 05:56:56,033 - loralab.datasets.dataset_loader - INFO - Loading dataset: gsm8k
+2025-09-20 05:56:56,033 - loralab.datasets.dataset_loader - INFO - Fetching gsm8k from HuggingFace...
+2025-09-20 05:56:59,340 - loralab.datasets.dataset_loader - INFO - Loaded 1000 training and 200 evaluation examples
+2025-09-20 05:56:59,340 - loralab.evolution.evolutionary_trainer - INFO - 
+================================================================================
+2025-09-20 05:56:59,341 - loralab.evolution.evolutionary_trainer - INFO - STARTING EVOLUTIONARY OPTIMIZATION
+2025-09-20 05:56:59,341 - loralab.evolution.evolutionary_trainer - INFO - ================================================================================
+2025-09-20 05:56:59,341 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r32_lr2e-04 (hash: 280d81c3)
+2025-09-20 05:56:59,341 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r256_lr2e-04 (hash: b5cc5e75)
+2025-09-20 05:56:59,341 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r64_lr5e-04 (hash: cd0e6cd7)
+2025-09-20 05:56:59,341 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r128_lr5e-04 (hash: 896d27b7)
+2025-09-20 05:57:00,393 - loralab.core.unsloth_manager - INFO - LoRA variant created with Unsloth optimizations:
+2025-09-20 05:57:00,393 - loralab.core.unsloth_manager - INFO -   Rank: 32, Alpha: 32 (multiplier: 1)
+2025-09-20 05:57:00,394 - loralab.core.unsloth_manager - INFO -   Trainable params: 2,949,120 (1.09%)
+2025-09-20 05:57:00,394 - loralab.core.unsloth_manager - INFO -   Gradient checkpointing: unsloth
+2025-09-20 05:57:00,394 - loralab.core.unsloth_manager - INFO -   RSLoRA: False
+2025-09-20 05:57:00,394 - loralab.training.grpo_trainer - INFO - Pre-training model on format examples...
+2025-09-20 05:57:20,567 - loralab.training.grpo_trainer - INFO - Pre-training completed with final loss: 2.3514
+2025-09-20 05:57:20,568 - loralab.training.grpo_trainer - INFO - Starting GRPO training for gen0_r32_lr2e-04
+2025-09-20 05:58:18,104 - loralab.training.grpo_trainer - INFO - GRPO training completed for gen0_r32_lr2e-04
+2025-09-20 05:58:18,105 - loralab.training.grpo_trainer - INFO -   Final loss: 0.0006
+2025-09-20 05:58:18,105 - loralab.training.grpo_trainer - INFO -   Average reward: 0.0000
+2025-09-20 06:00:24,118 - loralab.evolution.fitness_evaluator - INFO - Evaluation complete for gen0_r32_lr2e-04: Accuracy=8.00%, Perplexity=606.30
+2025-09-20 06:00:24,119 - loralab.core.lora_factory - INFO - Saved variant to lora_runs_gemma\run_20250920_055649\checkpoints\generations\gen0\gen0_r32_lr2e-04\config.json
+2025-09-20 06:00:27,145 - loralab.core.unsloth_manager - INFO - LoRA variant created with Unsloth optimizations:
+2025-09-20 06:00:27,146 - loralab.core.unsloth_manager - INFO -   Rank: 256, Alpha: 512 (multiplier: 2)
+2025-09-20 06:00:27,146 - loralab.core.unsloth_manager - INFO -   Trainable params: 23,592,960 (8.09%)
+2025-09-20 06:00:27,146 - loralab.core.unsloth_manager - INFO -   Gradient checkpointing: unsloth
+2025-09-20 06:00:27,146 - loralab.core.unsloth_manager - INFO -   RSLoRA: True
+2025-09-20 06:00:27,146 - loralab.training.grpo_trainer - INFO - Pre-training model on format examples...
+2025-09-20 06:00:31,819 - loralab.training.grpo_trainer - INFO - Pre-training completed with final loss: 5.7499
+2025-09-20 06:00:31,819 - loralab.training.grpo_trainer - INFO - Starting GRPO training for gen0_r256_lr2e-04
+2025-09-20 06:01:09,383 - loralab.training.grpo_trainer - INFO - GRPO training completed for gen0_r256_lr2e-04
+2025-09-20 06:01:09,384 - loralab.training.grpo_trainer - INFO -   Final loss: 0.0026
+2025-09-20 06:01:09,384 - loralab.training.grpo_trainer - INFO -   Average reward: 0.0000
+2025-09-20 06:03:07,634 - loralab.evolution.fitness_evaluator - INFO - Evaluation complete for gen0_r256_lr2e-04: Accuracy=0.00%, Perplexity=1000.00
+2025-09-20 06:03:07,636 - loralab.core.lora_factory - INFO - Saved variant to lora_runs_gemma\run_20250920_055649\checkpoints\generations\gen0\gen0_r256_lr2e-04\config.json
+2025-09-20 06:03:10,796 - loralab.core.unsloth_manager - INFO - LoRA variant created with Unsloth optimizations:
+2025-09-20 06:03:10,797 - loralab.core.unsloth_manager - INFO -   Rank: 64, Alpha: 64 (multiplier: 1)
+2025-09-20 06:03:10,797 - loralab.core.unsloth_manager - INFO -   Trainable params: 15,187,968 (5.36%)
+2025-09-20 06:03:10,797 - loralab.core.unsloth_manager - INFO -   Gradient checkpointing: unsloth
+2025-09-20 06:03:10,797 - loralab.core.unsloth_manager - INFO -   RSLoRA: True
+2025-09-20 06:03:10,797 - loralab.training.grpo_trainer - INFO - Pre-training model on format examples...
+2025-09-20 06:03:21,562 - loralab.training.grpo_trainer - INFO - Pre-training completed with final loss: 2.9656
+2025-09-20 06:03:21,563 - loralab.training.grpo_trainer - INFO - Starting GRPO training for gen0_r64_lr5e-04
+2025-09-20 06:04:03,877 - loralab.training.grpo_trainer - INFO - GRPO training completed for gen0_r64_lr5e-04
+2025-09-20 06:04:03,877 - loralab.training.grpo_trainer - INFO -   Final loss: 0.0027
+2025-09-20 06:04:03,878 - loralab.training.grpo_trainer - INFO -   Average reward: 0.0000
+2025-09-20 06:06:14,988 - loralab.evolution.fitness_evaluator - INFO - Evaluation complete for gen0_r64_lr5e-04: Accuracy=0.50%, Perplexity=817.23
+2025-09-20 06:06:14,990 - loralab.core.lora_factory - INFO - Saved variant to lora_runs_gemma\run_20250920_055649\checkpoints\generations\gen0\gen0_r64_lr5e-04\config.json
+2025-09-20 06:06:18,290 - loralab.core.unsloth_manager - INFO - LoRA variant created with Unsloth optimizations:
+2025-09-20 06:06:18,290 - loralab.core.unsloth_manager - INFO -   Rank: 128, Alpha: 128 (multiplier: 1)
+2025-09-20 06:06:18,291 - loralab.core.unsloth_manager - INFO -   Trainable params: 21,086,208 (7.29%)
+2025-09-20 06:06:18,291 - loralab.core.unsloth_manager - INFO -   Gradient checkpointing: unsloth
+2025-09-20 06:06:18,291 - loralab.core.unsloth_manager - INFO -   RSLoRA: False
+2025-09-20 06:06:18,291 - loralab.training.grpo_trainer - INFO - Pre-training model on format examples...
+2025-09-20 06:06:23,296 - loralab.training.grpo_trainer - INFO - Pre-training completed with final loss: 1.3652
+2025-09-20 06:06:23,296 - loralab.training.grpo_trainer - INFO - Starting GRPO training for gen0_r128_lr5e-04
+2025-09-20 06:07:05,163 - loralab.training.grpo_trainer - INFO - GRPO training completed for gen0_r128_lr5e-04
+2025-09-20 06:07:05,163 - loralab.training.grpo_trainer - INFO -   Final loss: 0.0011
+2025-09-20 06:07:05,163 - loralab.training.grpo_trainer - INFO -   Average reward: 0.0000
+2025-09-20 06:09:16,728 - loralab.evolution.fitness_evaluator - INFO - Evaluation complete for gen0_r128_lr5e-04: Accuracy=4.50%, Perplexity=880.74
+2025-09-20 06:09:16,734 - loralab.core.lora_factory - INFO - Saved variant to lora_runs_gemma\run_20250920_055649\checkpoints\generations\gen0\gen0_r128_lr5e-04\config.json
+2025-09-20 06:09:17,057 - loralab.evolution.population - INFO - Selected 2 survivors from population of 4
+2025-09-20 06:09:17,057 - loralab.core.lora_factory - INFO - Saved variant to lora_runs_gemma\run_20250920_055649\models\best\config.json
+2025-09-20 06:12:02,199 - loralab.config.config_loader - INFO - Loaded configuration from loralab\config\gemma_config.yaml
+2025-09-20 06:12:02,199 - loralab.utils.output_manager - INFO - Output manager initialized at: lora_runs_gemma\run_20250920_061202
+2025-09-20 06:12:02,199 - loralab.evolution.evolutionary_trainer - INFO - Using unsloth backend
+2025-09-20 06:12:02,202 - loralab.utils.output_manager - INFO - Config saved to: lora_runs_gemma\run_20250920_061202\config\config.yaml
+2025-09-20 06:12:02,319 - loralab.core.unsloth_manager - INFO - Loading Unsloth model: unsloth/gemma-3-270m-it with none quantization
+2025-09-20 06:12:02,319 - loralab.core.unsloth_manager - INFO - Using configured dtype: float32
+2025-09-20 06:12:07,652 - loralab.core.unsloth_manager - INFO - Applied chat template: gemma3
+2025-09-20 06:12:07,653 - loralab.datasets.dataset_loader - INFO - Loading dataset: gsm8k
+2025-09-20 06:12:07,653 - loralab.datasets.dataset_loader - INFO - Fetching gsm8k from HuggingFace...
+2025-09-20 06:12:11,001 - loralab.datasets.dataset_loader - INFO - Loaded 1000 training and 200 evaluation examples
+2025-09-20 06:12:11,002 - loralab.evolution.evolutionary_trainer - INFO - 
+================================================================================
+2025-09-20 06:12:11,002 - loralab.evolution.evolutionary_trainer - INFO - STARTING EVOLUTIONARY OPTIMIZATION
+2025-09-20 06:12:11,003 - loralab.evolution.evolutionary_trainer - INFO - ================================================================================
+2025-09-20 06:12:11,003 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r32_lr2e-04 (hash: 280d81c3)
+2025-09-20 06:12:11,003 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r256_lr2e-04 (hash: b5cc5e75)
+2025-09-20 06:12:11,003 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r64_lr5e-04 (hash: cd0e6cd7)
+2025-09-20 06:12:11,003 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r128_lr5e-04 (hash: 896d27b7)
+2025-09-20 06:12:12,087 - loralab.core.unsloth_manager - INFO - LoRA variant created with Unsloth optimizations:
+2025-09-20 06:12:12,088 - loralab.core.unsloth_manager - INFO -   Rank: 32, Alpha: 32 (multiplier: 1)
+2025-09-20 06:12:12,088 - loralab.core.unsloth_manager - INFO -   Trainable params: 2,949,120 (1.09%)
+2025-09-20 06:12:12,088 - loralab.core.unsloth_manager - INFO -   Gradient checkpointing: unsloth
+2025-09-20 06:12:12,088 - loralab.core.unsloth_manager - INFO -   RSLoRA: False
+2025-09-20 06:12:12,088 - loralab.training.grpo_trainer - INFO - Pre-training model on format examples...
+2025-09-20 06:12:20,950 - loralab.training.grpo_trainer - INFO - Pre-training completed with final loss: 2.3514
+2025-09-20 06:12:20,951 - loralab.training.grpo_trainer - INFO - Starting GRPO training for gen0_r32_lr2e-04
+2025-09-20 06:13:04,339 - loralab.training.grpo_trainer - INFO - GRPO training completed for gen0_r32_lr2e-04
+2025-09-20 06:13:04,339 - loralab.training.grpo_trainer - INFO -   Final loss: 0.0006
+2025-09-20 06:13:04,339 - loralab.training.grpo_trainer - INFO -   Average reward: 0.0000
+2025-09-20 06:15:12,361 - loralab.evolution.fitness_evaluator - INFO - Evaluation complete for gen0_r32_lr2e-04: Accuracy=8.00%, Perplexity=606.30
+2025-09-20 06:15:12,363 - loralab.core.lora_factory - INFO - Saved variant to lora_runs_gemma\run_20250920_061202\checkpoints\generations\gen0\gen0_r32_lr2e-04\config.json
+2025-09-20 06:15:15,188 - loralab.core.unsloth_manager - INFO - LoRA variant created with Unsloth optimizations:
+2025-09-20 06:15:15,189 - loralab.core.unsloth_manager - INFO -   Rank: 256, Alpha: 512 (multiplier: 2)
+2025-09-20 06:15:15,189 - loralab.core.unsloth_manager - INFO -   Trainable params: 23,592,960 (8.09%)
+2025-09-20 06:15:15,189 - loralab.core.unsloth_manager - INFO -   Gradient checkpointing: unsloth
+2025-09-20 06:15:15,189 - loralab.core.unsloth_manager - INFO -   RSLoRA: True
+2025-09-20 06:15:15,189 - loralab.training.grpo_trainer - INFO - Pre-training model on format examples...
+2025-09-20 06:15:19,731 - loralab.training.grpo_trainer - INFO - Pre-training completed with final loss: 5.7499
+2025-09-20 06:15:19,731 - loralab.training.grpo_trainer - INFO - Starting GRPO training for gen0_r256_lr2e-04
+2025-09-20 06:15:59,205 - loralab.training.grpo_trainer - INFO - GRPO training completed for gen0_r256_lr2e-04
+2025-09-20 06:15:59,205 - loralab.training.grpo_trainer - INFO -   Final loss: 0.0026
+2025-09-20 06:15:59,205 - loralab.training.grpo_trainer - INFO -   Average reward: 0.0000
+2025-09-20 06:17:59,764 - loralab.evolution.fitness_evaluator - INFO - Evaluation complete for gen0_r256_lr2e-04: Accuracy=0.00%, Perplexity=1000.00
+2025-09-20 06:17:59,765 - loralab.core.lora_factory - INFO - Saved variant to lora_runs_gemma\run_20250920_061202\checkpoints\generations\gen0\gen0_r256_lr2e-04\config.json
+2025-09-20 06:18:02,406 - loralab.core.unsloth_manager - INFO - LoRA variant created with Unsloth optimizations:
+2025-09-20 06:18:02,407 - loralab.core.unsloth_manager - INFO -   Rank: 64, Alpha: 64 (multiplier: 1)
+2025-09-20 06:18:02,407 - loralab.core.unsloth_manager - INFO -   Trainable params: 15,187,968 (5.36%)
+2025-09-20 06:18:02,407 - loralab.core.unsloth_manager - INFO -   Gradient checkpointing: unsloth
+2025-09-20 06:18:02,407 - loralab.core.unsloth_manager - INFO -   RSLoRA: True
+2025-09-20 06:18:02,408 - loralab.training.grpo_trainer - INFO - Pre-training model on format examples...
+2025-09-20 06:18:07,790 - loralab.training.grpo_trainer - INFO - Pre-training completed with final loss: 2.9656
+2025-09-20 06:18:07,791 - loralab.training.grpo_trainer - INFO - Starting GRPO training for gen0_r64_lr5e-04
+2025-09-20 06:18:47,375 - loralab.training.grpo_trainer - INFO - GRPO training completed for gen0_r64_lr5e-04
+2025-09-20 06:18:47,375 - loralab.training.grpo_trainer - INFO -   Final loss: 0.0027
+2025-09-20 06:18:47,375 - loralab.training.grpo_trainer - INFO -   Average reward: 0.0000
+2025-09-20 06:20:58,372 - loralab.evolution.fitness_evaluator - INFO - Evaluation complete for gen0_r64_lr5e-04: Accuracy=0.50%, Perplexity=817.23
+2025-09-20 06:20:58,373 - loralab.core.lora_factory - INFO - Saved variant to lora_runs_gemma\run_20250920_061202\checkpoints\generations\gen0\gen0_r64_lr5e-04\config.json
+2025-09-20 06:21:01,106 - loralab.core.unsloth_manager - INFO - LoRA variant created with Unsloth optimizations:
+2025-09-20 06:21:01,107 - loralab.core.unsloth_manager - INFO -   Rank: 128, Alpha: 128 (multiplier: 1)
+2025-09-20 06:21:01,107 - loralab.core.unsloth_manager - INFO -   Trainable params: 21,086,208 (7.29%)
+2025-09-20 06:21:01,107 - loralab.core.unsloth_manager - INFO -   Gradient checkpointing: unsloth
+2025-09-20 06:21:01,107 - loralab.core.unsloth_manager - INFO -   RSLoRA: False
+2025-09-20 06:21:01,107 - loralab.training.grpo_trainer - INFO - Pre-training model on format examples...
+2025-09-20 06:21:05,857 - loralab.training.grpo_trainer - INFO - Pre-training completed with final loss: 1.3652
+2025-09-20 06:21:05,857 - loralab.training.grpo_trainer - INFO - Starting GRPO training for gen0_r128_lr5e-04
+2025-09-20 06:21:49,457 - loralab.training.grpo_trainer - INFO - GRPO training completed for gen0_r128_lr5e-04
+2025-09-20 06:21:49,457 - loralab.training.grpo_trainer - INFO -   Final loss: 0.0011
+2025-09-20 06:21:49,457 - loralab.training.grpo_trainer - INFO -   Average reward: 0.0000
+2025-09-20 06:23:57,345 - loralab.evolution.fitness_evaluator - INFO - Evaluation complete for gen0_r128_lr5e-04: Accuracy=4.50%, Perplexity=880.74
+2025-09-20 06:23:57,350 - loralab.core.lora_factory - INFO - Saved variant to lora_runs_gemma\run_20250920_061202\checkpoints\generations\gen0\gen0_r128_lr5e-04\config.json
+2025-09-20 06:23:57,606 - loralab.evolution.population - INFO - Selected 2 survivors from population of 4
+2025-09-20 06:23:57,607 - loralab.core.lora_factory - INFO - Saved variant to lora_runs_gemma\run_20250920_061202\models\best\config.json
+2025-09-20 06:23:57,607 - loralab.evolution.evolutionary_trainer - INFO - [+] New best variant saved: gen0_r32_lr2e-04 (accuracy: 8.00%)
+2025-09-20 06:23:57,609 - loralab.evolution.evolutionary_trainer - INFO - Checkpoint saved to lora_runs_gemma\run_20250920_061202\checkpoints\evolution_gen0.json
+2025-09-20 06:23:57,609 - loralab.core.lora_factory - INFO - Created unique mutated variant: gen1_r32_lr2e-04 (parent: gen0_r32_lr2e-04, hash: 21121f59)
+2025-09-20 06:23:57,609 - loralab.core.lora_factory - INFO - Created unique mutated variant: gen1_r16_lr5e-04 (parent: gen0_r32_lr2e-04, hash: 0fcb3cb4)
+2025-09-20 06:23:57,610 - loralab.core.lora_factory - INFO - Evolved to generation 1: 2 survivors, 2 mutations, 0 crossovers
+2025-09-20 06:23:59,438 - loralab.core.unsloth_manager - INFO - LoRA variant created with Unsloth optimizations:
+2025-09-20 06:23:59,438 - loralab.core.unsloth_manager - INFO -   Rank: 32, Alpha: 32 (multiplier: 1)
+2025-09-20 06:23:59,439 - loralab.core.unsloth_manager - INFO -   Trainable params: 12,238,848 (4.37%)
+2025-09-20 06:23:59,439 - loralab.core.unsloth_manager - INFO -   Gradient checkpointing: unsloth
+2025-09-20 06:23:59,439 - loralab.core.unsloth_manager - INFO -   RSLoRA: False
+2025-09-20 06:23:59,439 - loralab.training.grpo_trainer - INFO - Pre-training model on format examples...
+2025-09-20 06:24:04,181 - loralab.training.grpo_trainer - INFO - Pre-training completed with final loss: 0.8792
+2025-09-20 06:24:04,181 - loralab.training.grpo_trainer - INFO - Starting GRPO training for gen0_r32_lr2e-04
+2025-09-20 06:24:45,395 - loralab.training.grpo_trainer - INFO - GRPO training completed for gen0_r32_lr2e-04
+2025-09-20 06:24:45,395 - loralab.training.grpo_trainer - INFO -   Final loss: 0.0019
+2025-09-20 06:24:45,395 - loralab.training.grpo_trainer - INFO -   Average reward: 0.0000
+2025-09-20 06:26:58,913 - loralab.evolution.fitness_evaluator - INFO - Evaluation complete for gen0_r32_lr2e-04: Accuracy=6.50%, Perplexity=771.80
+2025-09-20 06:26:58,915 - loralab.core.lora_factory - INFO - Saved variant to lora_runs_gemma\run_20250920_061202\checkpoints\generations\gen1\gen0_r32_lr2e-04\config.json
+2025-09-20 06:27:01,631 - loralab.core.unsloth_manager - INFO - LoRA variant created with Unsloth optimizations:
+2025-09-20 06:27:01,631 - loralab.core.unsloth_manager - INFO -   Rank: 128, Alpha: 128 (multiplier: 1)
+2025-09-20 06:27:01,631 - loralab.core.unsloth_manager - INFO -   Trainable params: 21,086,208 (7.29%)
+2025-09-20 06:27:01,632 - loralab.core.unsloth_manager - INFO -   Gradient checkpointing: unsloth
+2025-09-20 06:27:01,632 - loralab.core.unsloth_manager - INFO -   RSLoRA: False
+2025-09-20 06:27:01,632 - loralab.training.grpo_trainer - INFO - Pre-training model on format examples...
+2025-09-20 06:27:06,438 - loralab.training.grpo_trainer - INFO - Pre-training completed with final loss: 0.7104
+2025-09-20 06:27:06,438 - loralab.training.grpo_trainer - INFO - Starting GRPO training for gen0_r128_lr5e-04
+2025-09-20 06:27:46,136 - loralab.training.grpo_trainer - INFO - GRPO training completed for gen0_r128_lr5e-04
+2025-09-20 06:27:46,136 - loralab.training.grpo_trainer - INFO -   Final loss: 0.0029
+2025-09-20 06:27:46,136 - loralab.training.grpo_trainer - INFO -   Average reward: 0.0000
+2025-09-20 06:29:56,550 - loralab.evolution.fitness_evaluator - INFO - Evaluation complete for gen0_r128_lr5e-04: Accuracy=9.50%, Perplexity=587.63
+2025-09-20 06:29:56,551 - loralab.core.lora_factory - INFO - Saved variant to lora_runs_gemma\run_20250920_061202\checkpoints\generations\gen1\gen0_r128_lr5e-04\config.json
+2025-09-20 06:29:59,263 - loralab.core.unsloth_manager - INFO - LoRA variant created with Unsloth optimizations:
+2025-09-20 06:29:59,263 - loralab.core.unsloth_manager - INFO -   Rank: 32, Alpha: 32 (multiplier: 1)
+2025-09-20 06:29:59,263 - loralab.core.unsloth_manager - INFO -   Trainable params: 7,593,984 (2.75%)
+2025-09-20 06:29:59,263 - loralab.core.unsloth_manager - INFO -   Gradient checkpointing: unsloth
+2025-09-20 06:29:59,263 - loralab.core.unsloth_manager - INFO -   RSLoRA: False
+2025-09-20 06:29:59,263 - loralab.training.grpo_trainer - INFO - Pre-training model on format examples...
+2025-09-20 06:30:08,263 - loralab.training.grpo_trainer - INFO - Pre-training completed with final loss: 2.0945
+2025-09-20 06:30:08,264 - loralab.training.grpo_trainer - INFO - Starting GRPO training for gen1_r32_lr2e-04
+2025-09-20 06:30:48,855 - loralab.training.grpo_trainer - INFO - GRPO training completed for gen1_r32_lr2e-04
+2025-09-20 06:30:48,856 - loralab.training.grpo_trainer - INFO -   Final loss: 0.0008
+2025-09-20 06:30:48,856 - loralab.training.grpo_trainer - INFO -   Average reward: 0.0000
+2025-09-20 06:33:00,738 - loralab.evolution.fitness_evaluator - INFO - Evaluation complete for gen1_r32_lr2e-04: Accuracy=8.50%, Perplexity=541.65
+2025-09-20 06:33:00,740 - loralab.core.lora_factory - INFO - Saved variant to lora_runs_gemma\run_20250920_061202\checkpoints\generations\gen1\gen1_r32_lr2e-04\config.json
+2025-09-20 06:33:03,765 - loralab.core.unsloth_manager - INFO - LoRA variant created with Unsloth optimizations:
+2025-09-20 06:33:03,766 - loralab.core.unsloth_manager - INFO -   Rank: 16, Alpha: 16 (multiplier: 1)
+2025-09-20 06:33:03,766 - loralab.core.unsloth_manager - INFO -   Trainable params: 6,119,424 (2.23%)
+2025-09-20 06:33:03,766 - loralab.core.unsloth_manager - INFO -   Gradient checkpointing: unsloth
+2025-09-20 06:33:03,766 - loralab.core.unsloth_manager - INFO -   RSLoRA: False
+2025-09-20 06:33:03,766 - loralab.training.grpo_trainer - INFO - Pre-training model on format examples...
+2025-09-20 06:33:08,549 - loralab.training.grpo_trainer - INFO - Pre-training completed with final loss: 1.0927
+2025-09-20 06:33:08,550 - loralab.training.grpo_trainer - INFO - Starting GRPO training for gen1_r16_lr5e-04
+2025-09-20 06:33:49,025 - loralab.training.grpo_trainer - INFO - GRPO training completed for gen1_r16_lr5e-04
+2025-09-20 06:33:49,025 - loralab.training.grpo_trainer - INFO -   Final loss: 0.0014
+2025-09-20 06:33:49,026 - loralab.training.grpo_trainer - INFO -   Average reward: 0.0000
+2025-09-20 06:36:03,918 - loralab.evolution.fitness_evaluator - INFO - Evaluation complete for gen1_r16_lr5e-04: Accuracy=6.50%, Perplexity=628.68
+2025-09-20 06:36:03,922 - loralab.core.lora_factory - INFO - Saved variant to lora_runs_gemma\run_20250920_061202\checkpoints\generations\gen1\gen1_r16_lr5e-04\config.json
+2025-09-20 06:36:04,136 - loralab.evolution.population - INFO - Selected 2 survivors from population of 4
+2025-09-20 06:36:04,136 - loralab.core.lora_factory - INFO - Saved variant to lora_runs_gemma\run_20250920_061202\models\best\config.json
+2025-09-20 06:36:04,137 - loralab.evolution.evolutionary_trainer - INFO - [+] New best variant saved: gen0_r128_lr5e-04 (accuracy: 9.50%)
+2025-09-20 06:36:04,140 - loralab.evolution.evolutionary_trainer - INFO - Checkpoint saved to lora_runs_gemma\run_20250920_061202\checkpoints\evolution_gen1.json
+2025-09-20 06:36:04,158 - loralab.evolution.evolutionary_trainer - INFO - 
+Generating comparison report for best variant...
+2025-09-20 06:36:04,159 - loralab.evolution.evolutionary_trainer - WARNING - Best variant adapter not found, skipping report
+2025-09-20 06:50:54,121 - loralab.config.config_loader - INFO - Loaded configuration from loralab\config\gemma_config.yaml
+2025-09-20 06:50:54,122 - loralab.utils.output_manager - INFO - Output manager initialized at: lora_runs_gemma\run_20250920_065054
+2025-09-20 06:50:54,122 - loralab.evolution.evolutionary_trainer - INFO - Using unsloth backend
+2025-09-20 06:50:54,125 - loralab.utils.output_manager - INFO - Config saved to: lora_runs_gemma\run_20250920_065054\config\config.yaml
+2025-09-20 06:50:54,240 - loralab.core.unsloth_manager - INFO - Loading Unsloth model: unsloth/gemma-3-270m-it with none quantization
+2025-09-20 06:50:54,240 - loralab.core.unsloth_manager - INFO - Using configured dtype: float32
+2025-09-20 06:50:59,955 - loralab.core.unsloth_manager - INFO - Applied chat template: gemma3
+2025-09-20 06:50:59,956 - loralab.datasets.dataset_loader - INFO - Loading dataset: gsm8k
+2025-09-20 06:50:59,956 - loralab.datasets.dataset_loader - INFO - Fetching gsm8k from HuggingFace...
+2025-09-20 06:51:03,593 - loralab.datasets.dataset_loader - INFO - Loaded 1000 training and 200 evaluation examples
+2025-09-20 06:51:03,594 - loralab.evolution.evolutionary_trainer - INFO - 
+================================================================================
+2025-09-20 06:51:03,594 - loralab.evolution.evolutionary_trainer - INFO - STARTING EVOLUTIONARY OPTIMIZATION
+2025-09-20 06:51:03,594 - loralab.evolution.evolutionary_trainer - INFO - ================================================================================
+2025-09-20 06:51:03,594 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r32_lr4e-04 (hash: c720774f)
+2025-09-20 06:51:04,704 - loralab.core.unsloth_manager - INFO - LoRA variant created with Unsloth optimizations:
+2025-09-20 06:51:04,705 - loralab.core.unsloth_manager - INFO -   Rank: 32, Alpha: 32 (multiplier: 1)
+2025-09-20 06:51:04,705 - loralab.core.unsloth_manager - INFO -   Trainable params: 2,949,120 (1.09%)
+2025-09-20 06:51:04,705 - loralab.core.unsloth_manager - INFO -   Gradient checkpointing: unsloth
+2025-09-20 06:51:04,705 - loralab.core.unsloth_manager - INFO -   RSLoRA: False
+2025-09-20 06:51:04,706 - loralab.training.grpo_trainer - INFO - Pre-training model on format examples...
+2025-09-20 06:51:20,257 - loralab.training.grpo_trainer - INFO - Pre-training completed with final loss: 2.9000
+2025-09-20 06:51:20,258 - loralab.training.grpo_trainer - INFO - Starting GRPO training for gen0_r32_lr4e-04
+2025-09-20 06:51:36,836 - loralab.training.grpo_trainer - INFO - GRPO training completed for gen0_r32_lr4e-04
+2025-09-20 06:51:36,836 - loralab.training.grpo_trainer - INFO -   Final loss: 0.0000
+2025-09-20 06:51:36,836 - loralab.training.grpo_trainer - INFO -   Average reward: 0.0000
+2025-09-20 06:53:43,768 - loralab.evolution.fitness_evaluator - INFO - Evaluation complete for gen0_r32_lr4e-04: Accuracy=5.00%, Perplexity=739.53
+2025-09-20 06:53:43,770 - loralab.core.lora_factory - INFO - Saved variant to lora_runs_gemma\run_20250920_065054\checkpoints\generations\gen0\gen0_r32_lr4e-04\config.json
+2025-09-20 06:53:43,985 - loralab.evolution.population - INFO - Selected 1 survivors from population of 1
+2025-09-20 06:53:43,986 - loralab.core.lora_factory - INFO - Saved variant to lora_runs_gemma\run_20250920_065054\models\best\config.json
+2025-09-20 06:53:44,429 - loralab.evolution.evolutionary_trainer - INFO - [+] New best variant saved: gen0_r32_lr4e-04 (accuracy: 5.00%)
+2025-09-20 06:53:44,434 - loralab.evolution.evolutionary_trainer - INFO - Checkpoint saved to lora_runs_gemma\run_20250920_065054\checkpoints\evolution_gen0.json
+2025-09-20 06:53:44,437 - loralab.evolution.evolutionary_trainer - INFO - 
+Generating comparison report for best variant...
+2025-09-20 06:53:46,208 - loralab.core.unsloth_manager - INFO - LoRA variant created with Unsloth optimizations:
+2025-09-20 06:53:46,209 - loralab.core.unsloth_manager - INFO -   Rank: 32, Alpha: 64 (multiplier: 2)
+2025-09-20 06:53:46,209 - loralab.core.unsloth_manager - INFO -   Trainable params: 2,949,120 (1.09%)
+2025-09-20 06:53:46,209 - loralab.core.unsloth_manager - INFO -   Gradient checkpointing: unsloth
+2025-09-20 06:53:46,209 - loralab.core.unsloth_manager - INFO -   RSLoRA: False
+2025-09-20 06:53:46,209 - loralab.evolution.evolutionary_trainer - ERROR - Failed to generate comparison report: 'UnslothModelManager' object has no attribute 'base_model'
+2025-09-20 06:54:56,487 - loralab.config.config_loader - INFO - Loaded configuration from loralab\config\gemma_config.yaml
+2025-09-20 06:54:56,487 - loralab.utils.output_manager - INFO - Output manager initialized at: lora_runs_gemma\run_20250920_065456
+2025-09-20 06:54:56,488 - loralab.evolution.evolutionary_trainer - INFO - Using unsloth backend
+2025-09-20 06:54:56,491 - loralab.utils.output_manager - INFO - Config saved to: lora_runs_gemma\run_20250920_065456\config\config.yaml
+2025-09-20 06:54:56,613 - loralab.core.unsloth_manager - INFO - Loading Unsloth model: unsloth/gemma-3-270m-it with none quantization
+2025-09-20 06:54:56,613 - loralab.core.unsloth_manager - INFO - Using configured dtype: float32
+2025-09-20 06:55:01,935 - loralab.core.unsloth_manager - INFO - Applied chat template: gemma3
+2025-09-20 06:55:01,937 - loralab.datasets.dataset_loader - INFO - Loading dataset: gsm8k
+2025-09-20 06:55:01,937 - loralab.datasets.dataset_loader - INFO - Fetching gsm8k from HuggingFace...
+2025-09-20 06:55:07,551 - loralab.datasets.dataset_loader - INFO - Loaded 1000 training and 10 evaluation examples
+2025-09-20 06:55:07,552 - loralab.evolution.evolutionary_trainer - INFO - 
+================================================================================
+2025-09-20 06:55:07,553 - loralab.evolution.evolutionary_trainer - INFO - STARTING EVOLUTIONARY OPTIMIZATION
+2025-09-20 06:55:07,553 - loralab.evolution.evolutionary_trainer - INFO - ================================================================================
+2025-09-20 06:55:07,553 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r32_lr4e-04 (hash: c720774f)
+2025-09-20 06:55:08,669 - loralab.core.unsloth_manager - INFO - LoRA variant created with Unsloth optimizations:
+2025-09-20 06:55:08,670 - loralab.core.unsloth_manager - INFO -   Rank: 32, Alpha: 32 (multiplier: 1)
+2025-09-20 06:55:08,670 - loralab.core.unsloth_manager - INFO -   Trainable params: 2,949,120 (1.09%)
+2025-09-20 06:55:08,670 - loralab.core.unsloth_manager - INFO -   Gradient checkpointing: unsloth
+2025-09-20 06:55:08,670 - loralab.core.unsloth_manager - INFO -   RSLoRA: False
+2025-09-20 06:55:08,670 - loralab.training.grpo_trainer - INFO - Pre-training model on format examples...
+2025-09-20 06:55:14,656 - loralab.training.grpo_trainer - INFO - Pre-training completed with final loss: 2.6509
+2025-09-20 06:55:14,656 - loralab.training.grpo_trainer - INFO - Starting GRPO training for gen0_r32_lr4e-04
+2025-09-20 06:55:30,280 - loralab.training.grpo_trainer - INFO - GRPO training completed for gen0_r32_lr4e-04
+2025-09-20 06:55:30,281 - loralab.training.grpo_trainer - INFO -   Final loss: 0.0000
+2025-09-20 06:55:30,281 - loralab.training.grpo_trainer - INFO -   Average reward: 0.0000
+2025-09-20 06:55:39,272 - loralab.evolution.fitness_evaluator - INFO - Evaluation complete for gen0_r32_lr4e-04: Accuracy=0.00%, Perplexity=514.42
+2025-09-20 06:55:39,273 - loralab.core.lora_factory - INFO - Saved variant to lora_runs_gemma\run_20250920_065456\checkpoints\generations\gen0\gen0_r32_lr4e-04\config.json
+2025-09-20 06:55:39,535 - loralab.evolution.population - INFO - Selected 1 survivors from population of 1
+2025-09-20 06:55:39,536 - loralab.core.lora_factory - INFO - Saved variant to lora_runs_gemma\run_20250920_065456\models\best\config.json
+2025-09-20 06:55:39,982 - loralab.evolution.evolutionary_trainer - INFO - [+] New best variant saved: gen0_r32_lr4e-04 (accuracy: 0.00%)
+2025-09-20 06:55:39,984 - loralab.evolution.evolutionary_trainer - INFO - Checkpoint saved to lora_runs_gemma\run_20250920_065456\checkpoints\evolution_gen0.json
+2025-09-20 06:55:39,987 - loralab.evolution.evolutionary_trainer - INFO - 
+Generating comparison report for best variant...
+2025-09-20 06:55:41,716 - loralab.core.unsloth_manager - INFO - LoRA variant created with Unsloth optimizations:
+2025-09-20 06:55:41,716 - loralab.core.unsloth_manager - INFO -   Rank: 32, Alpha: 64 (multiplier: 2)
+2025-09-20 06:55:41,717 - loralab.core.unsloth_manager - INFO -   Trainable params: 2,949,120 (1.09%)
+2025-09-20 06:55:41,717 - loralab.core.unsloth_manager - INFO -   Gradient checkpointing: unsloth
+2025-09-20 06:55:41,717 - loralab.core.unsloth_manager - INFO -   RSLoRA: False
+2025-09-20 06:55:41,789 - loralab.evolution.evolutionary_trainer - ERROR - Failed to generate comparison report: "Unknown path key: reports. Available keys: ['base', 'checkpoints', 'models', 'best_model', 'logs', 'config', 'history']"
+2025-09-20 06:58:28,468 - loralab.config.config_loader - INFO - Loaded configuration from loralab\config\gemma_config.yaml
+2025-09-20 06:58:28,468 - loralab.utils.output_manager - INFO - Output manager initialized at: lora_runs_gemma\run_20250920_065828
+2025-09-20 06:58:28,469 - loralab.evolution.evolutionary_trainer - INFO - Using unsloth backend
+2025-09-20 06:58:28,471 - loralab.utils.output_manager - INFO - Config saved to: lora_runs_gemma\run_20250920_065828\config\config.yaml
+2025-09-20 06:58:28,585 - loralab.core.unsloth_manager - INFO - Loading Unsloth model: unsloth/gemma-3-270m-it with none quantization
+2025-09-20 06:58:28,585 - loralab.core.unsloth_manager - INFO - Using configured dtype: float32
+2025-09-20 06:58:33,761 - loralab.core.unsloth_manager - INFO - Applied chat template: gemma3
+2025-09-20 06:58:33,763 - loralab.datasets.dataset_loader - INFO - Loading dataset: gsm8k
+2025-09-20 06:58:33,763 - loralab.datasets.dataset_loader - INFO - Fetching gsm8k from HuggingFace...
+2025-09-20 06:58:37,416 - loralab.datasets.dataset_loader - INFO - Loaded 1000 training and 10 evaluation examples
+2025-09-20 06:58:37,417 - loralab.evolution.evolutionary_trainer - INFO - 
+================================================================================
+2025-09-20 06:58:37,418 - loralab.evolution.evolutionary_trainer - INFO - STARTING EVOLUTIONARY OPTIMIZATION
+2025-09-20 06:58:37,418 - loralab.evolution.evolutionary_trainer - INFO - ================================================================================
+2025-09-20 06:58:37,418 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r32_lr4e-04 (hash: c720774f)
+2025-09-20 06:58:38,465 - loralab.core.unsloth_manager - INFO - LoRA variant created with Unsloth optimizations:
+2025-09-20 06:58:38,466 - loralab.core.unsloth_manager - INFO -   Rank: 32, Alpha: 32 (multiplier: 1)
+2025-09-20 06:58:38,466 - loralab.core.unsloth_manager - INFO -   Trainable params: 2,949,120 (1.09%)
+2025-09-20 06:58:38,466 - loralab.core.unsloth_manager - INFO -   Gradient checkpointing: unsloth
+2025-09-20 06:58:38,466 - loralab.core.unsloth_manager - INFO -   RSLoRA: False
+2025-09-20 06:58:38,466 - loralab.training.grpo_trainer - INFO - Pre-training model on format examples...
+2025-09-20 06:58:44,082 - loralab.training.grpo_trainer - INFO - Pre-training completed with final loss: 2.6509
+2025-09-20 06:58:44,082 - loralab.training.grpo_trainer - INFO - Starting GRPO training for gen0_r32_lr4e-04
+2025-09-20 07:01:38,923 - loralab.config.config_loader - INFO - Loaded configuration from loralab\config\gemma_config.yaml
+2025-09-20 07:01:38,923 - loralab.utils.output_manager - INFO - Output manager initialized at: lora_runs_gemma\run_20250920_070138
+2025-09-20 07:01:38,924 - loralab.evolution.evolutionary_trainer - INFO - Using unsloth backend
+2025-09-20 07:01:38,926 - loralab.utils.output_manager - INFO - Config saved to: lora_runs_gemma\run_20250920_070138\config\config.yaml
+2025-09-20 07:01:39,041 - loralab.core.unsloth_manager - INFO - Loading Unsloth model: unsloth/gemma-3-270m-it with none quantization
+2025-09-20 07:01:39,041 - loralab.core.unsloth_manager - INFO - Using configured dtype: float32
+2025-09-20 07:01:44,513 - loralab.core.unsloth_manager - INFO - Applied chat template: gemma3
+2025-09-20 07:01:44,514 - loralab.datasets.dataset_loader - INFO - Loading dataset: gsm8k
+2025-09-20 07:01:44,514 - loralab.datasets.dataset_loader - INFO - Fetching gsm8k from HuggingFace...
+2025-09-20 07:01:48,219 - loralab.datasets.dataset_loader - INFO - Loaded 1000 training and 10 evaluation examples
+2025-09-20 07:01:48,220 - loralab.evolution.evolutionary_trainer - INFO - 
+================================================================================
+2025-09-20 07:01:48,220 - loralab.evolution.evolutionary_trainer - INFO - STARTING EVOLUTIONARY OPTIMIZATION
+2025-09-20 07:01:48,221 - loralab.evolution.evolutionary_trainer - INFO - ================================================================================
+2025-09-20 07:01:48,221 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r32_lr4e-04 (hash: c720774f)
+2025-09-20 07:01:49,269 - loralab.core.unsloth_manager - INFO - LoRA variant created with Unsloth optimizations:
+2025-09-20 07:01:49,269 - loralab.core.unsloth_manager - INFO -   Rank: 32, Alpha: 32 (multiplier: 1)
+2025-09-20 07:01:49,269 - loralab.core.unsloth_manager - INFO -   Trainable params: 2,949,120 (1.09%)
+2025-09-20 07:01:49,269 - loralab.core.unsloth_manager - INFO -   Gradient checkpointing: unsloth
+2025-09-20 07:01:49,269 - loralab.core.unsloth_manager - INFO -   RSLoRA: False
+2025-09-20 07:01:49,269 - loralab.training.grpo_trainer - INFO - Pre-training model on format examples...
+2025-09-20 07:01:54,818 - loralab.training.grpo_trainer - INFO - Pre-training completed with final loss: 2.6509
+2025-09-20 07:01:54,819 - loralab.training.grpo_trainer - INFO - Starting GRPO training for gen0_r32_lr4e-04
+2025-09-20 07:03:57,262 - loralab.config.config_loader - INFO - Loaded configuration from loralab\config\gemma_config.yaml
+2025-09-20 07:03:57,262 - loralab.utils.output_manager - INFO - Output manager initialized at: lora_runs_gemma\run_20250920_070357
+2025-09-20 07:03:57,263 - loralab.evolution.evolutionary_trainer - INFO - Using unsloth backend
+2025-09-20 07:03:57,265 - loralab.utils.output_manager - INFO - Config saved to: lora_runs_gemma\run_20250920_070357\config\config.yaml
+2025-09-20 07:03:57,377 - loralab.core.unsloth_manager - INFO - Loading Unsloth model: unsloth/gemma-3-270m-it with none quantization
+2025-09-20 07:03:57,377 - loralab.core.unsloth_manager - INFO - Using configured dtype: float32
+2025-09-20 07:04:02,620 - loralab.core.unsloth_manager - INFO - Applied chat template: gemma3
+2025-09-20 07:04:02,622 - loralab.datasets.dataset_loader - INFO - Loading dataset: gsm8k
+2025-09-20 07:04:02,622 - loralab.datasets.dataset_loader - INFO - Fetching gsm8k from HuggingFace...
+2025-09-20 07:04:06,256 - loralab.datasets.dataset_loader - INFO - Loaded 1000 training and 10 evaluation examples
+2025-09-20 07:04:06,257 - loralab.evolution.evolutionary_trainer - INFO - 
+================================================================================
+2025-09-20 07:04:06,257 - loralab.evolution.evolutionary_trainer - INFO - STARTING EVOLUTIONARY OPTIMIZATION
+2025-09-20 07:04:06,257 - loralab.evolution.evolutionary_trainer - INFO - ================================================================================
+2025-09-20 07:04:06,257 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r32_lr4e-04 (hash: c720774f)
+2025-09-20 07:04:07,317 - loralab.core.unsloth_manager - INFO - LoRA variant created with Unsloth optimizations:
+2025-09-20 07:04:07,317 - loralab.core.unsloth_manager - INFO -   Rank: 32, Alpha: 32 (multiplier: 1)
+2025-09-20 07:04:07,318 - loralab.core.unsloth_manager - INFO -   Trainable params: 2,949,120 (1.09%)
+2025-09-20 07:04:07,318 - loralab.core.unsloth_manager - INFO -   Gradient checkpointing: unsloth
+2025-09-20 07:04:07,318 - loralab.core.unsloth_manager - INFO -   RSLoRA: False
+2025-09-20 07:04:07,318 - loralab.evolution.evolutionary_trainer - INFO - Pre-training on format with 5 examples for 2 epochs
+2025-09-20 07:04:07,318 - loralab.training.grpo_trainer - INFO - Pre-training model on format examples...
+2025-09-20 07:04:12,883 - loralab.training.grpo_trainer - INFO - Pre-training completed with final loss: 2.6509
+2025-09-20 07:04:12,884 - loralab.training.grpo_trainer - INFO - Starting GRPO training for gen0_r32_lr4e-04
+2025-09-20 07:04:40,020 - loralab.training.grpo_trainer - INFO - GRPO training completed for gen0_r32_lr4e-04
+2025-09-20 07:04:40,020 - loralab.training.grpo_trainer - INFO -   Final loss: 0.0000
+2025-09-20 07:04:40,021 - loralab.training.grpo_trainer - INFO -   Average reward: 0.0000
+2025-09-20 07:04:48,928 - loralab.evolution.fitness_evaluator - INFO - Evaluation complete for gen0_r32_lr4e-04: Accuracy=0.00%, Perplexity=514.42
+2025-09-20 07:04:48,930 - loralab.core.lora_factory - INFO - Saved variant to lora_runs_gemma\run_20250920_070357\checkpoints\generations\gen0\gen0_r32_lr4e-04\config.json
+2025-09-20 07:04:49,162 - loralab.evolution.population - INFO - Selected 1 survivors from population of 1
+2025-09-20 07:04:49,163 - loralab.core.lora_factory - INFO - Saved variant to lora_runs_gemma\run_20250920_070357\models\best\config.json
+2025-09-20 07:04:49,611 - loralab.evolution.evolutionary_trainer - INFO - [+] New best variant saved: gen0_r32_lr4e-04 (accuracy: 0.00%)
+2025-09-20 07:04:49,614 - loralab.evolution.evolutionary_trainer - INFO - Checkpoint saved to lora_runs_gemma\run_20250920_070357\checkpoints\evolution_gen0.json
+2025-09-20 07:04:49,614 - loralab.core.lora_factory - INFO - Evolved to generation 1: 1 survivors, 0 mutations, 0 crossovers
+2025-09-20 07:04:51,366 - loralab.core.unsloth_manager - INFO - LoRA variant created with Unsloth optimizations:
+2025-09-20 07:04:51,367 - loralab.core.unsloth_manager - INFO -   Rank: 32, Alpha: 32 (multiplier: 1)
+2025-09-20 07:04:51,367 - loralab.core.unsloth_manager - INFO -   Trainable params: 2,949,120 (1.09%)
+2025-09-20 07:04:51,367 - loralab.core.unsloth_manager - INFO -   Gradient checkpointing: unsloth
+2025-09-20 07:04:51,367 - loralab.core.unsloth_manager - INFO -   RSLoRA: False
+2025-09-20 07:04:51,367 - loralab.evolution.evolutionary_trainer - INFO - Pre-training on format with 5 examples for 2 epochs
+2025-09-20 07:04:51,367 - loralab.training.grpo_trainer - INFO - Pre-training model on format examples...
+2025-09-20 07:04:52,913 - loralab.training.grpo_trainer - INFO - Pre-training completed with final loss: 2.6509
+2025-09-20 07:04:52,914 - loralab.training.grpo_trainer - INFO - Starting GRPO training for gen0_r32_lr4e-04
+2025-09-20 07:05:16,753 - loralab.training.grpo_trainer - INFO - GRPO training completed for gen0_r32_lr4e-04
+2025-09-20 07:05:16,753 - loralab.training.grpo_trainer - INFO -   Final loss: 0.0000
+2025-09-20 07:05:16,753 - loralab.training.grpo_trainer - INFO -   Average reward: 0.0000
+2025-09-20 07:05:22,481 - loralab.evolution.fitness_evaluator - INFO - Evaluation complete for gen0_r32_lr4e-04: Accuracy=0.00%, Perplexity=514.42
+2025-09-20 07:05:22,482 - loralab.core.lora_factory - INFO - Saved variant to lora_runs_gemma\run_20250920_070357\checkpoints\generations\gen1\gen0_r32_lr4e-04\config.json
+2025-09-20 07:05:22,762 - loralab.evolution.population - INFO - Selected 1 survivors from population of 1
+2025-09-20 07:05:22,767 - loralab.evolution.evolutionary_trainer - INFO - Checkpoint saved to lora_runs_gemma\run_20250920_070357\checkpoints\evolution_gen1.json
+2025-09-20 07:05:22,770 - loralab.evolution.evolutionary_trainer - INFO - 
+Generating comparison report for best variant...
+2025-09-20 07:05:24,547 - loralab.core.unsloth_manager - INFO - LoRA variant created with Unsloth optimizations:
+2025-09-20 07:05:24,547 - loralab.core.unsloth_manager - INFO -   Rank: 32, Alpha: 64 (multiplier: 2)
+2025-09-20 07:05:24,547 - loralab.core.unsloth_manager - INFO -   Trainable params: 2,949,120 (1.09%)
+2025-09-20 07:05:24,548 - loralab.core.unsloth_manager - INFO -   Gradient checkpointing: unsloth
+2025-09-20 07:05:24,548 - loralab.core.unsloth_manager - INFO -   RSLoRA: False
+2025-09-20 07:05:24,612 - loralab.evaluation.comparative_evaluator - INFO - Comparing models on 10 examples
+2025-09-20 07:05:43,924 - loralab.evaluation.comparative_evaluator - INFO - Report saved to lora_runs_gemma\run_20250920_070357\reports\comparison_report_gen0_r32_lr4e-04_20250920_070543.md
+2025-09-20 07:05:43,950 - loralab.evolution.evolutionary_trainer - INFO - 
+Comparison Summary:
+2025-09-20 07:05:43,950 - loralab.evolution.evolutionary_trainer - INFO -   Base accuracy: 0.00%
+2025-09-20 07:05:43,950 - loralab.evolution.evolutionary_trainer - INFO -   LoRA accuracy: 0.00%
+2025-09-20 07:05:43,950 - loralab.evolution.evolutionary_trainer - INFO -   Improvement: 0.00%
+2025-09-20 07:05:43,950 - loralab.evolution.evolutionary_trainer - INFO -   Improvements: 0 examples
+2025-09-20 07:06:46,091 - loralab.config.config_loader - INFO - Loaded configuration from loralab\config\gemma_config.yaml
+2025-09-20 07:06:46,092 - loralab.utils.output_manager - INFO - Output manager initialized at: lora_runs_gemma\run_20250920_070646
+2025-09-20 07:06:46,093 - loralab.evolution.evolutionary_trainer - INFO - Using unsloth backend
+2025-09-20 07:06:46,095 - loralab.utils.output_manager - INFO - Config saved to: lora_runs_gemma\run_20250920_070646\config\config.yaml
+2025-09-20 07:06:46,226 - loralab.core.unsloth_manager - INFO - Loading Unsloth model: unsloth/gemma-3-270m-it with none quantization
+2025-09-20 07:06:46,227 - loralab.core.unsloth_manager - INFO - Using configured dtype: float32
+2025-09-20 07:06:51,790 - loralab.core.unsloth_manager - INFO - Applied chat template: gemma3
+2025-09-20 07:06:51,791 - loralab.datasets.dataset_loader - INFO - Loading dataset: gsm8k
+2025-09-20 07:06:51,791 - loralab.datasets.dataset_loader - INFO - Fetching gsm8k from HuggingFace...
+2025-09-20 07:06:55,419 - loralab.datasets.dataset_loader - INFO - Loaded 1000 training and 10 evaluation examples
+2025-09-20 07:06:55,420 - loralab.evolution.evolutionary_trainer - INFO - 
+================================================================================
+2025-09-20 07:06:55,420 - loralab.evolution.evolutionary_trainer - INFO - STARTING EVOLUTIONARY OPTIMIZATION
+2025-09-20 07:06:55,420 - loralab.evolution.evolutionary_trainer - INFO - ================================================================================
+2025-09-20 07:06:55,420 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r32_lr4e-04 (hash: c720774f)
+2025-09-20 07:06:56,491 - loralab.core.unsloth_manager - INFO - LoRA variant created with Unsloth optimizations:
+2025-09-20 07:06:56,492 - loralab.core.unsloth_manager - INFO -   Rank: 32, Alpha: 32 (multiplier: 1)
+2025-09-20 07:06:56,492 - loralab.core.unsloth_manager - INFO -   Trainable params: 2,949,120 (1.09%)
+2025-09-20 07:06:56,492 - loralab.core.unsloth_manager - INFO -   Gradient checkpointing: unsloth
+2025-09-20 07:06:56,492 - loralab.core.unsloth_manager - INFO -   RSLoRA: False
+2025-09-20 07:06:56,492 - loralab.evolution.evolutionary_trainer - INFO - Train data has 1000 total examples
+2025-09-20 07:06:56,492 - loralab.evolution.evolutionary_trainer - INFO - Requesting 5 format examples
+2025-09-20 07:06:56,492 - loralab.evolution.evolutionary_trainer - INFO - Actually got 5 format examples
+2025-09-20 07:06:56,492 - loralab.evolution.evolutionary_trainer - INFO - Pre-training on format with 5 examples for 2 epochs
+2025-09-20 07:06:56,492 - loralab.training.grpo_trainer - INFO - Pre-training model on format examples...
+2025-09-20 07:06:56,535 - loralab.training.grpo_trainer - INFO - Pre-training configuration:
+2025-09-20 07:06:56,535 - loralab.training.grpo_trainer - INFO -   - Examples: 5
+2025-09-20 07:06:56,535 - loralab.training.grpo_trainer - INFO -   - Batch size: 5
+2025-09-20 07:06:56,535 - loralab.training.grpo_trainer - INFO -   - Gradient accumulation: 1
+2025-09-20 07:06:56,535 - loralab.training.grpo_trainer - INFO -   - Effective batch size: 5
+2025-09-20 07:06:56,536 - loralab.training.grpo_trainer - INFO -   - Epochs: 2
+2025-09-20 07:06:56,536 - loralab.training.grpo_trainer - INFO -   - Expected training steps: 2
+2025-09-20 07:06:56,537 - loralab.training.grpo_trainer - INFO - Created pre-training dataset with 5 examples
+2025-09-20 07:07:02,190 - loralab.training.grpo_trainer - INFO - Pre-training completed with final loss: 2.6509
+2025-09-20 07:07:02,190 - loralab.training.grpo_trainer - INFO - Starting GRPO training for gen0_r32_lr4e-04
+2025-09-20 07:07:29,812 - loralab.training.grpo_trainer - INFO - GRPO training completed for gen0_r32_lr4e-04
+2025-09-20 07:07:29,813 - loralab.training.grpo_trainer - INFO -   Final loss: 0.0000
+2025-09-20 07:07:29,813 - loralab.training.grpo_trainer - INFO -   Average reward: 0.0000
+2025-09-20 07:07:38,749 - loralab.evolution.fitness_evaluator - INFO - Evaluation complete for gen0_r32_lr4e-04: Accuracy=0.00%, Perplexity=514.42
+2025-09-20 07:07:38,751 - loralab.core.lora_factory - INFO - Saved variant to lora_runs_gemma\run_20250920_070646\checkpoints\generations\gen0\gen0_r32_lr4e-04\config.json
+2025-09-20 07:07:39,053 - loralab.evolution.population - INFO - Selected 1 survivors from population of 1
+2025-09-20 07:07:39,054 - loralab.core.lora_factory - INFO - Saved variant to lora_runs_gemma\run_20250920_070646\models\best\config.json
+2025-09-20 07:07:39,506 - loralab.evolution.evolutionary_trainer - INFO - [+] New best variant saved: gen0_r32_lr4e-04 (accuracy: 0.00%)
+2025-09-20 07:07:39,509 - loralab.evolution.evolutionary_trainer - INFO - Checkpoint saved to lora_runs_gemma\run_20250920_070646\checkpoints\evolution_gen0.json
+2025-09-20 07:07:39,509 - loralab.core.lora_factory - INFO - Evolved to generation 1: 1 survivors, 0 mutations, 0 crossovers
+2025-09-20 07:07:41,255 - loralab.core.unsloth_manager - INFO - LoRA variant created with Unsloth optimizations:
+2025-09-20 07:07:41,256 - loralab.core.unsloth_manager - INFO -   Rank: 32, Alpha: 32 (multiplier: 1)
+2025-09-20 07:07:41,256 - loralab.core.unsloth_manager - INFO -   Trainable params: 2,949,120 (1.09%)
+2025-09-20 07:07:41,257 - loralab.core.unsloth_manager - INFO -   Gradient checkpointing: unsloth
+2025-09-20 07:07:41,257 - loralab.core.unsloth_manager - INFO -   RSLoRA: False
+2025-09-20 07:07:41,257 - loralab.evolution.evolutionary_trainer - INFO - Train data has 1000 total examples
+2025-09-20 07:07:41,257 - loralab.evolution.evolutionary_trainer - INFO - Requesting 5 format examples
+2025-09-20 07:07:41,257 - loralab.evolution.evolutionary_trainer - INFO - Actually got 5 format examples
+2025-09-20 07:07:41,257 - loralab.evolution.evolutionary_trainer - INFO - Pre-training on format with 5 examples for 2 epochs
+2025-09-20 07:07:41,257 - loralab.training.grpo_trainer - INFO - Pre-training model on format examples...
+2025-09-20 07:07:41,298 - loralab.training.grpo_trainer - INFO - Pre-training configuration:
+2025-09-20 07:07:41,298 - loralab.training.grpo_trainer - INFO -   - Examples: 5
+2025-09-20 07:07:41,299 - loralab.training.grpo_trainer - INFO -   - Batch size: 5
+2025-09-20 07:07:41,299 - loralab.training.grpo_trainer - INFO -   - Gradient accumulation: 1
+2025-09-20 07:07:41,299 - loralab.training.grpo_trainer - INFO -   - Effective batch size: 5
+2025-09-20 07:07:41,299 - loralab.training.grpo_trainer - INFO -   - Epochs: 2
+2025-09-20 07:07:41,299 - loralab.training.grpo_trainer - INFO -   - Expected training steps: 2
+2025-09-20 07:07:41,301 - loralab.training.grpo_trainer - INFO - Created pre-training dataset with 5 examples
+2025-09-20 07:07:42,745 - loralab.training.grpo_trainer - INFO - Pre-training completed with final loss: 2.6509
+2025-09-20 07:07:42,745 - loralab.training.grpo_trainer - INFO - Starting GRPO training for gen0_r32_lr4e-04
+2025-09-20 07:08:05,731 - loralab.training.grpo_trainer - INFO - GRPO training completed for gen0_r32_lr4e-04
+2025-09-20 07:08:05,731 - loralab.training.grpo_trainer - INFO -   Final loss: 0.0000
+2025-09-20 07:08:05,731 - loralab.training.grpo_trainer - INFO -   Average reward: 0.0000
+2025-09-20 07:08:11,549 - loralab.evolution.fitness_evaluator - INFO - Evaluation complete for gen0_r32_lr4e-04: Accuracy=0.00%, Perplexity=514.42
+2025-09-20 07:08:11,551 - loralab.core.lora_factory - INFO - Saved variant to lora_runs_gemma\run_20250920_070646\checkpoints\generations\gen1\gen0_r32_lr4e-04\config.json
+2025-09-20 07:08:11,884 - loralab.evolution.population - INFO - Selected 1 survivors from population of 1
+2025-09-20 07:08:11,889 - loralab.evolution.evolutionary_trainer - INFO - Checkpoint saved to lora_runs_gemma\run_20250920_070646\checkpoints\evolution_gen1.json
+2025-09-20 07:08:11,892 - loralab.evolution.evolutionary_trainer - INFO - 
+Generating comparison report for best variant...
+2025-09-20 07:08:13,605 - loralab.core.unsloth_manager - INFO - LoRA variant created with Unsloth optimizations:
+2025-09-20 07:08:13,605 - loralab.core.unsloth_manager - INFO -   Rank: 32, Alpha: 64 (multiplier: 2)
+2025-09-20 07:08:13,605 - loralab.core.unsloth_manager - INFO -   Trainable params: 2,949,120 (1.09%)
+2025-09-20 07:08:13,606 - loralab.core.unsloth_manager - INFO -   Gradient checkpointing: unsloth
+2025-09-20 07:08:13,606 - loralab.core.unsloth_manager - INFO -   RSLoRA: False
+2025-09-20 07:08:13,680 - loralab.evaluation.comparative_evaluator - INFO - Comparing models on 10 examples
+2025-09-20 07:08:32,787 - loralab.evaluation.comparative_evaluator - INFO - Report saved to lora_runs_gemma\run_20250920_070646\reports\comparison_report_gen0_r32_lr4e-04_20250920_070832.md
+2025-09-20 07:08:32,789 - loralab.evolution.evolutionary_trainer - INFO - 
+Comparison Summary:
+2025-09-20 07:08:32,789 - loralab.evolution.evolutionary_trainer - INFO -   Base accuracy: 0.00%
+2025-09-20 07:08:32,789 - loralab.evolution.evolutionary_trainer - INFO -   LoRA accuracy: 0.00%
+2025-09-20 07:08:32,789 - loralab.evolution.evolutionary_trainer - INFO -   Improvement: 0.00%
+2025-09-20 07:08:32,789 - loralab.evolution.evolutionary_trainer - INFO -   Improvements: 0 examples
+2025-09-20 07:10:18,227 - loralab.config.config_loader - INFO - Loaded configuration from loralab\config\gemma_config.yaml
+2025-09-20 07:10:18,227 - loralab.utils.output_manager - INFO - Output manager initialized at: lora_runs_gemma\run_20250920_071018
+2025-09-20 07:10:18,227 - loralab.evolution.evolutionary_trainer - INFO - Using unsloth backend
+2025-09-20 07:10:18,230 - loralab.utils.output_manager - INFO - Config saved to: lora_runs_gemma\run_20250920_071018\config\config.yaml
+2025-09-20 07:10:18,342 - loralab.core.unsloth_manager - INFO - Loading Unsloth model: unsloth/gemma-3-270m-it with none quantization
+2025-09-20 07:10:18,342 - loralab.core.unsloth_manager - INFO - Using configured dtype: float32
+2025-09-20 07:10:23,673 - loralab.core.unsloth_manager - INFO - Applied chat template: gemma3
+2025-09-20 07:10:23,674 - loralab.datasets.dataset_loader - INFO - Loading dataset: gsm8k
+2025-09-20 07:10:23,675 - loralab.datasets.dataset_loader - INFO - Fetching gsm8k from HuggingFace...
+2025-09-20 07:10:27,299 - loralab.datasets.dataset_loader - INFO - Loaded 1000 training and 10 evaluation examples
+2025-09-20 07:10:27,300 - loralab.evolution.evolutionary_trainer - INFO - 
+================================================================================
+2025-09-20 07:10:27,300 - loralab.evolution.evolutionary_trainer - INFO - STARTING EVOLUTIONARY OPTIMIZATION
+2025-09-20 07:10:27,300 - loralab.evolution.evolutionary_trainer - INFO - ================================================================================
+2025-09-20 07:10:27,300 - loralab.core.lora_factory - INFO - Created unique variant: gen0_r32_lr4e-04 (hash: c720774f)
+2025-09-20 07:10:28,345 - loralab.core.unsloth_manager - INFO - LoRA variant created with Unsloth optimizations:
+2025-09-20 07:10:28,346 - loralab.core.unsloth_manager - INFO -   Rank: 32, Alpha: 32 (multiplier: 1)
+2025-09-20 07:10:28,346 - loralab.core.unsloth_manager - INFO -   Trainable params: 2,949,120 (1.09%)
+2025-09-20 07:10:28,346 - loralab.core.unsloth_manager - INFO -   Gradient checkpointing: unsloth
+2025-09-20 07:10:28,346 - loralab.core.unsloth_manager - INFO -   RSLoRA: False
+2025-09-20 07:10:28,346 - loralab.evolution.evolutionary_trainer - INFO - Train data has 1000 total examples
+2025-09-20 07:10:28,346 - loralab.evolution.evolutionary_trainer - INFO - Requesting 5 format examples
+2025-09-20 07:10:28,346 - loralab.evolution.evolutionary_trainer - INFO - Actually got 5 format examples
+2025-09-20 07:10:28,347 - loralab.evolution.evolutionary_trainer - INFO - Pre-training on format with 5 examples for 2 epochs
+2025-09-20 07:10:28,347 - loralab.training.grpo_trainer - INFO - Pre-training model on format examples...
+2025-09-20 07:10:28,383 - loralab.training.grpo_trainer - INFO - Pre-training configuration:
+2025-09-20 07:10:28,383 - loralab.training.grpo_trainer - INFO -   - Examples: 5
+2025-09-20 07:10:28,383 - loralab.training.grpo_trainer - INFO -   - Batch size: 1
+2025-09-20 07:10:28,383 - loralab.training.grpo_trainer - INFO -   - Gradient accumulation: 2
+2025-09-20 07:10:28,383 - loralab.training.grpo_trainer - INFO -   - Effective batch size: 2
+2025-09-20 07:10:28,383 - loralab.training.grpo_trainer - INFO -   - Epochs: 2
+2025-09-20 07:10:28,384 - loralab.training.grpo_trainer - INFO -   - Expected training steps: 10
+2025-09-20 07:10:28,385 - loralab.training.grpo_trainer - INFO - Created pre-training dataset with 5 examples
+2025-09-20 07:10:39,776 - loralab.training.grpo_trainer - INFO - Pre-training completed with final loss: 2.3857
+2025-09-20 07:10:39,776 - loralab.training.grpo_trainer - INFO - Starting GRPO training for gen0_r32_lr4e-04
+2025-09-20 07:14:25,946 - loralab.training.grpo_trainer - INFO - GRPO training completed for gen0_r32_lr4e-04
+2025-09-20 07:14:25,947 - loralab.training.grpo_trainer - INFO -   Final loss: 21.5037
+2025-09-20 07:14:25,947 - loralab.training.grpo_trainer - INFO -   Average reward: 0.0000
+2025-09-20 07:14:35,096 - loralab.evolution.fitness_evaluator - INFO - Evaluation complete for gen0_r32_lr4e-04: Accuracy=0.00%, Perplexity=377.68
+2025-09-20 07:14:35,097 - loralab.core.lora_factory - INFO - Saved variant to lora_runs_gemma\run_20250920_071018\checkpoints\generations\gen0\gen0_r32_lr4e-04\config.json
+2025-09-20 07:14:35,326 - loralab.evolution.population - INFO - Selected 1 survivors from population of 1
+2025-09-20 07:14:35,327 - loralab.core.lora_factory - INFO - Saved variant to lora_runs_gemma\run_20250920_071018\models\best\config.json
+2025-09-20 07:14:35,798 - loralab.evolution.evolutionary_trainer - INFO - [+] New best variant saved: gen0_r32_lr4e-04 (accuracy: 0.00%)
+2025-09-20 07:14:35,800 - loralab.evolution.evolutionary_trainer - INFO - Checkpoint saved to lora_runs_gemma\run_20250920_071018\checkpoints\evolution_gen0.json
+2025-09-20 07:14:35,801 - loralab.core.lora_factory - INFO - Evolved to generation 1: 1 survivors, 0 mutations, 0 crossovers
+2025-09-20 07:14:38,007 - loralab.core.unsloth_manager - INFO - LoRA variant created with Unsloth optimizations:
+2025-09-20 07:14:38,007 - loralab.core.unsloth_manager - INFO -   Rank: 32, Alpha: 32 (multiplier: 1)
+2025-09-20 07:14:38,008 - loralab.core.unsloth_manager - INFO -   Trainable params: 2,949,120 (1.09%)
+2025-09-20 07:14:38,008 - loralab.core.unsloth_manager - INFO -   Gradient checkpointing: unsloth
+2025-09-20 07:14:38,008 - loralab.core.unsloth_manager - INFO -   RSLoRA: False
+2025-09-20 07:14:38,008 - loralab.evolution.evolutionary_trainer - INFO - Train data has 1000 total examples
+2025-09-20 07:14:38,008 - loralab.evolution.evolutionary_trainer - INFO - Requesting 5 format examples
+2025-09-20 07:14:38,008 - loralab.evolution.evolutionary_trainer - INFO - Actually got 5 format examples
+2025-09-20 07:14:38,008 - loralab.evolution.evolutionary_trainer - INFO - Pre-training on format with 5 examples for 2 epochs
+2025-09-20 07:14:38,009 - loralab.training.grpo_trainer - INFO - Pre-training model on format examples...
+2025-09-20 07:14:38,052 - loralab.training.grpo_trainer - INFO - Pre-training configuration:
+2025-09-20 07:14:38,053 - loralab.training.grpo_trainer - INFO -   - Examples: 5
+2025-09-20 07:14:38,053 - loralab.training.grpo_trainer - INFO -   - Batch size: 1
+2025-09-20 07:14:38,053 - loralab.training.grpo_trainer - INFO -   - Gradient accumulation: 2
+2025-09-20 07:14:38,054 - loralab.training.grpo_trainer - INFO -   - Effective batch size: 2
+2025-09-20 07:14:38,054 - loralab.training.grpo_trainer - INFO -   - Epochs: 2
+2025-09-20 07:14:38,054 - loralab.training.grpo_trainer - INFO -   - Expected training steps: 10
+2025-09-20 07:14:38,055 - loralab.training.grpo_trainer - INFO - Created pre-training dataset with 5 examples
+2025-09-20 07:14:40,517 - loralab.training.grpo_trainer - INFO - Pre-training completed with final loss: 2.3857
+2025-09-20 07:14:40,517 - loralab.training.grpo_trainer - INFO - Starting GRPO training for gen0_r32_lr4e-04
+2025-09-20 07:18:23,967 - loralab.training.grpo_trainer - INFO - GRPO training completed for gen0_r32_lr4e-04
+2025-09-20 07:18:23,967 - loralab.training.grpo_trainer - INFO -   Final loss: 21.5037
+2025-09-20 07:18:23,968 - loralab.training.grpo_trainer - INFO -   Average reward: 0.0000
+2025-09-20 07:18:30,684 - loralab.evolution.fitness_evaluator - INFO - Evaluation complete for gen0_r32_lr4e-04: Accuracy=0.00%, Perplexity=377.68
+2025-09-20 07:18:30,685 - loralab.core.lora_factory - INFO - Saved variant to lora_runs_gemma\run_20250920_071018\checkpoints\generations\gen1\gen0_r32_lr4e-04\config.json
+2025-09-20 07:18:30,946 - loralab.evolution.population - INFO - Selected 1 survivors from population of 1
+2025-09-20 07:18:30,951 - loralab.evolution.evolutionary_trainer - INFO - Checkpoint saved to lora_runs_gemma\run_20250920_071018\checkpoints\evolution_gen1.json
+2025-09-20 07:18:30,955 - loralab.evolution.evolutionary_trainer - INFO - 
+Generating comparison report for best variant...
+2025-09-20 07:18:33,103 - loralab.core.unsloth_manager - INFO - LoRA variant created with Unsloth optimizations:
+2025-09-20 07:18:33,103 - loralab.core.unsloth_manager - INFO -   Rank: 32, Alpha: 64 (multiplier: 2)
+2025-09-20 07:18:33,103 - loralab.core.unsloth_manager - INFO -   Trainable params: 2,949,120 (1.09%)
+2025-09-20 07:18:33,103 - loralab.core.unsloth_manager - INFO -   Gradient checkpointing: unsloth
+2025-09-20 07:18:33,104 - loralab.core.unsloth_manager - INFO -   RSLoRA: False
+2025-09-20 07:18:33,183 - loralab.evaluation.comparative_evaluator - INFO - Comparing models on 10 examples
+2025-09-20 07:19:00,013 - loralab.evaluation.comparative_evaluator - INFO - Report saved to lora_runs_gemma\run_20250920_071018\reports\comparison_report_gen0_r32_lr4e-04_20250920_071900.md
+2025-09-20 07:19:00,014 - loralab.evolution.evolutionary_trainer - INFO - [SUCCESS] Comparison report saved to: lora_runs_gemma\run_20250920_071018\reports\comparison_report_gen0_r32_lr4e-04_20250920_071900.md
+2025-09-20 07:19:00,014 - loralab.evolution.evolutionary_trainer - INFO - 
+Comparison Summary:
+2025-09-20 07:19:00,014 - loralab.evolution.evolutionary_trainer - INFO -   Base accuracy: 0.00%
+2025-09-20 07:19:00,016 - loralab.evolution.evolutionary_trainer - INFO -   LoRA accuracy: 0.00%
+2025-09-20 07:19:00,016 - loralab.evolution.evolutionary_trainer - INFO -   Improvement: 0.00%
+2025-09-20 07:19:00,016 - loralab.evolution.evolutionary_trainer - INFO -   Improvements: 0 examples

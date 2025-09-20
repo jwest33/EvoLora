@@ -12,7 +12,8 @@ from tqdm import tqdm
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
-
+import os
+os.environ['UNSLOTH_RETURN_LOGITS'] = '1'
 
 class ComparativeEvaluator:
     """Evaluates and compares base model vs LoRA adapter performance"""
@@ -235,21 +236,21 @@ class ComparativeEvaluator:
             f.write(f"- **Improvement**: {summary['improvement']:.2%}\n\n")
 
             f.write("### Breakdown\n\n")
-            f.write(f"- ✅ **Improvements** (Base wrong → LoRA correct): {summary['improvements_count']}\n")
-            f.write(f"- ❌ **Regressions** (Base correct → LoRA wrong): {summary['regressions_count']}\n")
-            f.write(f"- ✅✅ **Both Correct**: {summary['both_correct_count']}\n")
-            f.write(f"- ❌❌ **Both Wrong**: {summary['both_wrong_count']}\n\n")
+            f.write(f"- **Improvements** (Base wrong -> LoRA correct): {summary['improvements_count']}\n")
+            f.write(f"- **Regressions** (Base correct -> LoRA wrong): {summary['regressions_count']}\n")
+            f.write(f"- **Both Correct**: {summary['both_correct_count']}\n")
+            f.write(f"- **Both Wrong**: {summary['both_wrong_count']}\n\n")
 
             # Improvements section
-            f.write("## 🎯 Improvements (Base Wrong → LoRA Correct)\n\n")
+            f.write("## Improvements (Base Wrong -> LoRA Correct)\n\n")
             f.write("These examples show where the LoRA adapter fixed mistakes from the base model:\n\n")
 
             for i, imp in enumerate(comparison['improvements'][:20], 1):  # Show first 20
                 f.write(f"### Example {i} (Index: {imp['index']})\n\n")
                 f.write(f"**Question**: {imp['question']}\n\n")
                 f.write(f"**Correct Answer**: {imp['true_answer']}\n\n")
-                f.write(f"**Base Model Answer** ❌: {imp['base_answer']}\n\n")
-                f.write(f"**LoRA Model Answer** ✅: {imp['lora_answer']}\n\n")
+                f.write(f"**Base Model Answer** [WRONG]: {imp['base_answer']}\n\n")
+                f.write(f"**LoRA Model Answer** [CORRECT]: {imp['lora_answer']}\n\n")
                 f.write("---\n\n")
 
             if len(comparison['improvements']) > 20:
@@ -257,20 +258,20 @@ class ComparativeEvaluator:
 
             # Regressions section
             if comparison['regressions']:
-                f.write("## ⚠️ Regressions (Base Correct → LoRA Wrong)\n\n")
+                f.write("## Regressions (Base Correct -> LoRA Wrong)\n\n")
                 f.write("These examples show where the LoRA adapter introduced errors:\n\n")
 
                 for i, reg in enumerate(comparison['regressions'][:10], 1):  # Show first 10
                     f.write(f"### Regression {i} (Index: {reg['index']})\n\n")
                     f.write(f"**Question**: {reg['question']}\n\n")
                     f.write(f"**Correct Answer**: {reg['true_answer']}\n\n")
-                    f.write(f"**Base Model Answer** ✅: {reg['base_answer']}\n\n")
-                    f.write(f"**LoRA Model Answer** ❌: {reg['lora_answer']}\n\n")
+                    f.write(f"**Base Model Answer** [CORRECT]: {reg['base_answer']}\n\n")
+                    f.write(f"**LoRA Model Answer** [WRONG]: {reg['lora_answer']}\n\n")
                     f.write("---\n\n")
 
             # Both wrong section (sample)
             if comparison['both_wrong_sample']:
-                f.write("## 🔍 Sample of Examples Both Models Got Wrong\n\n")
+                f.write("## Sample of Examples Both Models Got Wrong\n\n")
                 f.write("These examples remain challenging for both models:\n\n")
 
                 for i, example in enumerate(comparison['both_wrong_sample'][:5], 1):

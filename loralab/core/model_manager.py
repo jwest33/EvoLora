@@ -110,7 +110,9 @@ class ModelManager:
         """
         if self.base_model is None:
             raise ValueError("Base model not loaded. Call load_base_model() first.")
-
+        
+        os.environ['UNSLOTH_RETURN_LOGITS'] = '1'
+        
         # Create LoRA configuration
         peft_config = LoraConfig(
             r=lora_config['rank'],
@@ -124,7 +126,7 @@ class ModelManager:
 
         # Apply LoRA to base model (creates a new PEFT model)
         lora_model = get_peft_model(self.base_model, peft_config)
-
+        
         # Ensure model is in training mode
         lora_model.train()
 

@@ -8,6 +8,8 @@ import os
 import logging
 import warnings
 from pathlib import Path
+import os
+os.environ['UNSLOTH_RETURN_LOGITS'] = '1'
 
 # Add project to path
 project_root = Path(__file__).parent
@@ -79,15 +81,35 @@ UNSLOTH_AVAILABLE = init_unsloth()
 from loralab.cli_evolution import main
 
 if __name__ == '__main__':
-    # Configure root logger
+    # Configure root logger - only show critical errors from external libraries
     logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        level=logging.WARNING,  # Reduce default verbosity
+        format='%(message)s',  # Simplified format for console
         handlers=[
-            logging.StreamHandler(),
-            logging.FileHandler('evolution.log')
+            logging.StreamHandler()
         ]
     )
+
+    # File logging with full details
+    file_handler = logging.FileHandler('evolution.log')
+    file_handler.setLevel(logging.DEBUG)
+    file_handler.setFormatter(logging.Formatter(
+        '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    ))
+    logging.getLogger().addHandler(file_handler)
+
+    # Set loralab loggers to INFO
+    logging.getLogger('loralab').setLevel(logging.INFO)
+
+    # Suppress external library messages
+    logging.getLogger('transformers').setLevel(logging.ERROR)
+    logging.getLogger('datasets').setLevel(logging.ERROR)
+    logging.getLogger('trl').setLevel(logging.ERROR)
+    logging.getLogger('unsloth').setLevel(logging.ERROR)
+
+    # Suppress redirect warnings at runtime too
+    import warnings
+    warnings.filterwarnings("ignore", category=UserWarning)
 
     # Run main CLI
     main()

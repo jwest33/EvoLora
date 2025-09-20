@@ -200,6 +200,8 @@ class UnslothModelManager:
             # Use "unsloth" for 30% less VRAM and 2x larger batch sizes
             gradient_checkpointing = "unsloth"
 
+        os.environ['UNSLOTH_RETURN_LOGITS'] = '1'
+        
         # Apply LoRA with Unsloth optimizations
         lora_model = FastLanguageModel.get_peft_model(
             self.model,

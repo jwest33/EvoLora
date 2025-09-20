@@ -11,7 +11,7 @@ model:
   path: "unsloth/gemma-3-270m-it"      # Small Gemma3 model (270M params)
   backend: "unsloth"                    # Use Unsloth for optimization
   type: "transformers"
-  torch_dtype: "float16"                # Use float16 to avoid BFloat16 issues
+  torch_dtype: "float16"
   device_map: "cuda:0"
   trust_remote_code: true
   low_cpu_mem_usage: true
@@ -28,9 +28,9 @@ model:
 # ============================================================================
 
 evolution:
-  population_size: 4                    # Small population for quick iterations
-  generations: 2                        # Number of evolution cycles
-  keep_top: 2                           # Keep top N performers
+  population_size: 5
+  generations: 10
+  keep_top: 2
   mutation_rate: 0.35                   # Higher mutation for exploration
   crossover_rate: 0.25                  # Moderate crossover
   skip_perplexity: false                # Use full evaluation for small model
@@ -40,18 +40,18 @@ evolution:
 # ============================================================================
 
 lora_search_space:
-  rank: [16,32, 64, 128, 256]           # Higher ranks for small model
-  alpha_multiplier: [1, 2]              # Alpha = rank * multiplier
-  dropout: [0.0]                        # Zero dropout for Unsloth
-  learning_rate: [1e-4, 2e-4, 5e-4]     # Higher LR for small model
+  rank: [16,32, 64, 128, 256]                   # Higher ranks for small model
+  alpha_multiplier: [0.5, 1, 1.5, 2]            # Alpha = rank * multiplier
+  dropout: [0.0]                                # Zero dropout for Unsloth
+  learning_rate: [1e-4, 2e-4, 3e-4, 4e-4, 5e-4] # Higher LR for small model
   # Training hyperparameters
-  weight_decay: [0.0, 0.01, 0.05]       # Regularization options
-  warmup_ratio: [0.0, 0.1, 0.2]         # Warmup ratio options
-  max_grad_norm: [0.5, 1.0, 2.0]        # Gradient clipping options
+  weight_decay: [0.0, 0.01, 0.05]               # Regularization options
+  warmup_ratio: [0.0, 0.1, 0.2]                 # Warmup ratio options
+  max_grad_norm: [0.5, 1.0, 2.0]                # Gradient clipping options
   # LoRA-specific options
-  use_rslora: [false, true]             # Rank-Stabilized LoRA
+  use_rslora: [false, true]                     # Rank-Stabilized LoRA
   target_modules_preset: ["standard", "extended", "full"]  # Module combinations
-  use_gradient_checkpointing: true      # Unsloth's optimized checkpointing
+  use_gradient_checkpointing: true              # Unsloth's optimized checkpointing
 
 # ============================================================================
 # TRAINING PARAMETERS
@@ -59,7 +59,7 @@ lora_search_space:
 
 training:
   method: "sft"                         # Default to SFT (overridden by --grpo flag)
-  batch_size: 8                         # Larger batch for small model
+  batch_size: 10                        # Larger batch for small model
   gradient_accumulation_steps: 2        # Effective batch = 16
   epochs_per_variant: 1                 # Single epoch per variant
   max_grad_norm: 1.0                    # Gradient clipping
@@ -78,9 +78,8 @@ training:
 
 grpo:
   enabled: false                        # Enabled via command line flag
-  max_steps: 25                         # Training steps for GRPO
+  max_steps: 10                         # Training steps for GRPO
   temperature: 0.8                      # Generation temperature
-  num_generations: 4                    # Generations per batch
   max_prompt_length: 512                # Max prompt length
   max_completion_length: 512            # Max completion length
   # Reward function weights
@@ -90,21 +89,21 @@ grpo:
     reasoning: 2.0                      # Reasoning quality weight
   # Pre-training options
   pre_train_format: true                # Pre-train on format
-  format_examples: 50                   # Format examples for small model
+  format_examples: 10                   # Format examples for small model
 
 # ============================================================================
 # DATASET CONFIGURATION
 # ============================================================================
 
 dataset:
-  sources:                              # Datasets to use
-    - "gsm8k"                          # Math reasoning dataset
-  train_size: 1000                     # Moderate training set
-  eval_size: 200                        # Evaluation set
-  seed: 42                              # Random seed
-  max_seq_length: 512                   # Sequence length
-  use_cache: true                       # Enable caching
-  cache_dir: "cache"                    # Cache directory
+  sources:
+    - "gsm8k"
+  train_size: 1000
+  eval_size: 10
+  seed: 42
+  max_seq_length: 512
+  use_cache: true
+  cache_dir: "cache"
 
 # ============================================================================
 # OUTPUT CONFIGURATION

@@ -5,6 +5,7 @@ Handles Windows multiprocessing compatibility and TRL patching issues.
 
 import os
 import sys
+import io
 import platform
 import warnings
 import logging
@@ -43,6 +44,7 @@ def configure_unsloth():
     os.environ["UNSLOTH_IS_PRESENT"] = "1"
     os.environ["SUPPRESS_UNSLOTH_WARNINGS"] = "1"
     os.environ["UNSLOTH_DISABLE_MULTIPROCESSING"] = "1"  # Force disable multiprocessing
+    os.environ["UNSLOTH_RETURN_LOGITS"] = "1"  # Force return logits for evaluation
 
 def init_unsloth():
     """Initialize Unsloth with proper configuration
@@ -83,14 +85,22 @@ def init_unsloth():
             except ImportError:
                 logger.debug("TRL not installed, skipping pre-import")
 
-            # Now import Unsloth - this will patch TRL if it's installed
-            import unsloth
+            # Temporarily suppress stdout to hide Unsloth patching messages
+            old_stdout = sys.stdout
+            sys.stdout = io.StringIO()
 
-            # Verify core components are available
-            from unsloth import FastLanguageModel
-            from unsloth.chat_templates import get_chat_template
+            try:
+                # Now import Unsloth - this will patch TRL if it's installed
+                import unsloth
 
-            logger.info("Unsloth initialized successfully")
+                # Verify core components are available
+                from unsloth import FastLanguageModel
+                from unsloth.chat_templates import get_chat_template
+            finally:
+                # Restore stdout
+                sys.stdout = old_stdout
+
+            logger.debug("Unsloth initialized successfully")
             _UNSLOTH_INITIALIZED = True
             _UNSLOTH_AVAILABLE = True
             return True
