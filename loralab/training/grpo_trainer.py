@@ -309,10 +309,10 @@ class GRPOTrainer:
         self.tokenizer = model_manager.get_tokenizer()
         self.reward_functions = RewardFunctions(training_config.get('grpo', {}))
 
-        # Use evolution.generations from full config if available
-        evolution_config = self.full_config.get('evolution', {})
-        self.num_generations = evolution_config.get('generations',
-                                training_config.get('grpo', {}).get('num_generations', 4))
+        # GRPO num_generations is different from evolution generations
+        # It's the number of completions to generate per prompt for comparison
+        grpo_config = training_config.get('grpo', {})
+        self.num_generations = grpo_config.get('num_generations', 1)  # Default to 1 for stability
 
     def prepare_dataset_for_grpo(self, dataset: List[Dict]) -> List[Dict]:
         """Prepare dataset for GRPO training
@@ -380,12 +380,14 @@ Then provide your final answer between {solution_start} and {solution_end}."""
         max_prompt_length = grpo_config.get('max_prompt_length', 512)
         max_completion_length = grpo_config.get('max_completion_length', 512)
 
+        # For GRPO, batch size must be a multiple of num_generations
+        # Use 1 for stability with small models
+        batch_size = 1
+
         # Create GRPO training arguments with stability settings
         training_args = GRPOConfig(
+            # Generation parameters (these go in the generation_config)
             temperature=grpo_config.get('temperature', 0.6),  # Lower for stability
-            top_k=grpo_config.get('top_k', 50),  # Limit sampling
-            top_p=grpo_config.get('top_p', 0.9),  # Nucleus sampling
-            do_sample=grpo_config.get('do_sample', True),
             learning_rate=learning_rate * 0.5,  # Reduce LR for GRPO stability
             weight_decay=self.training_config.get('weight_decay', 0.05),  # More regularization
             warmup_ratio=self.training_config.get('warmup_ratio', 0.2),  # More warmup
@@ -393,9 +395,9 @@ Then provide your final answer between {solution_start} and {solution_end}."""
             optim="adamw_8bit",
             logging_steps=1,
             logging_strategy="steps",
-            per_device_train_batch_size=min(self.training_config.get('batch_size', 1), 2),  # Limit batch
+            per_device_train_batch_size=batch_size,  # Must be 1 or multiple of num_generations
             gradient_accumulation_steps=self.training_config.get('gradient_accumulation_steps', 4),
-            num_generations=self.num_generations,
+            num_generations=1,  # Use 1 for stability (not self.num_generations)
             max_prompt_length=min(max_prompt_length, 256),  # Limit prompt length
             max_completion_length=min(max_completion_length, 256),  # Limit completion length
             max_steps=max_steps,
@@ -407,6 +409,16 @@ Then provide your final answer between {solution_start} and {solution_end}."""
             report_to="none",
             output_dir=f"outputs/grpo_{variant_id}",
             disable_tqdm=True,  # Disable progress bars to reduce clutter
+        )
+
+        # Create generation config separately for sampling parameters
+        from transformers import GenerationConfig
+        generation_config = GenerationConfig(
+            temperature=grpo_config.get('temperature', 0.6),
+            top_k=grpo_config.get('top_k', 50),
+            top_p=grpo_config.get('top_p', 0.9),
+            do_sample=grpo_config.get('do_sample', True),
+            max_new_tokens=min(max_completion_length, 256),
         )
 
         # Get reward function weights
@@ -487,13 +499,14 @@ Then provide your final answer between {solution_start} and {solution_end}."""
         # Create custom callback for formatted logging
         formatted_callback = FormattedLoggingCallback(variant_id=variant_id)
 
-        # Create GRPO trainer with custom callback
+        # Create GRPO trainer with custom callback and generation config
         trainer = TRLGRPOTrainer(
             model=model,
             processing_class=self.tokenizer,
             reward_funcs=reward_funcs,
             args=training_args,
             train_dataset=grpo_dataset,
+            generation_config=generation_config,
             callbacks=[formatted_callback] if FORMATTER_AVAILABLE else [],
         )
 

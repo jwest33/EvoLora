@@ -85,6 +85,7 @@ training:
 grpo:
   enabled: false                        # Enabled via command line flag
   max_steps: 20                         # Very few steps to avoid instability
+  num_generations: 1                    # Completions per prompt (not evolution generations!)
   temperature: 0.6                      # Lower temperature for stability
   max_prompt_length: 256                # Shorter prompts for small model
   max_completion_length: 256            # Shorter completions for stability
