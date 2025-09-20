@@ -85,17 +85,19 @@ training:
 grpo:
   enabled: false                        # Enabled via command line flag
   max_steps: 20                         # Very few steps to avoid instability
-  num_generations: 1                    # Completions per prompt (not evolution generations!)
+  num_generations: 2                    # Minimum 2 required for GRPO advantage calculation
   temperature: 0.6                      # Lower temperature for stability
   max_prompt_length: 256                # Shorter prompts for small model
   max_completion_length: 256            # Shorter completions for stability
-  # KL penalty to prevent divergence
-  kl_penalty: "kl"                      # Use KL penalty
-  init_kl_coef: 0.2                     # Initial KL coefficient
+  # KL regularization
+  beta: 0.1                             # KL coefficient for reference model
+  epsilon: 0.2                          # Clipping epsilon
   # Generation parameters for stability
   top_k: 50                             # Limit sampling
   top_p: 0.9                            # Nucleus sampling
-  do_sample: true                       # Enable sampling
+  # Loss configuration
+  # loss_type: "dapo"                   # DAPO has bugs in Unsloth, use default
+  # scale_rewards: "group"              # Scale by group std
   # Reward function weights
   reward_weights:
     format: 1.0                         # Format compliance weight

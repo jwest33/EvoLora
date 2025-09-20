@@ -116,9 +116,12 @@ class EvolutionaryTrainer:
         if training_method == 'grpo' and ADVANCED_TRAINERS:
             # Use GRPO trainer for reasoning tasks
             CLIFormatter.print_info("Using GRPO trainer for reasoning tasks")
+            # Merge GRPO config into training config for trainer
+            training_config_with_grpo = self.config['training'].copy()
+            training_config_with_grpo['grpo'] = self.config.get('grpo', {})
             self.trainer = GRPOTrainer(
                 model_manager=self.model_manager,
-                training_config=self.config['training'],
+                training_config=training_config_with_grpo,
                 full_config=self.config
             )
         elif ADVANCED_TRAINERS and create_trainer:

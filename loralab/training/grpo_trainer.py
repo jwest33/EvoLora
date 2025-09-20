@@ -312,7 +312,7 @@ class GRPOTrainer:
         # GRPO num_generations is different from evolution generations
         # It's the number of completions to generate per prompt for comparison
         grpo_config = training_config.get('grpo', {})
-        self.num_generations = grpo_config.get('num_generations', 1)  # Default to 1 for stability
+        self.num_generations = grpo_config.get('num_generations', 2)  # Minimum 2 required for GRPO
 
     def prepare_dataset_for_grpo(self, dataset: List[Dict]) -> List[Dict]:
         """Prepare dataset for GRPO training
@@ -370,6 +370,8 @@ Then provide your final answer between {solution_start} and {solution_end}."""
         """
         logger.info(f"Starting GRPO training for {variant_id}")
 
+        # Disable torch compile for GRPO to avoid dynamo issues
+        os.environ['TORCHDYNAMO_DISABLE'] = '1'
         os.environ['UNSLOTH_RETURN_LOGITS'] = '1'
         
         # Prepare dataset
@@ -384,10 +386,13 @@ Then provide your final answer between {solution_start} and {solution_end}."""
         # Use 1 for stability with small models
         batch_size = 1
 
-        # Create GRPO training arguments with stability settings
+        # Create GRPO training arguments with valid parameters only
         training_args = GRPOConfig(
-            # Generation parameters (these go in the generation_config)
+            # Generation parameters
             temperature=grpo_config.get('temperature', 0.6),  # Lower for stability
+            top_k=grpo_config.get('top_k', 50),  # Valid generation parameter
+            top_p=grpo_config.get('top_p', 0.9),  # Valid generation parameter
+            # Training parameters
             learning_rate=learning_rate * 0.5,  # Reduce LR for GRPO stability
             weight_decay=self.training_config.get('weight_decay', 0.05),  # More regularization
             warmup_ratio=self.training_config.get('warmup_ratio', 0.2),  # More warmup
@@ -397,29 +402,23 @@ Then provide your final answer between {solution_start} and {solution_end}."""
             logging_strategy="steps",
             per_device_train_batch_size=batch_size,  # Must be 1 or multiple of num_generations
             gradient_accumulation_steps=self.training_config.get('gradient_accumulation_steps', 4),
-            num_generations=1,  # Use 1 for stability (not self.num_generations)
+            num_generations=self.num_generations,  # Number of completions per prompt
             max_prompt_length=min(max_prompt_length, 256),  # Limit prompt length
             max_completion_length=min(max_completion_length, 256),  # Limit completion length
             max_steps=max_steps,
             save_steps=max_steps,  # Save only at the end
             # Stability settings
             max_grad_norm=0.5,  # Aggressive gradient clipping
-            kl_penalty=grpo_config.get('kl_penalty', 'kl'),
-            init_kl_coef=grpo_config.get('init_kl_coef', 0.2),
+            beta=grpo_config.get('beta', 0.1),  # KL coefficient (replaces kl_penalty)
+            epsilon=grpo_config.get('epsilon', 0.2),  # Clipping epsilon
+            # Don't use loss_type or scale_rewards - they cause errors in Unsloth
+            mask_truncated_completions=True,  # Exclude truncated completions from loss
+            # Misc settings
             report_to="none",
             output_dir=f"outputs/grpo_{variant_id}",
             disable_tqdm=True,  # Disable progress bars to reduce clutter
         )
 
-        # Create generation config separately for sampling parameters
-        from transformers import GenerationConfig
-        generation_config = GenerationConfig(
-            temperature=grpo_config.get('temperature', 0.6),
-            top_k=grpo_config.get('top_k', 50),
-            top_p=grpo_config.get('top_p', 0.9),
-            do_sample=grpo_config.get('do_sample', True),
-            max_new_tokens=min(max_completion_length, 256),
-        )
 
         # Get reward function weights
         reward_weights = grpo_config.get('reward_weights', {
@@ -499,16 +498,26 @@ Then provide your final answer between {solution_start} and {solution_end}."""
         # Create custom callback for formatted logging
         formatted_callback = FormattedLoggingCallback(variant_id=variant_id)
 
-        # Create GRPO trainer with custom callback and generation config
-        trainer = TRLGRPOTrainer(
-            model=model,
-            processing_class=self.tokenizer,
-            reward_funcs=reward_funcs,
-            args=training_args,
-            train_dataset=grpo_dataset,
-            generation_config=generation_config,
-            callbacks=[formatted_callback] if FORMATTER_AVAILABLE else [],
-        )
+        # Create GRPO trainer with custom callback
+        try:
+            trainer = TRLGRPOTrainer(
+                model=model,
+                processing_class=self.tokenizer,
+                reward_funcs=reward_funcs,
+                args=training_args,
+                train_dataset=grpo_dataset,
+                callbacks=[formatted_callback] if FORMATTER_AVAILABLE else [],
+            )
+        except Exception as e:
+            logger.error(f"Failed to initialize GRPO trainer: {e}")
+            logger.error("GRPO training appears to be unstable on this system. Consider using SFT mode instead.")
+            # Return failure metrics
+            return {
+                'final_loss': float('inf'),
+                'total_steps': 0,
+                'rewards': 0.0,
+                'error': f"GRPO initialization failed: {str(e)}"
+            }
 
         os.environ['UNSLOTH_RETURN_LOGITS'] = '1'
         # Train and collect metrics with error handling
@@ -516,6 +525,7 @@ Then provide your final answer between {solution_start} and {solution_end}."""
             train_output = trainer.train()
         except (torch.cuda.OutOfMemoryError, RuntimeError) as e:
             logger.error(f"CUDA error during GRPO training: {e}")
+            logger.error("This may be due to GRPO incompatibility. Try: 1) Using SFT mode, 2) Reducing batch size, 3) Disabling torch.compile")
             # Try to recover
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
