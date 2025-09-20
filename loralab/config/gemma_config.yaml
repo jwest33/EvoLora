@@ -59,7 +59,7 @@ lora_search_space:
 
 training:
   method: "sft"                         # Default to SFT (overridden by --grpo flag)
-  batch_size: 10                        # Larger batch for small model
+  batch_size: 100                       # Larger batch for small model
   gradient_accumulation_steps: 2        # Effective batch = 16
   epochs_per_variant: 1                 # Single epoch per variant
   max_grad_norm: 1.0                    # Gradient clipping
@@ -78,7 +78,7 @@ training:
 
 grpo:
   enabled: false                        # Enabled via command line flag
-  max_steps: 10                         # Training steps for GRPO
+  max_steps: 100                        # Training steps for GRPO
   temperature: 0.8                      # Generation temperature
   max_prompt_length: 512                # Max prompt length
   max_completion_length: 512            # Max completion length
@@ -89,7 +89,7 @@ grpo:
     reasoning: 2.0                      # Reasoning quality weight
   # Pre-training options
   pre_train_format: true                # Pre-train on format
-  format_examples: 10                   # Format examples for small model
+  format_examples: 20                   # Format examples for small model
 
 # ============================================================================
 # DATASET CONFIGURATION
@@ -99,7 +99,7 @@ dataset:
   sources:
     - "gsm8k"
   train_size: 1000
-  eval_size: 10
+  eval_size: 50
   seed: 42
   max_seq_length: 512
   use_cache: true
