@@ -2,6 +2,8 @@
 __pycache__/
 *.pyc
 .env
+CLAUDE.md
+.gitignore
 cache
 .claude
 logs/*
