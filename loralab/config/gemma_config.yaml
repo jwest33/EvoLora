@@ -1,4 +1,5 @@
 # LoRALab Gemma3-270M Evolution Configuration
+# Optimized for small model (270M) based on research best practices
 # Supports both SFT and GRPO training methods
 
 mode: "self_supervised"
@@ -28,42 +29,43 @@ model:
 # ============================================================================
 
 evolution:
-  population_size: 5
-  generations: 10
-  keep_top: 2
-  mutation_rate: 0.35                   # Higher mutation for exploration
-  crossover_rate: 0.25                  # Moderate crossover
+  population_size: 12                   # More variants to explore search space
+  generations: 15                       # More generations for better convergence
+  keep_top: 3                           # Keep more top performers
+  mutation_rate: 0.4                    # Higher mutation for exploration
+  crossover_rate: 0.3                   # Increased crossover for diversity
   skip_perplexity: false                # Use full evaluation for small model
 
 # ============================================================================
-# LORA SEARCH SPACE
+# LORA SEARCH SPACE - Optimized for 270M model based on research
 # ============================================================================
 
 lora_search_space:
-  rank: [16,32, 64, 128, 256]                   # Higher ranks for small model
-  alpha_multiplier: [0.5, 1, 1.5, 2]            # Alpha = rank * multiplier
-  dropout: [0.0]                                # Zero dropout for Unsloth
-  learning_rate: [1e-4, 2e-4, 3e-4, 4e-4, 5e-4] # Higher LR for small model
-  # Training hyperparameters
-  weight_decay: [0.0, 0.01, 0.05]               # Regularization options
-  warmup_ratio: [0.0, 0.1, 0.2]                 # Warmup ratio options
-  max_grad_norm: [0.5, 1.0, 2.0]                # Gradient clipping options
+  # Research recommends rank 4-8 for small models, with some higher options
+  rank: [4, 8, 16, 32]                  # Lower ranks to prevent overfitting
+  alpha_multiplier: [1, 2]              # Alpha = rank * multiplier (research: 2x is good heuristic)
+  dropout: [0.0, 0.1]                   # Light dropout for regularization
+  learning_rate: [5e-5, 1e-4, 2e-4]    # Conservative LRs for stability
+  # Training hyperparameters - stronger regularization for small model
+  weight_decay: [0.01, 0.05, 0.1]      # Stronger regularization to prevent overfitting
+  warmup_ratio: [0.05, 0.1, 0.15]      # Warmup helps stability
+  max_grad_norm: [0.5, 1.0]             # Tighter gradient clipping
   # LoRA-specific options
-  use_rslora: [false, true]                     # Rank-Stabilized LoRA
-  target_modules_preset: ["standard", "extended", "full"]  # Module combinations
-  use_gradient_checkpointing: true              # Unsloth's optimized checkpointing
+  use_rslora: [false, true]             # Rank-Stabilized LoRA can help small models
+  target_modules_preset: ["standard", "extended"]  # Avoid "full" for small model
+  use_gradient_checkpointing: true      # Unsloth's optimized checkpointing
 
 # ============================================================================
-# TRAINING PARAMETERS
+# TRAINING PARAMETERS - Optimized to prevent overfitting
 # ============================================================================
 
 training:
   method: "sft"                         # Default to SFT (overridden by --grpo flag)
-  batch_size: 100                       # Larger batch for small model
-  gradient_accumulation_steps: 2        # Effective batch = 16
-  epochs_per_variant: 1                 # Single epoch per variant
+  batch_size: 16                        # Moderate batch size for better gradients
+  gradient_accumulation_steps: 2        # Effective batch = 32
+  epochs_per_variant: 2                 # 1-2 epochs max (research shows more causes overfitting)
   max_grad_norm: 1.0                    # Gradient clipping
-  weight_decay: 0.01                    # Weight decay
+  weight_decay: 0.05                    # Strong default regularization
   warmup_ratio: 0.1                     # Warmup proportion
   fp16: true                            # Use FP16 for speed
   bf16: false                           # Avoid BFloat16 issues
@@ -71,6 +73,10 @@ training:
   dataloader_num_workers: 0             # Windows compatibility
   dataloader_pin_memory: true           # Pin memory
   dataloader_prefetch_factor: 2         # Prefetch batches
+  # Early stopping to prevent overfitting
+  eval_steps: 50                         # Evaluate frequently
+  save_steps: 50                         # Save checkpoints frequently
+  early_stopping_patience: 3             # Stop if no improvement for 3 evals
 
 # ============================================================================
 # GRPO CONFIGURATION (Used when --grpo flag is set)
@@ -78,8 +84,8 @@ training:
 
 grpo:
   enabled: false                        # Enabled via command line flag
-  max_steps: 100                        # Training steps for GRPO
-  temperature: 0.8                      # Generation temperature
+  max_steps: 50                         # Fewer steps for small model
+  temperature: 0.7                      # Lower temperature for more focused generation
   max_prompt_length: 512                # Max prompt length
   max_completion_length: 512            # Max completion length
   # Reward function weights
@@ -89,7 +95,8 @@ grpo:
     reasoning: 2.0                      # Reasoning quality weight
   # Pre-training options
   pre_train_format: true                # Pre-train on format
-  format_examples: 20                   # Format examples for small model
+  format_examples: 10                   # Fewer examples for small model
+  pre_train_epochs: 1                   # Single epoch for format pre-training
 
 # ============================================================================
 # DATASET CONFIGURATION
@@ -98,8 +105,8 @@ grpo:
 dataset:
   sources:
     - "gsm8k"
-  train_size: 1000
-  eval_size: 50
+  train_size: 2000                      # Larger dataset to reduce overfitting
+  eval_size: 100                        # Larger eval set for better metrics
   seed: 42
   max_seq_length: 512
   use_cache: true
@@ -129,7 +136,7 @@ logging:
 
 quick_test:
   enabled: false
-  population_size: 2
-  generations: 2
-  train_size: 100
+  population_size: 3
+  generations: 3
+  train_size: 200
   eval_size: 20

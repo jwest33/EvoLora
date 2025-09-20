@@ -1,4 +1,5 @@
 # LoRALab Qwen3-4B Evolution Configuration
+# Optimized for 4B model based on research best practices
 # Supports both SFT and GRPO training methods
 
 mode: "self_supervised"
@@ -27,42 +28,43 @@ model:
 # ============================================================================
 
 evolution:
-  population_size: 4                    # Number of variants per generation
-  generations: 10                       # Number of evolution cycles
-  keep_top: 2                          # Keep top N performers
-  mutation_rate: 0.3                    # Mutation probability
+  population_size: 10                   # More variants to explore search space
+  generations: 12                       # Sufficient generations for convergence
+  keep_top: 3                           # Keep more top performers
+  mutation_rate: 0.35                   # Balanced mutation rate
   crossover_rate: 0.25                  # Crossover probability
   skip_perplexity: false                # Use full perplexity evaluation
 
 # ============================================================================
-# LORA SEARCH SPACE
+# LORA SEARCH SPACE - Optimized for 4B model
 # ============================================================================
 
 lora_search_space:
-  rank: [16, 32, 64]                    # LoRA rank options
+  # Research shows rank 8-32 works well for medium models
+  rank: [8, 16, 32, 64]                 # Balanced rank options for 4B model
   alpha_multiplier: [1, 2]              # Alpha = rank * multiplier
-  dropout: [0.0]                        # Zero dropout for Unsloth
-  learning_rate: [5e-5, 1e-4, 2e-4]     # Learning rate options
+  dropout: [0.0, 0.05]                  # Light dropout for regularization
+  learning_rate: [2e-5, 5e-5, 1e-4]    # Conservative learning rates
   # Training hyperparameters
-  weight_decay: [0.0, 0.01]             # Weight decay options
-  warmup_ratio: [0.0, 0.1]              # Warmup ratio options
-  max_grad_norm: [1.0]                  # Gradient clipping
+  weight_decay: [0.0, 0.01, 0.02]      # Moderate regularization
+  warmup_ratio: [0.05, 0.1]             # Warmup ratio options
+  max_grad_norm: [0.5, 1.0]             # Gradient clipping options
   # LoRA-specific options
   use_rslora: [false, true]             # Rank-Stabilized LoRA
   target_modules_preset: ["standard", "extended"]  # Module combinations
   use_gradient_checkpointing: true      # Unsloth's optimized checkpointing
 
 # ============================================================================
-# TRAINING PARAMETERS
+# TRAINING PARAMETERS - Optimized for 4B model
 # ============================================================================
 
 training:
   method: "sft"                         # Default to SFT (overridden by --grpo flag)
-  batch_size: 4                         # Training batch size
+  batch_size: 4                         # Conservative batch size for 4-bit model
   gradient_accumulation_steps: 4        # Effective batch = 16
-  epochs_per_variant: 1                 # Epochs per variant
+  epochs_per_variant: 3                 # 2-3 epochs for medium models
   max_grad_norm: 1.0                    # Gradient clipping
-  weight_decay: 0.01                    # Weight decay
+  weight_decay: 0.01                    # Default weight decay
   warmup_ratio: 0.1                     # Warmup proportion
   fp16: true                            # Use FP16 training
   bf16: false                           # Disable BF16
@@ -70,6 +72,10 @@ training:
   dataloader_num_workers: 0             # Windows compatibility
   dataloader_pin_memory: true           # Pin memory
   dataloader_prefetch_factor: 2         # Prefetch batches
+  # Evaluation settings
+  eval_steps: 100                       # Evaluate periodically
+  save_steps: 100                       # Save checkpoints
+  early_stopping_patience: 3            # Stop if no improvement
 
 # ============================================================================
 # GRPO CONFIGURATION (Used when --grpo flag is set)
@@ -79,14 +85,17 @@ grpo:
   enabled: false                        # Enabled via command line flag
   max_steps: 100                        # Training steps for GRPO
   temperature: 0.8                      # Generation temperature
-  # num_generations removed - uses evolution.generations instead
   max_prompt_length: 512                # Max prompt length
   max_completion_length: 512            # Max completion length
   # Reward function weights
   reward_weights:
     format: 1.0                         # Format compliance weight
-    accuracy: 2.0                       # Accuracy weight
+    accuracy: 2.5                       # Higher accuracy weight
     reasoning: 1.5                      # Reasoning quality weight
+  # Pre-training options
+  pre_train_format: true                # Pre-train on format
+  format_examples: 15                   # Format examples for 4B model
+  pre_train_epochs: 2                   # Pre-training epochs
 
 # ============================================================================
 # DATASET CONFIGURATION
@@ -95,7 +104,7 @@ grpo:
 dataset:
   sources:                              # Datasets to use
     - "gsm8k"                           # Math reasoning dataset
-  train_size: 1000                      # Training samples
+  train_size: 3000                      # Larger training set for 4B model
   eval_size: 200                        # Evaluation samples
   seed: 42                              # Random seed
   max_seq_length: 512                   # Sequence length
@@ -126,7 +135,7 @@ logging:
 
 quick_test:
   enabled: false
-  population_size: 2
-  generations: 2
-  train_size: 100
-  eval_size: 20
+  population_size: 3
+  generations: 3
+  train_size: 300
+  eval_size: 30

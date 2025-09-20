@@ -1,6 +1,6 @@
-# LoRALab: Evolutionary LoRA Optimization Framework
+# EvoLoRA: Evolutionary LoRA Optimization Framework
 
-A framework for automatically discovering optimal LoRA (Low-Rank Adaptation) configurations through evolutionary algorithms. LoRALab leverages Unsloth for faster training with less memory usage.
+A framework for automatically discovering optimal LoRA (Low-Rank Adaptation) configurations through evolutionary algorithms. EvoLoRA leverages Unsloth for faster training with less memory usage.
 
 ## Key Features
 
@@ -34,14 +34,14 @@ A framework for automatically discovering optimal LoRA (Low-Rank Adaptation) con
 ### Prerequisites
 1. **Python 3.11+**
 2. **CUDA-capable GPU** with at least 8GB VRAM
-3. **CUDA Toolkit** (12.8 recommended)
+3. **CUDA Toolkit** (only tested on 12.8)
 
 ### Setup Instructions
 
 1. **Clone the repository**
 ```bash
-git clone https://github.com/yourusername/loralab.git
-cd loralab
+git clone https://github.com/yourusername/EvoLoRA.git
+cd EvoLoRA
 ```
 
 2. **Create virtual environment**
@@ -79,14 +79,14 @@ run_gemma.bat grpo
 ### Command Line Interface
 ```bash
 # Basic evolution
-python -m loralab.cli_evolution evolve --config loralab/config/qwen_config.yaml
+python -m EvoLoRA.cli_evolution evolve --config EvoLoRA/config/qwen_config.yaml
 
 # With GRPO training
-python -m loralab.cli_evolution evolve --config loralab/config/gemma_config.yaml --grpo
+python -m EvoLoRA.cli_evolution evolve --config EvoLoRA/config/gemma_config.yaml --grpo
 
 # Custom parameters
-python -m loralab.cli_evolution evolve \
-    --config loralab/config/qwen_config.yaml \
+python -m EvoLoRA.cli_evolution evolve \
+    --config EvoLoRA/config/qwen_config.yaml \
     --generations 20 \
     --population 10 \
     --output my_experiment
@@ -95,53 +95,85 @@ python -m loralab.cli_evolution evolve \
 ## Configuration
 
 ### Model Configuration
-Models are configured via YAML files in `loralab/config/`:
+Models are configured via YAML files in `EvoLoRA/config/`:
 
 ```yaml
+# For small models (e.g., Gemma3-270M)
 model:
   path: "unsloth/gemma-3-270m-it"  # HuggingFace model ID
   backend: "unsloth"                # Use Unsloth optimizations
-  quantization: "none"              # 4bit, 8bit, or none
+  quantization: "none"              # No quantization for small models
   max_seq_length: 2048              # Maximum sequence length
   chat_template: "gemma3"           # Model-specific chat template
+
+# For larger models (e.g., Qwen3-4B)
+model:
+  path: "Qwen/Qwen3-4B-Instruct-2507"
+  quantization: "4bit"              # 4-bit for memory efficiency
+  load_in_4bit: true                # Enable 4-bit loading
 ```
 
 ### Evolution Parameters
 ```yaml
 evolution:
-  population_size: 5     # Variants per generation
-  generations: 10        # Number of evolution cycles
-  keep_top: 2           # Top performers to keep
-  mutation_rate: 0.35   # Parameter mutation probability
-  crossover_rate: 0.25  # Crossover breeding rate
+  population_size: 12    # More variants for better exploration
+  generations: 15        # Sufficient generations for convergence
+  keep_top: 3           # Keep more top performers
+  mutation_rate: 0.4    # Higher mutation for exploration
+  crossover_rate: 0.3   # Increased crossover for diversity
 ```
 
-### LoRA Search Space
+### LoRA Search Space (Optimized for Model Size)
 ```yaml
+# For small models (270M-1B params)
 lora_search_space:
-  rank: [16, 32, 64, 128]              # LoRA rank options
-  alpha_multiplier: [0.5, 1, 2]        # Alpha = rank * multiplier
-  dropout: [0.0]                       # Dropout (0 for Unsloth)
-  learning_rate: [1e-4, 2e-4, 5e-4]    # Learning rate options
-  weight_decay: [0.0, 0.01, 0.05]      # Regularization
-  warmup_ratio: [0.0, 0.1, 0.2]        # LR warmup
-  max_grad_norm: [0.5, 1.0, 2.0]       # Gradient clipping
-  use_rslora: [false, true]            # Rank-Stabilized LoRA
-  target_modules_preset: ["standard", "extended", "full"]
+  rank: [4, 8, 16, 32]                 # Lower ranks prevent overfitting
+  alpha_multiplier: [1, 2]             # Alpha = rank * multiplier
+  dropout: [0.0, 0.1]                  # Light dropout for regularization
+  learning_rate: [5e-5, 1e-4, 2e-4]   # Conservative rates
+  weight_decay: [0.01, 0.05, 0.1]     # Stronger regularization
+  warmup_ratio: [0.05, 0.1, 0.15]     # Warmup helps stability
+  max_grad_norm: [0.5, 1.0]           # Tighter gradient clipping
+  use_rslora: [false, true]           # Rank-Stabilized LoRA
+  target_modules_preset: ["standard", "extended"]
+
+# For medium models (3B-7B params)
+lora_search_space:
+  rank: [8, 16, 32, 64]                # Balanced ranks
+  learning_rate: [2e-5, 5e-5, 1e-4]   # More conservative rates
+  weight_decay: [0.0, 0.01, 0.02]     # Moderate regularization
+```
+
+### Training Parameters (Based on Research)
+```yaml
+training:
+  # For small models (270M)
+  epochs_per_variant: 2   # 1-2 epochs to prevent overfitting
+  batch_size: 16          # Moderate batch for better gradients
+
+  # For medium models (4B)
+  epochs_per_variant: 3   # 2-3 epochs for better convergence
+  batch_size: 4           # Conservative for 4-bit quantization
+
+  # Common settings
+  gradient_accumulation_steps: 2-4    # Effective batch = 16-32
+  eval_steps: 50-100                  # Frequent evaluation
+  early_stopping_patience: 3          # Stop if no improvement
 ```
 
 ### GRPO Configuration
 ```yaml
 grpo:
   enabled: false                # Enable via --grpo flag
-  max_steps: 10                 # Training steps
-  temperature: 0.8              # Generation temperature
+  max_steps: 50-100             # Adjust based on model size
+  temperature: 0.7-0.8          # Lower for focused generation
   pre_train_format: true        # Pre-train on format
-  format_examples: 10           # Number of format examples
+  format_examples: 10-15        # Scale with model size
+  pre_train_epochs: 1-2         # Minimal pre-training
   reward_weights:
     format: 1.0                 # Format compliance weight
-    accuracy: 3.0               # Task accuracy weight
-    reasoning: 2.0              # Reasoning quality weight
+    accuracy: 2.5-3.0           # Higher for task focus
+    reasoning: 1.5-2.0          # Reasoning quality weight
 ```
 
 ## Supported Models
@@ -152,7 +184,7 @@ grpo:
 - **Custom Models**: Any HuggingFace model compatible with Unsloth
 
 ### Adding Custom Models
-Create a new config file in `loralab/config/` with your model settings.
+Create a new config file in `EvoLoRA/config/` with your model settings.
 
 ## Datasets
 
@@ -192,35 +224,14 @@ lora_runs/
 ### Post-Training Analysis
 ```bash
 # List recent runs
-python -m loralab.cli_evolution list-runs
+python -m EvoLoRA.cli_evolution list-runs
 
 # Analyze evolution history
-python -m loralab.cli_evolution analyze --run-dir lora_runs/run_20250920_123456
+python -m EvoLoRA.cli_evolution analyze --run-dir lora_runs/run_20250920_123456
 
 # Compare variants
-python -m loralab.cli_evolution compare --run-dir lora_runs/run_20250920_123456
+python -m EvoLoRA.cli_evolution compare --run-dir lora_runs/run_20250920_123456
 ```
-
-## Advanced Features
-
-### Memory Optimization
-The framework automatically:
-- Clears CUDA cache between variants
-- Uses gradient accumulation for effective batching
-- Implements smart offloading on low VRAM
-- Adjusts batch sizes for small datasets
-
-### Duplicate Prevention
-- MD5 hashing of configurations
-- Intelligent retry mechanism
-- Forced variation when needed
-
-### Export Options
-Best models can be exported as:
-- LoRA adapters (default)
-- Merged full models
-- Quantized models
-- GGUF format (requires llama.cpp)
 
 ## Troubleshooting
 
