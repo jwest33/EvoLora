@@ -1,0 +1,32 @@
+.venv
+__pycache__/
+*.pyc
+.env
+CLAUDE.md
+cache
+.claude
+logs/*
+NOTES.md
+embedlab_rzero.egg-info
+pyproject.toml
+
+# Versioned data and reports
+data/tool_calling_datasets/
+reports/
+evaluation_*.txt
+
+# Keep latest symlinks
+!data/tool_calling_datasets/latest.json
+lora_runs/
+
+# unsloth cache
+unsloth_compiled_cache
+
+# training outputs
+outputs/
+*.pt
+*.safetensors
+**/*.safetensors
+single_grpo_runs/
+lora_runs_*/
+
