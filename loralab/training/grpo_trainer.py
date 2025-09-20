@@ -380,23 +380,30 @@ Then provide your final answer between {solution_start} and {solution_end}."""
         max_prompt_length = grpo_config.get('max_prompt_length', 512)
         max_completion_length = grpo_config.get('max_completion_length', 512)
 
-        # Create GRPO training arguments
+        # Create GRPO training arguments with stability settings
         training_args = GRPOConfig(
-            temperature=grpo_config.get('temperature', 1.0),
-            learning_rate=learning_rate,
-            weight_decay=self.training_config.get('weight_decay', 0.01),
-            warmup_ratio=self.training_config.get('warmup_ratio', 0.1),
-            lr_scheduler_type="linear",
+            temperature=grpo_config.get('temperature', 0.6),  # Lower for stability
+            top_k=grpo_config.get('top_k', 50),  # Limit sampling
+            top_p=grpo_config.get('top_p', 0.9),  # Nucleus sampling
+            do_sample=grpo_config.get('do_sample', True),
+            learning_rate=learning_rate * 0.5,  # Reduce LR for GRPO stability
+            weight_decay=self.training_config.get('weight_decay', 0.05),  # More regularization
+            warmup_ratio=self.training_config.get('warmup_ratio', 0.2),  # More warmup
+            lr_scheduler_type="cosine",  # Gentler schedule
             optim="adamw_8bit",
             logging_steps=1,
             logging_strategy="steps",
-            per_device_train_batch_size=self.training_config.get('batch_size', 1),
+            per_device_train_batch_size=min(self.training_config.get('batch_size', 1), 2),  # Limit batch
             gradient_accumulation_steps=self.training_config.get('gradient_accumulation_steps', 4),
             num_generations=self.num_generations,
-            max_prompt_length=max_prompt_length,
-            max_completion_length=max_completion_length,
+            max_prompt_length=min(max_prompt_length, 256),  # Limit prompt length
+            max_completion_length=min(max_completion_length, 256),  # Limit completion length
             max_steps=max_steps,
             save_steps=max_steps,  # Save only at the end
+            # Stability settings
+            max_grad_norm=0.5,  # Aggressive gradient clipping
+            kl_penalty=grpo_config.get('kl_penalty', 'kl'),
+            init_kl_coef=grpo_config.get('init_kl_coef', 0.2),
             report_to="none",
             output_dir=f"outputs/grpo_{variant_id}",
             disable_tqdm=True,  # Disable progress bars to reduce clutter
@@ -491,27 +498,50 @@ Then provide your final answer between {solution_start} and {solution_end}."""
         )
 
         os.environ['UNSLOTH_RETURN_LOGITS'] = '1'
-        # Train and collect metrics
-        train_output = trainer.train()
+        # Train and collect metrics with error handling
+        try:
+            train_output = trainer.train()
+        except (torch.cuda.OutOfMemoryError, RuntimeError) as e:
+            logger.error(f"CUDA error during GRPO training: {e}")
+            # Try to recover
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+            # Return failure metrics
+            return {
+                'final_loss': float('inf'),
+                'total_steps': 0,
+                'rewards': 0.0,
+                'error': str(e)
+            }
 
         # Extract metrics - look for various reward keys
         # Debug: show all available metrics keys
-        logger.debug(f"All metric keys: {list(train_output.metrics.keys())}")
-        reward_keys = [k for k in train_output.metrics.keys() if 'reward' in k.lower()]
-        if reward_keys:
-            logger.debug(f"Available reward keys: {reward_keys}")
-            # Try to get the first reward key found
-            for key in reward_keys:
-                reward_value = train_output.metrics.get(key, 0.0)
-                if reward_value != 0.0:
-                    logger.debug(f"Using reward from key '{key}': {reward_value}")
-                    break
-        else:
-            # Fallback to known keys
-            reward_value = train_output.metrics.get('train_reward',
-                          train_output.metrics.get('train_rewards/custom_reward_func/mean',
-                          train_output.metrics.get('reward',
-                          train_output.metrics.get('rewards/custom_reward_func/mean', 0.0))))
+        all_keys = list(train_output.metrics.keys())
+        logger.info(f"Available metrics: {[k for k in all_keys if 'reward' in k.lower()]}")
+        logger.debug(f"All metric keys: {all_keys}")
+
+        # Try different reward keys in order of preference
+        reward_value = 0.0
+        reward_found = False
+
+        # First check for the actual reward keys from GRPO
+        reward_keys = [
+            'train_reward',  # Main training reward
+            'train_rewards/custom_reward_func/mean',  # Custom reward mean
+            'rewards/custom_reward_func/mean',  # Without train prefix
+            'reward',  # Simple reward key
+            'train_rewards_mean',  # Alternative format
+        ]
+
+        for key in reward_keys:
+            if key in train_output.metrics:
+                reward_value = train_output.metrics[key]
+                logger.info(f"Found reward value {reward_value:.4f} from key '{key}'")
+                reward_found = True
+                break
+
+        if not reward_found:
+            logger.warning("No reward metric found in training output, defaulting to 0.0")
 
         metrics = {
             'final_loss': train_output.metrics.get('train_loss', float('inf')),

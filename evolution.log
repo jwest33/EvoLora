@@ -44,3 +44,53 @@
 2025-09-20 08:39:55,229 - loralab.training.grpo_trainer - INFO - Created pre-training dataset with 10 examples
 2025-09-20 08:40:00,846 - loralab.training.grpo_trainer - INFO - Pre-training completed with final loss: 2.8855
 2025-09-20 08:40:00,846 - loralab.training.grpo_trainer - INFO - Starting GRPO training for gen0_r8_lr1e-04
+2025-09-20 08:59:44,770 - loralab.training.grpo_trainer - INFO - GRPO training completed for gen0_r8_lr1e-04
+2025-09-20 08:59:44,770 - loralab.training.grpo_trainer - INFO -   Final loss: 0.4499
+2025-09-20 08:59:44,770 - loralab.training.grpo_trainer - INFO -   Average reward: 0.0000
+2025-09-20 09:00:59,508 - loralab.evolution.fitness_evaluator - INFO - Evaluation complete for gen0_r8_lr1e-04: Accuracy=7.00%, Perplexity=695.59
+2025-09-20 09:00:59,510 - loralab.core.lora_factory - INFO - Saved variant to lora_runs_gemma\run_20250920_083945\checkpoints\generations\gen0\gen0_r8_lr1e-04\config.json
+2025-09-20 09:01:02,645 - loralab.core.unsloth_manager - INFO - LoRA variant created with Unsloth optimizations:
+2025-09-20 09:01:02,646 - loralab.core.unsloth_manager - INFO -   Rank: 16, Alpha: 16 (multiplier: 1)
+2025-09-20 09:01:02,646 - loralab.core.unsloth_manager - INFO -   Trainable params: 3,796,992 (1.40%)
+2025-09-20 09:01:02,646 - loralab.core.unsloth_manager - INFO -   Gradient checkpointing: unsloth
+2025-09-20 09:01:02,646 - loralab.core.unsloth_manager - INFO -   RSLoRA: False
+2025-09-20 09:01:02,646 - loralab.evolution.evolutionary_trainer - INFO - Train data has 2000 total examples
+2025-09-20 09:01:02,646 - loralab.evolution.evolutionary_trainer - INFO - Requesting 10 format examples
+2025-09-20 09:01:02,646 - loralab.evolution.evolutionary_trainer - INFO - Actually got 10 format examples
+2025-09-20 09:01:02,646 - loralab.evolution.evolutionary_trainer - INFO - Pre-training on format with 10 examples for 1 epochs
+2025-09-20 09:01:02,646 - loralab.training.grpo_trainer - INFO - Pre-training model on format examples...
+2025-09-20 09:01:02,689 - loralab.training.grpo_trainer - INFO - Pre-training configuration:
+2025-09-20 09:01:02,690 - loralab.training.grpo_trainer - INFO -   - Examples: 10
+2025-09-20 09:01:02,690 - loralab.training.grpo_trainer - INFO -   - Batch size: 1
+2025-09-20 09:01:02,690 - loralab.training.grpo_trainer - INFO -   - Gradient accumulation: 2
+2025-09-20 09:01:02,690 - loralab.training.grpo_trainer - INFO -   - Effective batch size: 2
+2025-09-20 09:01:02,690 - loralab.training.grpo_trainer - INFO -   - Epochs: 1
+2025-09-20 09:01:02,690 - loralab.training.grpo_trainer - INFO -   - Expected training steps: 10
+2025-09-20 09:01:02,692 - loralab.training.grpo_trainer - INFO - Created pre-training dataset with 10 examples
+2025-09-20 09:01:11,862 - loralab.training.grpo_trainer - INFO - Pre-training completed with final loss: 2.8969
+2025-09-20 09:01:11,863 - loralab.training.grpo_trainer - INFO - Starting GRPO training for gen0_r16_lr5e-05
+2025-09-20 09:18:24,899 - loralab.training.grpo_trainer - INFO - GRPO training completed for gen0_r16_lr5e-05
+2025-09-20 09:18:24,899 - loralab.training.grpo_trainer - INFO -   Final loss: 0.4912
+2025-09-20 09:18:24,899 - loralab.training.grpo_trainer - INFO -   Average reward: 0.0000
+2025-09-20 09:19:35,894 - loralab.evolution.fitness_evaluator - INFO - Evaluation complete for gen0_r16_lr5e-05: Accuracy=5.00%, Perplexity=693.95
+2025-09-20 09:19:35,895 - loralab.core.lora_factory - INFO - Saved variant to lora_runs_gemma\run_20250920_083945\checkpoints\generations\gen0\gen0_r16_lr5e-05\config.json
+2025-09-20 09:19:39,365 - loralab.core.unsloth_manager - INFO - LoRA variant created with Unsloth optimizations:
+2025-09-20 09:19:39,365 - loralab.core.unsloth_manager - INFO -   Rank: 8, Alpha: 16 (multiplier: 2)
+2025-09-20 09:19:39,365 - loralab.core.unsloth_manager - INFO -   Trainable params: 3,059,712 (1.13%)
+2025-09-20 09:19:39,365 - loralab.core.unsloth_manager - INFO -   Gradient checkpointing: unsloth
+2025-09-20 09:19:39,365 - loralab.core.unsloth_manager - INFO -   RSLoRA: True
+2025-09-20 09:19:39,365 - loralab.evolution.evolutionary_trainer - INFO - Train data has 2000 total examples
+2025-09-20 09:19:39,365 - loralab.evolution.evolutionary_trainer - INFO - Requesting 10 format examples
+2025-09-20 09:19:39,365 - loralab.evolution.evolutionary_trainer - INFO - Actually got 10 format examples
+2025-09-20 09:19:39,366 - loralab.evolution.evolutionary_trainer - INFO - Pre-training on format with 10 examples for 1 epochs
+2025-09-20 09:19:39,366 - loralab.training.grpo_trainer - INFO - Pre-training model on format examples...
+2025-09-20 09:19:39,402 - loralab.training.grpo_trainer - INFO - Pre-training configuration:
+2025-09-20 09:19:39,402 - loralab.training.grpo_trainer - INFO -   - Examples: 10
+2025-09-20 09:19:39,403 - loralab.training.grpo_trainer - INFO -   - Batch size: 1
+2025-09-20 09:19:39,403 - loralab.training.grpo_trainer - INFO -   - Gradient accumulation: 2
+2025-09-20 09:19:39,403 - loralab.training.grpo_trainer - INFO -   - Effective batch size: 2
+2025-09-20 09:19:39,403 - loralab.training.grpo_trainer - INFO -   - Epochs: 1
+2025-09-20 09:19:39,403 - loralab.training.grpo_trainer - INFO -   - Expected training steps: 10
+2025-09-20 09:19:39,405 - loralab.training.grpo_trainer - INFO - Created pre-training dataset with 10 examples
+2025-09-20 09:19:42,267 - loralab.training.grpo_trainer - INFO - Pre-training completed with final loss: 2.5068
+2025-09-20 09:19:42,268 - loralab.training.grpo_trainer - INFO - Starting GRPO training for gen0_r8_lr1e-04
