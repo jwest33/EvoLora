@@ -1,0 +1,31 @@
+{%- if messages[0].role == 'system' %}
+    {%- set system_content = messages[0].content %}
+    {%- set example = '' %}
+    {%- for message in messages %}
+        {%- if message.role == 'user' and message.content %}
+            {%- if 'simple' in message.content|lower or 'easy' in message.content|lower %}
+                {%- set example = 'Question: Emma has 12 cookies. She eats 3 cookies. How many cookies does Emma have left?\n\nAnswer: Emma starts with 12 cookies.\nShe eats 3 cookies, so she has 12 - 3 = <<12-3=9>>9 cookies.\nTherefore, Emma has \\boxed{9} cookies left.' %}
+            {%- elif 'complex' in message.content|lower or 'moderate' in message.content|lower %}
+                {%- set example = 'Question: A bakery sells muffins for $3 each. On Monday, they sold 15 muffins. On Tuesday, they sold twice as many as Monday. How much money did they make in total?\n\nAnswer: On Monday, they sold 15 muffins.\nOn Tuesday, they sold twice as many: 15 × 2 = <<15*2=30>>30 muffins.\nTotal muffins sold: 15 + 30 = <<15+30=45>>45 muffins.\nTotal money made: 45 × $3 = <<45*3=135>>$135.\nTherefore, they made \\boxed{135} dollars.' %}
+            {%- elif 'challenging' in message.content|lower or 'hard' in message.content|lower %}
+                {%- set example = 'Question: A school is organizing a field trip. They need buses that hold 45 students each. There are 312 students and 18 teachers going. If each bus costs $120 to rent, what is the total cost?\n\nAnswer: Total people going: 312 + 18 = <<312+18=330>>330 people.\nNumber of buses needed: 330 ÷ 45 = <<330/45=7.33>>7.33 buses.\nSince we need whole buses, we round up to 8 buses.\nTotal cost: 8 × $120 = <<8*120=960>>$960.\nTherefore, the total cost is \\boxed{960} dollars.' %}
+            {%- endif %}
+        {%- endif %}
+    {%- endfor %}
+    {%- if not example %}
+        {%- set example = 'Question: Tommy has 8 toy cars. His sister gives him 5 more toy cars for his birthday. Then he gives 3 toy cars to his friend. How many toy cars does Tommy have now?\n\nAnswer: Tommy starts with 8 toy cars.\nHis sister gives him 5 more, so he has 8 + 5 = <<8+5=13>>13 toy cars.\nHe gives 3 to his friend, so he has 13 - 3 = <<13-3=10>>10 toy cars.\nTherefore, Tommy has \\boxed{10} toy cars.' %}
+    {%- endif %}
+    {{- '<|im_start|>system\n' + system_content + '\n\n# Output Format for Math Problems\n\nAlways format your response EXACTLY like this example:\n\n' + example + '\n\nRemember:\n- Always create word problems with real-world context (people, objects, scenarios)\n- Show step-by-step reasoning\n- Put calculations in <<>> brackets\n- Put final answer in \\boxed{}<|im_end|>\n' }}
+{%- endif %}
+{%- for message in messages %}
+    {%- if message.role == "user" %}
+        {{- '<|im_start|>user\n' + message.content + '<|im_end|>\n' }}
+    {%- elif message.role == "assistant" %}
+        {{- '<|im_start|>assistant\n' + message.content + '<|im_end|>\n' }}
+    {%- elif message.role == "system" and not loop.first %}
+        {{- '<|im_start|>system\n' + message.content + '<|im_end|>\n' }}
+    {%- endif %}
+{%- endfor %}
+{%- if add_generation_prompt %}
+    {{- '<|im_start|>assistant\n' }}
+{%- endif %}

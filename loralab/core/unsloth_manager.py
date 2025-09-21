@@ -46,9 +46,11 @@ class UnslothModelManager:
 
     # Supported 4-bit models from Unsloth
     FOURBIT_MODELS = [
+        "unsloth/Qwen3-4B-unsloth-bnb-4bit",
         "unsloth/Qwen3-4B-Instruct-2507-unsloth-bnb-4bit",
-        "unsloth/Qwen3-4B-Thinking-2507-unsloth-bnb-4bit",
+        "unsloth/Qwen3-4B-unsloth-bnb-4bit-unsloth-bnb-4bit",
         "unsloth/Qwen3-8B-unsloth-bnb-4bit",
+        "unsloth/gemma-3-270m-it-unsloth-bnb-4bit",
         "unsloth/gemma-3-12b-it-unsloth-bnb-4bit",
         "unsloth/Phi-4",
         "unsloth/Llama-3.1-8B",

@@ -42,7 +42,17 @@ class Level(Enum):
 
 
 class CLIFormatter:
-    """Formatter for CLI output with colors and styling"""
+    """Formatter for CLI output with synthwave colors and styling"""
+
+    # Synthwave color palette
+    NEON_PINK = Fore.MAGENTA + Style.BRIGHT
+    NEON_CYAN = Fore.CYAN + Style.BRIGHT
+    NEON_PURPLE = Fore.LIGHTMAGENTA_EX
+    ELECTRIC_BLUE = Fore.LIGHTBLUE_EX + Style.BRIGHT
+    NEON_GREEN = Fore.LIGHTGREEN_EX + Style.BRIGHT
+    HOT_PINK = Fore.LIGHTRED_EX + Style.BRIGHT
+    SUNSET_ORANGE = Fore.LIGHTYELLOW_EX
+    DEEP_PURPLE = Fore.MAGENTA
 
     @staticmethod
     def get_terminal_width() -> int:
@@ -50,46 +60,54 @@ class CLIFormatter:
         return shutil.get_terminal_size((80, 20)).columns
 
     @staticmethod
-    def print_header(text: str, char: str = "=", color: str = Fore.CYAN):
-        """Print a formatted header"""
+    def print_header(text: str, char: str = "=", color: str = None):
+        """Print a formatted header with synthwave styling"""
+        if color is None:
+            color = CLIFormatter.NEON_PINK
         width = CLIFormatter.get_terminal_width()
         line = char * width
 
         print(f"\n{color}{line}")
-        print(f"{color}{Style.BRIGHT}{text.center(width)}")
+        print(f"{CLIFormatter.ELECTRIC_BLUE}{text.center(width)}")
         print(f"{color}{line}{Style.RESET_ALL}")
 
     @staticmethod
-    def print_subheader(text: str, char: str = "-", color: str = Fore.BLUE):
-        """Print a formatted subheader"""
+    def print_subheader(text: str, char: str = "-", color: str = None):
+        """Print a formatted subheader with synthwave styling"""
+        if color is None:
+            color = CLIFormatter.NEON_CYAN
         width = CLIFormatter.get_terminal_width()
         line = char * min(60, width)
 
         print(f"\n{color}{text}")
-        print(f"{color}{line}{Style.RESET_ALL}")
+        print(f"{CLIFormatter.NEON_PURPLE}{line}{Style.RESET_ALL}")
 
     @staticmethod
-    def print_status(label: str, value: str, label_color: str = Fore.CYAN,
-                    value_color: str = Fore.WHITE):
-        """Print a status line with colored label and value"""
+    def print_status(label: str, value: str, label_color: str = None,
+                    value_color: str = None):
+        """Print a status line with synthwave colors"""
+        if label_color is None:
+            label_color = CLIFormatter.NEON_CYAN
+        if value_color is None:
+            value_color = CLIFormatter.HOT_PINK
         print(f"{label_color}{label}: {value_color}{value}{Style.RESET_ALL}")
 
     @staticmethod
     def print_progress(current: int, total: int, label: str = "Progress",
                       bar_length: int = 40):
-        """Print a progress bar"""
+        """Print a progress bar with synthwave gradient"""
         percent = current / total if total > 0 else 0
         filled = int(bar_length * percent)
 
-        # Choose color based on progress
+        # Synthwave gradient based on progress
         if percent < 0.33:
-            color = Fore.RED
+            color = CLIFormatter.HOT_PINK
         elif percent < 0.66:
-            color = Fore.YELLOW
+            color = CLIFormatter.SUNSET_ORANGE
         else:
-            color = Fore.GREEN
+            color = CLIFormatter.NEON_GREEN
 
-        bar = f"[{color}{'█' * filled}{Fore.WHITE}{'░' * (bar_length - filled)}{Style.RESET_ALL}]"
+        bar = f"[{color}{'█' * filled}{CLIFormatter.DEEP_PURPLE}{'░' * (bar_length - filled)}{Style.RESET_ALL}]"
 
         print(f"\r{label}: {bar} {percent:6.1%} ({current}/{total})", end="")
         if current >= total:
@@ -103,7 +121,7 @@ class CLIFormatter:
 
         top_line = "╔" + "═" * (width - 2) + "╗"
         title_line = f"║ {title.center(width - 4)} ║"
-        separator = "╠" + "═" * (width - 2) + "╣"
+        separator = "╚" + "═" * (width - 2) + "╝"
 
         print(f"{color}{top_line}")
         print(f"{color}{Style.BRIGHT}{title_line}{Style.RESET_ALL}")
@@ -115,7 +133,7 @@ class CLIFormatter:
         if width is None:
             width = min(80, CLIFormatter.get_terminal_width())
 
-        bottom_line = "╚" + "═" * (width - 2) + "╝"
+        bottom_line =  "═" * (width - 2)
         print(f"{color}{bottom_line}{Style.RESET_ALL}")
 
     @staticmethod
@@ -263,7 +281,7 @@ class CLIFormatter:
             if len(line) > width - 4:
                 line = line[:width - 7] + "..."
 
-            print(f"{color}║{Fore.WHITE}{line:<{width - 2}}{color}║")
+            print(f"{color}║{CLIFormatter.ELECTRIC_BLUE}{line:<{width - 2}}{color}║")
 
         # Bottom border
         print(f"{color}╚{'═' * (width - 2)}╝{Style.RESET_ALL}")
@@ -275,23 +293,23 @@ class CLIFormatter:
 
     @staticmethod
     def print_error(message: str):
-        """Print an error message"""
-        print(f"{Fore.RED}{Style.BRIGHT}[ERROR] {Style.NORMAL}{message}{Style.RESET_ALL}")
+        """Print an error message with synthwave hot pink"""
+        print(f"{CLIFormatter.HOT_PINK}[ERROR] {Style.NORMAL}{message}{Style.RESET_ALL}")
 
     @staticmethod
     def print_warning(message: str):
-        """Print a warning message"""
-        print(f"{Fore.YELLOW}[WARNING] {message}{Style.RESET_ALL}")
+        """Print a warning message with synthwave sunset orange"""
+        print(f"{CLIFormatter.SUNSET_ORANGE}[WARNING] {message}{Style.RESET_ALL}")
 
     @staticmethod
     def print_info(message: str):
-        """Print an info message"""
-        print(f"{Fore.BLUE}[INFO] {message}{Style.RESET_ALL}")
+        """Print an info message with synthwave electric blue"""
+        print(f"{CLIFormatter.ELECTRIC_BLUE}[INFO] {Style.NORMAL}{message}{Style.RESET_ALL}")
 
     @staticmethod
     def print_success(message: str):
-        """Print a success message"""
-        print(f"{Fore.GREEN}{Style.BRIGHT}[SUCCESS] {Style.NORMAL}{message}{Style.RESET_ALL}")
+        """Print a success message with synthwave neon green"""
+        print(f"{CLIFormatter.NEON_GREEN}[SUCCESS] {Style.NORMAL}{message}{Style.RESET_ALL}")
 
     @staticmethod
     def format_time(seconds: float) -> str:
@@ -503,18 +521,88 @@ class CLIFormatter:
         print(f"  {Fore.CYAN}{formatted_name:25s}: {color}{formatted_value}{Style.RESET_ALL}")
 
     @staticmethod
+    def format_grpo_stats(metrics: dict, step: int, total_steps: int):
+        """Format GRPO training statistics with synthwave colors
+
+        Args:
+            metrics: Dictionary of GRPO training metrics
+            step: Current step number
+            total_steps: Total number of training steps
+        """
+        print(f"\n{CLIFormatter.NEON_PINK}{'═' * 60}{Style.RESET_ALL}")
+        print(f"{CLIFormatter.ELECTRIC_BLUE}{Style.BRIGHT}Step: {step}/{total_steps}{Style.RESET_ALL}")
+
+        # Extract and display key metrics - use actual values from metrics
+        epoch = metrics.get('epoch', 0.0)
+        reward = metrics.get('reward', 0.0)
+        reward_std = metrics.get('reward_std', 0.0)
+
+        # Display epoch and main reward with actual values
+        print(f"{CLIFormatter.NEON_CYAN}Epoch: {CLIFormatter.ELECTRIC_BLUE}{epoch:.1f}{Style.RESET_ALL}")
+        print(f"{CLIFormatter.NEON_CYAN}Reward: {CLIFormatter.NEON_GREEN if reward > 0.5 else CLIFormatter.SUNSET_ORANGE if reward > 0 else CLIFormatter.HOT_PINK}{reward:.3f} ± {reward_std:.3f}{Style.RESET_ALL}")
+
+        # Always display reward breakdown
+        print(f"\n{CLIFormatter.NEON_PURPLE}Reward Components:{Style.RESET_ALL}")
+
+        # Format individual reward components
+        format_exact = metrics.get('rewards/match_format_exactly/mean', 0.0)
+        format_approx = metrics.get('rewards/match_format_approximately/mean', 0.0)
+        answer_check = metrics.get('rewards/check_answer/mean', 0.0)
+        number_extract = metrics.get('rewards/check_numbers/mean', 0.0)
+
+        # Display each component with color coding
+        print(f"  {CLIFormatter.NEON_CYAN}Format (exact): {CLIFormatter.NEON_GREEN if format_exact > 0.5 else CLIFormatter.SUNSET_ORANGE if format_exact > 0 else CLIFormatter.HOT_PINK}{format_exact:.3f}{Style.RESET_ALL}")
+        print(f"  {CLIFormatter.NEON_CYAN}Format (approx): {CLIFormatter.NEON_GREEN if format_approx > 0 else CLIFormatter.SUNSET_ORANGE if format_approx > -0.5 else CLIFormatter.HOT_PINK}{format_approx:.3f}{Style.RESET_ALL}")
+        print(f"  {CLIFormatter.NEON_CYAN}Answer check: {CLIFormatter.NEON_GREEN if answer_check > 0.5 else CLIFormatter.SUNSET_ORANGE if answer_check > 0 else CLIFormatter.HOT_PINK}{answer_check:.3f}{Style.RESET_ALL}")
+        print(f"  {CLIFormatter.NEON_CYAN}Number extract: {CLIFormatter.NEON_GREEN if number_extract > 0.5 else CLIFormatter.SUNSET_ORANGE if number_extract > 0 else CLIFormatter.HOT_PINK}{number_extract:.3f}{Style.RESET_ALL}")
+
+        # Training metrics
+        print(f"\n{CLIFormatter.NEON_PURPLE}Training Metrics:{Style.RESET_ALL}")
+
+        learning_rate = metrics.get('learning_rate', 0)
+        grad_norm = metrics.get('grad_norm', 0)
+        kl = metrics.get('kl', 0)
+        loss = metrics.get('loss', None)
+
+        print(f"  {CLIFormatter.NEON_CYAN}Learning Rate: {CLIFormatter.ELECTRIC_BLUE}{learning_rate:.2e}{Style.RESET_ALL}")
+        print(f"  {CLIFormatter.NEON_CYAN}Gradient Norm: {CLIFormatter.NEON_GREEN if 0.001 < grad_norm < 100 else CLIFormatter.HOT_PINK}{grad_norm:.2f}{Style.RESET_ALL}")
+        print(f"  {CLIFormatter.NEON_CYAN}KL Divergence: {CLIFormatter.ELECTRIC_BLUE}{kl:.4f}{Style.RESET_ALL}")
+
+        if loss is not None:
+            print(f"  {CLIFormatter.NEON_CYAN}Loss: {CLIFormatter.NEON_GREEN if loss < 0.1 else CLIFormatter.SUNSET_ORANGE if loss < 1 else CLIFormatter.HOT_PINK}{loss:.4f}{Style.RESET_ALL}")
+
+        # Completion stats
+        avg_length = metrics.get('completions/mean_length', 0)
+        min_length = metrics.get('completions/min_length', 0)
+        max_length = metrics.get('completions/max_length', 0)
+        clipped_ratio = metrics.get('completions/clipped_ratio', 0)
+
+        if avg_length > 0:
+            print(f"\n{CLIFormatter.NEON_PURPLE}Completion Stats:{Style.RESET_ALL}")
+            print(f"  {CLIFormatter.NEON_CYAN}Avg Length: {CLIFormatter.ELECTRIC_BLUE}{int(avg_length)} tokens{Style.RESET_ALL}")
+
+            if min_length > 0 or max_length > 0:
+                print(f"  {CLIFormatter.NEON_CYAN}Range: {CLIFormatter.ELECTRIC_BLUE}{int(min_length)}-{int(max_length)} tokens{Style.RESET_ALL}")
+
+            if clipped_ratio > 0:
+                color = CLIFormatter.NEON_GREEN if clipped_ratio < 0.1 else CLIFormatter.SUNSET_ORANGE if clipped_ratio < 0.3 else CLIFormatter.HOT_PINK
+                print(f"  {CLIFormatter.NEON_CYAN}Clipped: {color}{clipped_ratio:.1%}{Style.RESET_ALL}")
+
+        print(f"\n{CLIFormatter.NEON_PINK}{'═' * 60}{Style.RESET_ALL}")
+
+    @staticmethod
     def format_training_batch(metrics_list: List[dict]):
         """Format multiple training metric dictionaries as a batch
 
         Args:
             metrics_list: List of metric dictionaries
         """
-        print(f"\n{Fore.CYAN}{Style.BRIGHT}{'═' * 60}")
-        print(f"Training Metrics Batch - {len(metrics_list)} Updates".center(60))
-        print(f"{'═' * 60}{Style.RESET_ALL}\n")
+        print(f"\n{CLIFormatter.NEON_PINK}{Style.BRIGHT}{'═' * 60}")
+        print(f"{CLIFormatter.ELECTRIC_BLUE}Training Metrics Batch - {len(metrics_list)} Updates".center(60))
+        print(f"{CLIFormatter.NEON_PINK}{'═' * 60}{Style.RESET_ALL}\n")
 
         for i, metrics in enumerate(metrics_list, 1):
-            print(f"{Fore.BLUE}{Style.BRIGHT}Update {i}/{len(metrics_list)}{Style.RESET_ALL}")
+            print(f"{CLIFormatter.NEON_PURPLE}{Style.BRIGHT}Update {i}/{len(metrics_list)}{Style.RESET_ALL}")
             CLIFormatter.format_training_metrics(metrics)
             if i < len(metrics_list):
                 print()  # Add space between updates
@@ -534,15 +622,35 @@ class SpinnerProgress:
         self.text = text
         self.spinner = self.SPINNERS.get(spinner_type, self.SPINNERS['dots'])
         self.index = 0
+        self.initial_text = text
 
-    def update(self):
-        """Update spinner animation"""
+    def __enter__(self):
+        """Enter context manager"""
+        self.update()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Exit context manager"""
+        if exc_type is None:
+            self.complete("Complete")
+        else:
+            CLIFormatter.clear_line()
+            CLIFormatter.print_error(f"{self.initial_text} - Failed")
+        return False
+
+    def update(self, text: str = None):
+        """Update spinner animation with synthwave colors"""
+        if text:
+            self.text = text
         CLIFormatter.clear_line()
         frame = self.spinner[self.index % len(self.spinner)]
-        print(f"{Fore.CYAN}{frame} {self.text}{Style.RESET_ALL}", end='', flush=True)
+        # Cycle through synthwave colors for animation
+        colors = [CLIFormatter.NEON_PINK, CLIFormatter.NEON_CYAN, CLIFormatter.ELECTRIC_BLUE, CLIFormatter.NEON_GREEN]
+        color = colors[self.index % len(colors)]
+        print(f"{color}{frame} {self.text}{Style.RESET_ALL}", end='', flush=True)
         self.index += 1
 
     def complete(self, message: str = "Complete"):
         """Complete spinner with message"""
         CLIFormatter.clear_line()
-        CLIFormatter.print_success(f"{self.text} - {message}")
+        CLIFormatter.print_success(f"{self.initial_text} - {message}")
