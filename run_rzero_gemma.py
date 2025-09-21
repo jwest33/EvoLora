@@ -57,38 +57,24 @@ class ChallengerAgent:
         trainable = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
         CLIFormatter.print_success(f"Challenger loaded: {trainable:,} trainable params")
 
-    def judge_answer(self, question: str, student_answer: str, ground_truth: str = None) -> bool:
-        """Use LLM to judge if an answer is correct
+    def extract_answer(self, question: str, response: str) -> str:
+        """Use LLM to extract the final numerical answer from a response
 
         Args:
             question: The math problem
-            student_answer: The answer to evaluate
-            ground_truth: Optional known correct answer
+            response: The full response containing the answer
 
         Returns:
-            bool: True if answer is correct, False otherwise
+            str: The extracted numerical answer
         """
         self.model.eval()
 
-        if ground_truth:
-            prompt = f"""Question: {question}
-Student's Answer: {student_answer}
-Correct Answer: {ground_truth}
+        prompt = f"""Question: {question}
+Response: {response}
 
-Compare ONLY the final numeric values. Is the student's final answer equal to {ground_truth}?
-- Student claims the answer is: {student_answer}
-- The correct answer is: {ground_truth}
-- If these numbers are equal (ignoring units/formatting), reply YES
-- If these numbers are different, reply NO
-
-Answer:"""
-        else:
-            prompt = f"""Question: {question}
-Student's Answer: {student_answer}
-
-Solve this math problem step by step, then check if the student's answer is correct.
-Reply with only YES if correct or NO if incorrect.
-
+Extract ONLY the final numerical answer from the response above.
+If the answer is a fraction, convert it to decimal.
+Reply with just the number, nothing else.
 Answer:"""
 
         inputs = self.tokenizer(prompt, return_tensors="pt", truncation=True, max_length=500)
@@ -97,8 +83,8 @@ Answer:"""
         with torch.no_grad():
             outputs = self.model.generate(
                 **inputs,
-                max_new_tokens=50,
-                temperature=0.1,  # Low temperature for consistent judgment
+                max_new_tokens=20,
+                temperature=0.1,  # Low temperature for consistent extraction
                 do_sample=False,  # Greedy for consistency
                 pad_token_id=self.tokenizer.pad_token_id,
                 eos_token_id=self.tokenizer.eos_token_id,
@@ -106,39 +92,65 @@ Answer:"""
 
         # Decode only the generated part
         generated_tokens = outputs[0][inputs['input_ids'].shape[1]:]
-        response = self.tokenizer.decode(generated_tokens, skip_special_tokens=True).strip().upper()
+        extracted = self.tokenizer.decode(generated_tokens, skip_special_tokens=True).strip()
 
-        # Check if response contains YES
-        if "YES" in response and "NO" not in response:
-            return True
-        elif "NO" in response:
-            return False
-        else:
-            # Fallback to numeric comparison if LLM response is unclear
-            import re
-            def extract_num(text):
-                text = text.replace("\\boxed{", "").replace("}", "")
-                numbers = re.findall(r'[-]?\d+(?:\.\d+)?', text)
-                return float(numbers[-1]) if numbers else None
+        # Handle multi-line responses - get the LAST non-empty line
+        lines = extracted.split('\n')
+        lines = [line.strip() for line in lines if line.strip()]
+        if lines:
+            extracted = lines[-1]  # Get the last line
 
-            student_num = extract_num(student_answer)
-            ground_num = extract_num(ground_truth)
+        # If "Final Answer:" appears, extract after the LAST occurrence
+        if "final answer" in extracted.lower():
+            parts = extracted.lower().split("final answer")
+            if len(parts) > 1:
+                extracted = parts[-1].strip()
+                # Remove colon if present
+                if extracted.startswith(':'):
+                    extracted = extracted[1:].strip()
 
-            if student_num is not None and ground_num is not None:
-                return abs(student_num - ground_num) < 0.01
-            return False
+        # Clean up common patterns
+        extracted = extracted.replace("$", "").replace(",", "")
+        extracted = extracted.replace("\\boxed{", "").replace("}", "")
+
+        # Remove any trailing periods or non-numeric characters
+        import re
+        # Try to extract just the number
+        number_match = re.search(r'[-]?\d+(?:\.\d+)?', extracted)
+        if number_match:
+            extracted = number_match.group()
+
+        return extracted
 
     def generate_problems(self, num_problems: int, difficulty: float = 0.5) -> List[Dict]:
-        """Generate math problems based on difficulty level"""
+        """Generate math problems with ground truth answers"""
         problems = []
 
-        # Create prompts for different difficulty levels
+        # Create prompts for different difficulty levels with explicit answer request
         if difficulty < 0.3:
-            prompt_template = "Generate a simple arithmetic problem (addition or subtraction) with single digits. Problem:"
+            prompt_template = """Generate a simple math problem with its answer.
+Example format:
+Question: What is 5 + 3?
+Answer: 8
+
+Now generate a new problem:
+Question:"""
         elif difficulty < 0.7:
-            prompt_template = "Generate a moderately complex math problem involving multiplication or two-step operations. Problem:"
+            prompt_template = """Generate a moderately complex math problem with its answer.
+Example format:
+Question: If John has 12 apples and gives away 4, how many does he have?
+Answer: 8
+
+Now generate a new problem:
+Question:"""
         else:
-            prompt_template = "Generate a challenging math problem involving fractions, percentages, or multi-step word problems. Problem:"
+            prompt_template = """Generate a challenging math word problem with its answer.
+Example format:
+Question: A store sells pens for $3 each. If you buy 5 pens and get a 10% discount, what's the total?
+Answer: 13.50
+
+Now generate a new problem:
+Question:"""
 
         self.model.eval()
         for _ in tqdm(range(num_problems), desc="Generating problems"):
@@ -148,8 +160,8 @@ Answer:"""
             with torch.no_grad():
                 outputs = self.model.generate(
                     **inputs,
-                    max_new_tokens=200,  # Increased for complete problems
-                    min_new_tokens=20,   # Ensure minimum problem length
+                    max_new_tokens=250,  # Enough for problem + answer
+                    min_new_tokens=30,   # Ensure we get both question and answer
                     temperature=0.7,
                     do_sample=True,
                     pad_token_id=self.tokenizer.pad_token_id,
@@ -159,14 +171,31 @@ Answer:"""
 
             # Decode only the generated part
             generated_tokens = outputs[0][inputs['input_ids'].shape[1]:]
-            problem_text = self.tokenizer.decode(generated_tokens, skip_special_tokens=True).strip()
+            generated_text = self.tokenizer.decode(generated_tokens, skip_special_tokens=True).strip()
 
-            # Ensure we have a valid problem
-            if not problem_text or len(problem_text) < 10:
-                problem_text = f"Calculate {2+difficulty*10:.0f} + {3+difficulty*10:.0f}."
+            # Parse question and answer
+            question = ""
+            answer = ""
+
+            if "Answer:" in generated_text:
+                parts = generated_text.split("Answer:")
+                question = parts[0].strip()
+                answer = parts[1].strip() if len(parts) > 1 else ""
+            else:
+                # If no answer provided, generate a simple problem with known answer
+                question = generated_text
+                answer = ""
+
+            # Fallback to simple problems with known answers if generation fails
+            if not question or not answer:
+                num1 = int(5 + difficulty * 20)
+                num2 = int(3 + difficulty * 15)
+                question = f"What is {num1} + {num2}?"
+                answer = str(num1 + num2)
 
             problems.append({
-                "question": problem_text,
+                "question": question,
+                "answer": answer,  # Ground truth
                 "difficulty": difficulty
             })
 
@@ -188,16 +217,25 @@ Answer:"""
         # Manual tokenization to avoid multiprocessing issues
         tokenized_data = []
         for example in dataset:
-            text = f"Generate a problem that is {'easy' if solver_accuracy > 0.7 else 'harder'}: {example['question']}"
+            # Handle both pre-training examples (with 'text' key) and feedback examples (with 'question' key)
+            if 'text' in example:
+                text = example['text']  # Use text directly for pre-training
+            else:
+                text = f"Generate a problem that is {'easy' if solver_accuracy > 0.7 else 'harder'}: {example['question']}"
             tokens = self.tokenizer(
                 text,
                 truncation=True,
                 padding="max_length",
                 max_length=256,
-                return_tensors=None,
+                return_tensors="pt",
             )
-            tokens["labels"] = tokens["input_ids"].copy()
-            tokenized_data.append(tokens)
+            # Convert to dict format for Dataset
+            token_dict = {
+                "input_ids": tokens["input_ids"].squeeze(0),  # Remove batch dimension
+                "attention_mask": tokens["attention_mask"].squeeze(0),
+                "labels": tokens["input_ids"].squeeze(0).clone()
+            }
+            tokenized_data.append(token_dict)
 
         train_dataset = Dataset.from_list(tokenized_data)
 
@@ -261,37 +299,24 @@ class SolverAgent:
         trainable = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
         CLIFormatter.print_success(f"Solver loaded: {trainable:,} trainable params")
 
-    def judge_answer(self, question: str, student_answer: str, ground_truth: str = None) -> bool:
-        """Use LLM to judge if an answer is correct
+    def extract_answer(self, question: str, response: str) -> str:
+        """Use LLM to extract the final numerical answer from a response
 
         Args:
             question: The problem question
-            student_answer: The student's answer to evaluate
-            ground_truth: Optional ground truth answer
+            response: The full response containing the answer
 
         Returns:
-            True if answer is correct, False otherwise
+            str: The extracted numerical answer
         """
         self.model.eval()
 
-        if ground_truth:
-            prompt = f"""Question: {question}
-Student Answer: {student_answer}
-Correct Answer: {ground_truth}
+        prompt = f"""Question: {question}
+Response: {response}
 
-Task: Check if the student's final numeric answer matches the correct answer.
-- Extract the final number from student's answer
-- The correct final answer is: {ground_truth}
-- Reply YES only if the numbers match exactly
-- Reply NO if the numbers are different
-
-Answer:"""
-        else:
-            prompt = f"""Question: {question}
-Student Answer: {student_answer}
-
-Solve this math problem step by step, then check if the student's answer is correct.
-Reply with only 'YES' if the answer is correct, or 'NO' if incorrect.
+Extract ONLY the final numerical answer from the response above.
+If the answer is a fraction, convert it to decimal.
+Reply with just the number, nothing else.
 Answer:"""
 
         inputs = self.tokenizer(prompt, return_tensors="pt", truncation=True, max_length=500)
@@ -300,8 +325,8 @@ Answer:"""
         with torch.no_grad():
             outputs = self.model.generate(
                 **inputs,
-                max_new_tokens=50,
-                temperature=0.1,  # Low temperature for consistent judgment
+                max_new_tokens=20,
+                temperature=0.1,  # Low temperature for consistent extraction
                 do_sample=False,  # Greedy decoding for consistency
                 pad_token_id=self.tokenizer.pad_token_id,
                 eos_token_id=self.tokenizer.eos_token_id,
@@ -309,28 +334,35 @@ Answer:"""
 
         # Decode only the generated part
         generated_tokens = outputs[0][inputs['input_ids'].shape[1]:]
-        judgment = self.tokenizer.decode(generated_tokens, skip_special_tokens=True).strip().upper()
+        extracted = self.tokenizer.decode(generated_tokens, skip_special_tokens=True).strip()
 
-        # Look for YES/NO in the response
-        if "YES" in judgment and "NO" not in judgment:
-            return True
-        elif "NO" in judgment:
-            return False
-        else:
-            # Fallback to numeric comparison if LLM response is unclear
-            import re
-            def extract_num(text):
-                text = text.replace("\\boxed{", "").replace("}", "")
-                # Try to find the last number in the text
-                numbers = re.findall(r'[-]?\d+(?:\.\d+)?', text)
-                return float(numbers[-1]) if numbers else None
+        # Handle multi-line responses - get the LAST non-empty line
+        lines = extracted.split('\n')
+        lines = [line.strip() for line in lines if line.strip()]
+        if lines:
+            extracted = lines[-1]  # Get the last line
 
-            student_num = extract_num(student_answer)
-            ground_num = extract_num(ground_truth) if ground_truth else None
+        # If "Final Answer:" appears, extract after the LAST occurrence
+        if "final answer" in extracted.lower():
+            parts = extracted.lower().split("final answer")
+            if len(parts) > 1:
+                extracted = parts[-1].strip()
+                # Remove colon if present
+                if extracted.startswith(':'):
+                    extracted = extracted[1:].strip()
 
-            if student_num is not None and ground_num is not None:
-                return abs(student_num - ground_num) < 0.01
-            return False
+        # Clean up common patterns
+        extracted = extracted.replace("$", "").replace(",", "")
+        extracted = extracted.replace("\\boxed{", "").replace("}", "")
+
+        # Remove any trailing periods or non-numeric characters
+        import re
+        # Try to extract just the number
+        number_match = re.search(r'[-]?\d+(?:\.\d+)?', extracted)
+        if number_match:
+            extracted = number_match.group()
+
+        return extracted
 
     def solve_problems(self, problems: List[Dict], judge_agent=None, return_accuracy: bool = True) -> List[Dict]:
         """Generate solutions for problems
@@ -391,56 +423,91 @@ Answer:"""
             }
             results.append(result)
 
-        # Phase 2: Batch evaluate all answers with judge (if ground truth available)
+        # Phase 2: Batch evaluate all answers (if ground truth available)
         has_ground_truth = any("answer" in p and p["answer"] for p in problems)
 
         if has_ground_truth:
-            CLIFormatter.print_info("Evaluating answers with LLM judge...")
+            CLIFormatter.print_info("Extracting and evaluating answers...")
 
-            # Use provided judge or self for evaluation
-            judge = judge_agent if judge_agent else self
+            # Use provided judge or self for extraction
+            extractor = judge_agent if judge_agent else self
 
-            for i, (problem, result) in enumerate(tqdm(zip(problems, results), desc="Judging answers", total=len(problems))):
+            def fuzzy_numeric_compare(num1_str: str, num2_str: str) -> bool:
+                """Compare two numeric strings with fuzzy matching"""
+                import re
+
+                def clean_and_extract(text):
+                    """Clean and extract numeric value from text"""
+                    text = str(text).strip()
+                    # Remove common formatting
+                    text = text.replace("$", "").replace(",", "").replace("\\boxed{", "").replace("}", "")
+
+                    # Try to extract number with various patterns
+                    patterns = [
+                        r'^[-]?\d+(?:\.\d+)?$',  # Just a number
+                        r'[-]?\d+(?:\.\d+)?(?:\s*(?:dollars?|cents?|%|percent))?$',  # Number with units
+                        r'(?:answer|is|equals?|=)\s*[-]?\d+(?:\.\d+)?',  # After keywords
+                        r'[-]?\d+(?:\.\d+)?',  # Any number (last resort)
+                    ]
+
+                    for pattern in patterns:
+                        match = re.search(pattern, text.lower())
+                        if match:
+                            num_str = re.findall(r'[-]?\d+(?:\.\d+)?', match.group())[0]
+                            return float(num_str)
+
+                    # Try fraction conversion (e.g., 1/2 -> 0.5)
+                    fraction_match = re.search(r'(\d+)/(\d+)', text)
+                    if fraction_match:
+                        return float(fraction_match.group(1)) / float(fraction_match.group(2))
+
+                    return None
+
+                try:
+                    num1 = clean_and_extract(num1_str)
+                    num2 = clean_and_extract(num2_str)
+
+                    if num1 is not None and num2 is not None:
+                        # Allow small tolerance for floating point comparison
+                        relative_error = abs(num1 - num2) / max(abs(num2), 1e-10)
+                        return relative_error < 0.01  # 1% tolerance
+
+                    # Fallback to exact string comparison if can't extract numbers
+                    return num1_str.strip().lower() == num2_str.strip().lower()
+
+                except:
+                    return False
+
+            for i, (problem, result) in enumerate(tqdm(zip(problems, results), desc="Evaluating answers", total=len(problems))):
                 if "answer" in problem and problem["answer"]:
                     ground_truth = str(problem["answer"]).strip()
 
                     try:
-                        # Use LLM judge to evaluate
-                        is_correct = judge.judge_answer(
+                        # Extract answer using LLM
+                        extracted_answer = extractor.extract_answer(
                             question=problem["question"],
-                            student_answer=result["answer"],
-                            ground_truth=ground_truth
+                            response=result["answer"]
                         )
+
+                        # Store extracted answer for debugging
+                        result["extracted_answer"] = extracted_answer
+
+                        # Use fuzzy deterministic comparison
+                        is_correct = fuzzy_numeric_compare(extracted_answer, ground_truth)
                         result["is_correct"] = is_correct
                         if is_correct:
                             correct_count += 1
+
+                        # Debug log for edge cases
+                        if not is_correct and len(extracted_answer) > 20:
+                            CLIFormatter.print_warning(f"Long extraction: {extracted_answer[:50]}...")
+
                     except Exception as e:
-                        # Fallback to numeric extraction if judge fails
-                        import re
-
-                        def extract_number(text):
-                            patterns = [
-                                r'(?:=|is|equals?|answer:?)\s*([-]?\d+(?:\.\d+)?)',
-                                r'([-]?\d+(?:\.\d+)?)\s*$',
-                                r'\$?([-]?\d+(?:\.\d+)?)',
-                            ]
-                            for pattern in patterns:
-                                matches = re.findall(pattern, text.lower())
-                                if matches:
-                                    return matches[-1]
-                            return None
-
-                        gen_num = extract_number(result["answer"])
-                        gt_num = extract_number(ground_truth)
-
-                        if gen_num and gt_num:
-                            try:
-                                is_correct = abs(float(gen_num) - float(gt_num)) < 0.01
-                                result["is_correct"] = is_correct
-                                if is_correct:
-                                    correct_count += 1
-                            except:
-                                pass
+                        # If extraction fails, try direct comparison as fallback
+                        is_correct = fuzzy_numeric_compare(result["answer"], ground_truth)
+                        result["is_correct"] = is_correct
+                        if is_correct:
+                            correct_count += 1
 
         # Add accuracy to results if we have ground truth
         if has_ground_truth and return_accuracy:
@@ -505,17 +572,25 @@ Answer:"""
                 truncation=True,
                 padding="max_length",
                 max_length=256,
-                return_tensors=None,
+                return_tensors="pt",
             )
-            tokens["labels"] = tokens["input_ids"].copy()
-            tokenized_data.append(tokens)
+            # Convert to dict format for Dataset
+            token_dict = {
+                "input_ids": tokens["input_ids"].squeeze(0),  # Remove batch dimension
+                "attention_mask": tokens["attention_mask"].squeeze(0),
+                "labels": tokens["input_ids"].squeeze(0).clone()
+            }
+            tokenized_data.append(token_dict)
 
         train_dataset = Dataset.from_list(tokenized_data)
+
+        # Use fewer steps if this is format pre-training (small dataset)
+        max_steps = 5 if len(tokenized_data) < 20 else 10
 
         training_args = TrainingArguments(
             output_dir="outputs/solver",
             per_device_train_batch_size=1,
-            max_steps=10,
+            max_steps=max_steps,
             learning_rate=2e-5,
             optim="adamw_torch",  # Regular optimizer for float32
             logging_steps=1,
@@ -568,16 +643,36 @@ def run_rzero_evolution(num_iterations: int = 5):
     current_dataset = Dataset.from_list(initial_data)
     difficulty = 0.3  # Start with easy problems
 
-    # Calculate baseline accuracy on initial GSM8K data
-    CLIFormatter.print_info("Calculating baseline performance on GSM8K data...")
-
-    # Initialize judge for evaluation
-    judge = ChallengerAgent()
-    CLIFormatter.print_info("Using Challenger as judge for answer evaluation")
-
+    # Pre-train Solver on format examples before baseline
+    CLIFormatter.print_info("Pre-training Solver on Q&A format...")
     solver = SolverAgent()
+
+    # Create format training examples
+    format_examples = [
+        {"question": "What is 5 + 3?", "answer": "5 + 3 = 8\n\nThe answer is 8"},
+        {"question": "If John has 10 apples and gives away 4, how many does he have left?",
+         "answer": "John starts with 10 apples.\nHe gives away 4 apples.\n10 - 4 = 6\n\nJohn has 6 apples left."},
+        {"question": "Calculate 12 × 5", "answer": "12 × 5 = 60\n\nThe answer is 60"},
+        {"question": "A store sells pens for $2 each. How much do 5 pens cost?",
+         "answer": "Each pen costs $2.\nNumber of pens: 5\nTotal cost: $2 × 5 = $10\n\nThe answer is $10"},
+        {"question": "What is 100 divided by 4?", "answer": "100 ÷ 4 = 25\n\nThe answer is 25"},
+        {"question": "Sarah had 15 cookies and ate 3. How many are left?",
+         "answer": "Sarah started with 15 cookies.\nShe ate 3 cookies.\n15 - 3 = 12\n\nSarah has 12 cookies left."},
+        {"question": "What is 7 × 8?", "answer": "7 × 8 = 56\n\nThe answer is 56"},
+        {"question": "If a book costs $15 and you buy 3 books, what's the total?",
+         "answer": "Cost per book: $15\nNumber of books: 3\nTotal: $15 × 3 = $45\n\nThe total cost is $45"},
+    ]
+
+    format_dataset = Dataset.from_list(format_examples)
+
+    # Quick format training (just a few steps to learn the pattern)
+    solver.train_on_problems(format_dataset, format_training=False)  # Don't add more format examples
+    CLIFormatter.print_success("Solver pre-trained on Q&A format")
+
+    # Now calculate baseline accuracy
+    CLIFormatter.print_info("Calculating baseline performance on GSM8K data...")
     test_problems = current_dataset.select(range(min(10, len(current_dataset))))
-    baseline_results = solver.solve_problems(test_problems.to_list(), judge_agent=judge)
+    baseline_results = solver.solve_problems(test_problems.to_list(), judge_agent=None)  # Use numeric extraction only
 
     # Calculate baseline accuracy using ground truth
     if baseline_results and "accuracy" in baseline_results[0]:
@@ -603,7 +698,6 @@ def run_rzero_evolution(num_iterations: int = 5):
     CLIFormatter.print_info("Saved baseline samples to outputs/samples/baseline.json")
 
     solver.cleanup()
-    judge.cleanup()  # Clean up judge after baseline
 
     for iteration in range(num_iterations):
         CLIFormatter.print_generation_header(iteration + 1, num_iterations)
@@ -613,8 +707,19 @@ def run_rzero_evolution(num_iterations: int = 5):
         CLIFormatter.print_subheader("Phase 1: Challenger Generating Problems")
         challenger = ChallengerAgent()
 
+        # Pre-train Challenger on first iteration to learn format
+        if iteration == 0:
+            CLIFormatter.print_info("Pre-training Challenger on problem generation format...")
+            challenger_examples = [
+                {"text": "Generate a simple math problem with its answer.\nQuestion: What is 7 + 5?\nAnswer: 12"},
+                {"text": "Generate a simple math problem with its answer.\nQuestion: What is 15 - 8?\nAnswer: 7"},
+                {"text": "Generate a moderately complex math problem with its answer.\nQuestion: A box has 6 rows with 4 items each. How many items total?\nAnswer: 24"},
+            ]
+            challenger_dataset = Dataset.from_list(challenger_examples)
+            challenger.train_on_feedback(challenger_dataset, solver_accuracy)
+
         # Train Challenger if we have feedback from previous iteration
-        if iteration > 0:
+        elif iteration > 0:
             challenger.train_on_feedback(current_dataset, solver_accuracy)
 
         CLIFormatter.print_info(f"Generating New Problems (difficulty: {difficulty:.2f})")
