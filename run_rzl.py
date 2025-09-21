@@ -599,11 +599,15 @@ Then, provide your solution between {SOLUTION_START}{SOLUTION_END}"""
                 original_log(logs)
 
             # Format and display key metrics
-            if logs:
+            if logs and isinstance(logs, dict):
                 step = trainer.state.global_step
 
-                # Only print on actual training steps (not initial eval)
-                if step > 0:
+                # Only print formatted output when we have complete training metrics
+                # (reward data indicates a full training step, not just eval)
+                has_rewards = 'reward' in logs and 'epoch' in logs
+                has_components = any(k.startswith('rewards/') for k in logs.keys())
+
+                if step > 0 and has_rewards and has_components:
                     print("\n")  # Clear line after default output
                     # Use the new synthwave-styled GRPO formatter
                     CLIFormatter.format_grpo_stats(logs, step, max_steps)

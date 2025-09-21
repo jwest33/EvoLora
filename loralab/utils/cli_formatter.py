@@ -532,35 +532,29 @@ class CLIFormatter:
         print(f"\n{CLIFormatter.NEON_PINK}{'═' * 60}{Style.RESET_ALL}")
         print(f"{CLIFormatter.ELECTRIC_BLUE}{Style.BRIGHT}Step: {step}/{total_steps}{Style.RESET_ALL}")
 
-        # Extract and display key metrics
-        epoch = metrics.get('epoch', 0)
-        reward = metrics.get('reward', 0)
-        reward_std = metrics.get('reward_std', 0)
+        # Extract and display key metrics - use actual values from metrics
+        epoch = metrics.get('epoch', 0.0)
+        reward = metrics.get('reward', 0.0)
+        reward_std = metrics.get('reward_std', 0.0)
 
+        # Display epoch and main reward with actual values
         print(f"{CLIFormatter.NEON_CYAN}Epoch: {CLIFormatter.ELECTRIC_BLUE}{epoch:.1f}{Style.RESET_ALL}")
-        print(f"{CLIFormatter.NEON_CYAN}Total Reward: {CLIFormatter.NEON_GREEN if reward > 0.5 else CLIFormatter.SUNSET_ORANGE if reward > 0 else CLIFormatter.HOT_PINK}{reward:.3f} ± {reward_std:.3f}{Style.RESET_ALL}")
+        print(f"{CLIFormatter.NEON_CYAN}Reward: {CLIFormatter.NEON_GREEN if reward > 0.5 else CLIFormatter.SUNSET_ORANGE if reward > 0 else CLIFormatter.HOT_PINK}{reward:.3f} ± {reward_std:.3f}{Style.RESET_ALL}")
 
-        # Format individual reward components - always try to display them
-        format_exact = metrics.get('rewards/match_format_exactly/mean', None)
-        format_approx = metrics.get('rewards/match_format_approximately/mean', None)
-        answer_check = metrics.get('rewards/check_answer/mean', None)
-        number_extract = metrics.get('rewards/check_numbers/mean', None)
+        # Always display reward breakdown
+        print(f"\n{CLIFormatter.NEON_PURPLE}Reward Components:{Style.RESET_ALL}")
 
-        # Display reward breakdown if any rewards are present
-        if any(x is not None for x in [format_exact, format_approx, answer_check, number_extract]):
-            print(f"\n{CLIFormatter.NEON_PURPLE}Reward Breakdown:{Style.RESET_ALL}")
+        # Format individual reward components
+        format_exact = metrics.get('rewards/match_format_exactly/mean', 0.0)
+        format_approx = metrics.get('rewards/match_format_approximately/mean', 0.0)
+        answer_check = metrics.get('rewards/check_answer/mean', 0.0)
+        number_extract = metrics.get('rewards/check_numbers/mean', 0.0)
 
-            if format_exact is not None:
-                print(f"  {CLIFormatter.NEON_CYAN}Format (exact): {CLIFormatter.NEON_GREEN if format_exact > 0.5 else CLIFormatter.HOT_PINK}{format_exact:.2f}{Style.RESET_ALL}")
-
-            if format_approx is not None:
-                print(f"  {CLIFormatter.NEON_CYAN}Format (approx): {CLIFormatter.NEON_GREEN if format_approx > 0 else CLIFormatter.SUNSET_ORANGE if format_approx > -0.5 else CLIFormatter.HOT_PINK}{format_approx:.2f}{Style.RESET_ALL}")
-
-            if answer_check is not None:
-                print(f"  {CLIFormatter.NEON_CYAN}Answer check: {CLIFormatter.NEON_GREEN if answer_check > 0.5 else CLIFormatter.SUNSET_ORANGE if answer_check > 0 else CLIFormatter.HOT_PINK}{answer_check:.2f}{Style.RESET_ALL}")
-
-            if number_extract is not None:
-                print(f"  {CLIFormatter.NEON_CYAN}Number extract: {CLIFormatter.NEON_GREEN if number_extract > 0.5 else CLIFormatter.SUNSET_ORANGE if number_extract > 0 else CLIFormatter.HOT_PINK}{number_extract:.2f}{Style.RESET_ALL}")
+        # Display each component with color coding
+        print(f"  {CLIFormatter.NEON_CYAN}Format (exact): {CLIFormatter.NEON_GREEN if format_exact > 0.5 else CLIFormatter.SUNSET_ORANGE if format_exact > 0 else CLIFormatter.HOT_PINK}{format_exact:.3f}{Style.RESET_ALL}")
+        print(f"  {CLIFormatter.NEON_CYAN}Format (approx): {CLIFormatter.NEON_GREEN if format_approx > 0 else CLIFormatter.SUNSET_ORANGE if format_approx > -0.5 else CLIFormatter.HOT_PINK}{format_approx:.3f}{Style.RESET_ALL}")
+        print(f"  {CLIFormatter.NEON_CYAN}Answer check: {CLIFormatter.NEON_GREEN if answer_check > 0.5 else CLIFormatter.SUNSET_ORANGE if answer_check > 0 else CLIFormatter.HOT_PINK}{answer_check:.3f}{Style.RESET_ALL}")
+        print(f"  {CLIFormatter.NEON_CYAN}Number extract: {CLIFormatter.NEON_GREEN if number_extract > 0.5 else CLIFormatter.SUNSET_ORANGE if number_extract > 0 else CLIFormatter.HOT_PINK}{number_extract:.3f}{Style.RESET_ALL}")
 
         # Training metrics
         print(f"\n{CLIFormatter.NEON_PURPLE}Training Metrics:{Style.RESET_ALL}")
@@ -628,15 +622,35 @@ class SpinnerProgress:
         self.text = text
         self.spinner = self.SPINNERS.get(spinner_type, self.SPINNERS['dots'])
         self.index = 0
+        self.initial_text = text
 
-    def update(self):
-        """Update spinner animation"""
+    def __enter__(self):
+        """Enter context manager"""
+        self.update()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Exit context manager"""
+        if exc_type is None:
+            self.complete("Complete")
+        else:
+            CLIFormatter.clear_line()
+            CLIFormatter.print_error(f"{self.initial_text} - Failed")
+        return False
+
+    def update(self, text: str = None):
+        """Update spinner animation with synthwave colors"""
+        if text:
+            self.text = text
         CLIFormatter.clear_line()
         frame = self.spinner[self.index % len(self.spinner)]
-        print(f"{Fore.CYAN}{frame} {self.text}{Style.RESET_ALL}", end='', flush=True)
+        # Cycle through synthwave colors for animation
+        colors = [CLIFormatter.NEON_PINK, CLIFormatter.NEON_CYAN, CLIFormatter.ELECTRIC_BLUE, CLIFormatter.NEON_GREEN]
+        color = colors[self.index % len(colors)]
+        print(f"{color}{frame} {self.text}{Style.RESET_ALL}", end='', flush=True)
         self.index += 1
 
     def complete(self, message: str = "Complete"):
         """Complete spinner with message"""
         CLIFormatter.clear_line()
-        CLIFormatter.print_success(f"{self.text} - {message}")
+        CLIFormatter.print_success(f"{self.initial_text} - {message}")
