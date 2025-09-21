@@ -72,3 +72,7 @@
 2025-09-21 05:24:06,926 - loralab.training.grpo_trainer - INFO - Created pre-training dataset with 5 examples
 2025-09-21 05:24:12,036 - loralab.training.grpo_trainer - INFO - Pre-training completed with final loss: 2.7258
 2025-09-21 05:24:12,037 - loralab.training.grpo_trainer - INFO - Starting GRPO training for gen0_r4_lr5e-05
+2025-09-21 05:31:02,415 - loralab.training.grpo_trainer - INFO - Found reward value -4.6250 from key 'reward' in log history
+2025-09-21 05:31:02,416 - loralab.training.grpo_trainer - INFO - GRPO training completed for gen0_r4_lr5e-05
+2025-09-21 05:31:02,416 - loralab.training.grpo_trainer - INFO -   Final loss: 0.0460
+2025-09-21 05:31:02,417 - loralab.training.grpo_trainer - INFO -   Average reward: -4.6250
