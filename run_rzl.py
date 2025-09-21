@@ -653,9 +653,14 @@ Then, provide your solution between {SOLUTION_START}{SOLUTION_END}"""
         clear_memory()
 
 
-def run_simplified_rzero(num_iterations: int = 5):
-    """Main simplified R-Zero evolution loop"""
-    CLIFormatter.print_header("Simplified R-Zero Training")
+def run_simplified_rzero(num_iterations: int = 5, grpo_steps_per_iteration: int = 100):
+    """Main simplified R-Zero evolution loop with GRPO
+
+    Args:
+        num_iterations: Number of evolution cycles
+        grpo_steps_per_iteration: GRPO training steps per iteration (50-200 recommended)
+    """
+    CLIFormatter.print_header("R-Zero Training with GRPO")
 
     # Check CUDA
     if torch.cuda.is_available():
@@ -664,8 +669,15 @@ def run_simplified_rzero(num_iterations: int = 5):
     else:
         CLIFormatter.print_warning("CUDA not available - training will be slow")
 
+    # Training configuration
+    CLIFormatter.print_subheader("Configuration")
+    CLIFormatter.print_status("Evolution iterations", str(num_iterations))
+    CLIFormatter.print_status("GRPO steps per iteration", str(grpo_steps_per_iteration))
+    CLIFormatter.print_status("Model", "Gemma-3-1B with LoRA")
+    CLIFormatter.print_status("Teacher", "Qwen3-30B (GGUF)")
+
     # Initialize with GSM8K for bootstrapping
-    CLIFormatter.print_info("Loading GSM8K dataset for bootstrapping...")
+    CLIFormatter.print_subheader("Loading GSM8K Dataset")
     gsm8k = load_dataset("openai/gsm8k", "main", split="train[:100]")
 
     # Prepare initial dataset
@@ -680,39 +692,56 @@ def run_simplified_rzero(num_iterations: int = 5):
     difficulty = 0.3  # Start with easy problems
 
     # Initialize Teacher (no training needed)
+    CLIFormatter.print_subheader("Initializing Agents")
     teacher = TeacherAgent()
     teacher_state_path = "outputs/teacher/state.json"
 
     # Load teacher state if exists
     if os.path.exists(teacher_state_path):
+        CLIFormatter.print_info("Loading existing Teacher state...")
         teacher.load_state(teacher_state_path)
 
     # Pre-train Solver on GSM8K examples using GRPO
-    CLIFormatter.print_info("Pre-training Solver on GSM8K examples with GRPO...")
+    CLIFormatter.print_subheader("Pre-training Solver with GRPO")
+    CLIFormatter.print_info("This teaches the model the basic reasoning format...")
     solver = SolverAgent()
 
     # Pre-train with GRPO on initial dataset
     initial_problems = []
-    for item in current_dataset.select(range(min(20, len(current_dataset)))):
+    for item in current_dataset.select(range(min(30, len(current_dataset)))):
         initial_problems.append({
             "question": item["question"],
             "answer": item["answer"],
         })
 
-    solver.train_with_grpo(initial_problems, max_steps=30)
+    # Use more steps for pre-training to establish format
+    solver.train_with_grpo(initial_problems, max_steps=50)
 
     # Save pre-trained solver
     solver_checkpoint = solver.save_checkpoint(0)
     solver.cleanup()
 
     # Evolution loop
+    CLIFormatter.print_header("Starting Evolution Loop")
+
     for iteration in range(num_iterations):
-        CLIFormatter.print_header(f"Iteration {iteration + 1}/{num_iterations}")
-        CLIFormatter.print_status("Difficulty", f"{difficulty:.2f}")
+        CLIFormatter.print_header(f"Evolution Iteration {iteration + 1}/{num_iterations}")
+        CLIFormatter.print_status("Current Difficulty", f"{difficulty:.2f}")
 
         # Phase 1: Teacher generates problems
         CLIFormatter.print_subheader("Phase 1: Teacher Generating Problems")
-        new_problems = teacher.generate_problems(20, difficulty, initial_data[:10])
+        num_problems = 20 + (iteration * 5)  # Increase dataset size over time
+        CLIFormatter.print_info(f"Generating {num_problems} problems at difficulty {difficulty:.2f}...")
+
+        new_problems = teacher.generate_problems(num_problems, difficulty, initial_data[:10])
+
+        # Show sample problem
+        if new_problems:
+            CLIFormatter.print_info("Sample generated problem:")
+            CLIFormatter.print_item("Question", new_problems[0]['question'][:100] + "..." if len(new_problems[0]['question']) > 100 else new_problems[0]['question'])
+            CLIFormatter.print_item("Answer", new_problems[0]['answer'])
+            if new_problems[0].get('reasoning'):
+                CLIFormatter.print_item("Has reasoning", "Yes")
 
         # Save teacher samples
         os.makedirs("outputs/samples", exist_ok=True)
@@ -720,25 +749,39 @@ def run_simplified_rzero(num_iterations: int = 5):
             json.dump({
                 "iteration": iteration + 1,
                 "difficulty": difficulty,
-                "prompt": teacher.generation_prompt,
+                "prompt": teacher.generation_prompt[:500] + "..." if len(teacher.generation_prompt) > 500 else teacher.generation_prompt,
                 "samples": new_problems[:5]
             }, f, indent=2)
 
         # Update dataset
         current_dataset = Dataset.from_list(new_problems)
 
-        # Phase 2: Solver attempts to solve problems
-        CLIFormatter.print_subheader("Phase 2: Solver Solving Problems")
+        # Phase 2: GRPO Training
+        CLIFormatter.print_subheader("Phase 2: Solver GRPO Training")
+        CLIFormatter.print_info(f"Training for {grpo_steps_per_iteration} steps to learn reasoning...")
+        CLIFormatter.print_info("Watch the reward metrics to see learning progress!")
+
         solver = SolverAgent(checkpoint_path=solver_checkpoint)
 
-        # Train with GRPO on new problems
-        solver.train_with_grpo(new_problems, max_steps=50)
+        # Train with GRPO on new problems - use configured step count
+        solver.train_with_grpo(new_problems, max_steps=grpo_steps_per_iteration)
 
-        # Evaluate solver
-        results = solver.solve_problems(new_problems)
+        # Phase 3: Evaluate solver
+        CLIFormatter.print_subheader("Phase 3: Evaluating Solver Performance")
+        # Test on subset for speed
+        test_problems = new_problems[:min(10, len(new_problems))]
+        results = solver.solve_problems(test_problems)
         solver_accuracy = results[0]["accuracy"] if results else 0
 
         CLIFormatter.print_metric("Solver Accuracy", solver_accuracy * 100, "%", good_threshold=70, bad_threshold=40)
+
+        # Show example solution
+        if results:
+            CLIFormatter.print_info("Example solver output:")
+            CLIFormatter.print_item("Question", results[0]['question'][:80] + "..." if len(results[0]['question']) > 80 else results[0]['question'])
+            CLIFormatter.print_item("Solver answer", results[0]['solver_answer'])
+            CLIFormatter.print_item("Correct answer", results[0]['ground_truth'])
+            CLIFormatter.print_item("Result", "✓ Correct" if results[0]['is_correct'] else "✗ Incorrect")
 
         # Save solver samples
         with open(f"outputs/samples/solver_iter_{iteration + 1}.json", "w") as f:
@@ -748,33 +791,63 @@ def run_simplified_rzero(num_iterations: int = 5):
                 "samples": results[:5]
             }, f, indent=2)
 
-        # Phase 3: Teacher evolves its prompt based on solver performance
-        CLIFormatter.print_subheader("Phase 3: Teacher Evolving Prompt")
+        # Phase 4: Teacher evolves its prompt
+        CLIFormatter.print_subheader("Phase 4: Teacher Prompt Evolution")
+        old_prompt_len = len(teacher.generation_prompt)
         teacher.evolve_prompt(solver_accuracy, new_problems[:5])
+        new_prompt_len = len(teacher.generation_prompt)
+
+        CLIFormatter.print_status("Prompt evolution", f"{old_prompt_len} → {new_prompt_len} chars")
         teacher.save_state(teacher_state_path)
 
         # Adjust difficulty for next iteration
+        old_difficulty = difficulty
         if solver_accuracy > 0.7:
             difficulty = min(1.0, difficulty + 0.1)
-        elif solver_accuracy < 0.6:
+            CLIFormatter.print_success(f"Performance good! Increasing difficulty: {old_difficulty:.2f} → {difficulty:.2f}")
+        elif solver_accuracy < 0.4:
             difficulty = max(0.1, difficulty - 0.1)
+            CLIFormatter.print_warning(f"Performance low. Decreasing difficulty: {old_difficulty:.2f} → {difficulty:.2f}")
+        else:
+            CLIFormatter.print_info(f"Maintaining difficulty at {difficulty:.2f}")
 
         # Save solver checkpoint
         solver_checkpoint = solver.save_checkpoint(iteration + 1)
         solver.cleanup()
 
+        # Iteration summary
+        CLIFormatter.print_success(f"✓ Iteration {iteration + 1} completed!")
+        CLIFormatter.print_item("Final accuracy", f"{solver_accuracy:.2%}")
+        CLIFormatter.print_item("Next difficulty", f"{difficulty:.2f}")
+        CLIFormatter.print_item("Prompt iterations", str(len(teacher.prompt_history)))
+        print()  # Add spacing between iterations
+
     # Final summary
-    CLIFormatter.print_header("Evolution Complete")
-    CLIFormatter.print_success(f"Completed {num_iterations} iterations")
+    CLIFormatter.print_header("R-Zero GRPO Training Complete!")
+    CLIFormatter.print_success(f"Completed {num_iterations} evolution iterations")
+    CLIFormatter.print_status("Final difficulty level", f"{difficulty:.2f}")
+    CLIFormatter.print_status("Total prompt evolutions", str(len(teacher.prompt_history)))
 
     # Save final summary
     with open("outputs/evolution_summary.json", "w") as f:
         json.dump({
             "num_iterations": num_iterations,
             "final_difficulty": difficulty,
+            "grpo_steps_per_iteration": grpo_steps_per_iteration,
             "teacher_prompts": teacher.prompt_history
         }, f, indent=2)
 
+    CLIFormatter.print_info("Results saved:")
+    CLIFormatter.print_item("Samples", "outputs/samples/")
+    CLIFormatter.print_item("Model checkpoints", "outputs/solver/")
+    CLIFormatter.print_item("Teacher state", "outputs/teacher/")
+    CLIFormatter.print_item("Evolution summary", "outputs/evolution_summary.json")
+
+    # Final cleanup
+    teacher.cleanup()
+
 
 if __name__ == "__main__":
-    run_simplified_rzero(num_iterations=2)
+    # Run with recommended settings based on test results
+    # 100 GRPO steps per iteration is a good balance between training time and learning
+    run_simplified_rzero(num_iterations=3, grpo_steps_per_iteration=100)
