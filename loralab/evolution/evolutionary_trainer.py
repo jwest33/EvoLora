@@ -288,9 +288,26 @@ class EvolutionaryTrainer:
         """
         if variant.model is None:
             raise ValueError(f"Variant {variant.variant_id} has no trained model")
-        
+
         os.environ['UNSLOTH_RETURN_LOGITS'] = '1'
-        
+
+        # Ensure model is in eval mode and has consistent dtype
+        variant.model.eval()
+
+        # Fix dtype consistency after GRPO training (which can mix dtypes)
+        # This is critical for BFloat16 models after GRPO
+        if torch.cuda.is_available():
+            # Get the expected dtype from the first parameter
+            model_dtype = next(variant.model.parameters()).dtype
+
+            # If using bfloat16, ensure ALL parameters match
+            if model_dtype == torch.bfloat16:
+                with torch.no_grad():
+                    for name, param in variant.model.named_parameters():
+                        if param.dtype != torch.bfloat16:
+                            param.data = param.data.to(torch.bfloat16)
+                            logger.debug(f"Converted {name} from {param.dtype} to bfloat16")
+
         metrics = self.evaluator.evaluate(
             model=variant.model,
             eval_data=eval_data,
