@@ -14,7 +14,7 @@ import re
 
 # Add project root to path for imports
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from loralab.utils.cli_formatter import CLIFormatter, SpinnerProgress
+from cli_formatter import CLIFormatter, SpinnerProgress
 
 # Disable multiprocessing to avoid Windows issues
 os.environ['TOKENIZERS_PARALLELISM'] = 'false'
@@ -833,4 +833,4 @@ def run_simplified_rzero(num_iterations: int = 5, grpo_steps_per_iteration: int 
 if __name__ == "__main__":
     # Run with recommended settings based on test results
     # 100 GRPO steps per iteration is a good balance between training time and learning
-    run_simplified_rzero(num_iterations=3, grpo_steps_per_iteration=100)
+    run_simplified_rzero(num_iterations=5, grpo_steps_per_iteration=100)

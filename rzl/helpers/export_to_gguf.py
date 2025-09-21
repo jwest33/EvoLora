@@ -322,17 +322,6 @@ def convert_with_llama_cpp(
         else:
             return False
 
-    # Check if output file was created
-    if not output_file.exists():
-        # Sometimes the script creates a different filename
-        possible_files = list(output_file.parent.glob(f"{model_name}*.gguf"))
-        if possible_files:
-            CLIFormatter.print_info(f"Found output file: {possible_files[0].name}")
-            possible_files[0].rename(output_file)
-        else:
-            CLIFormatter.print_error("No GGUF file was created")
-            return False
-
     return True
 
 
