@@ -28,27 +28,40 @@ def clear_memory():
 class ChallengerAgent:
     """Qwen3-4B Challenger that generates difficult problems"""
 
-    def __init__(self):
+    def __init__(self, checkpoint_path=None):
         CLIFormatter.print_info("Initializing Challenger...")
-        self.model, self.tokenizer = FastLanguageModel.from_pretrained(
-            model_name="unsloth/gemma-3-4b-it-unsloth-bnb-4bit", # "unsloth/gemma-3-1b-it-unsloth-bnb-4bit" is stable
-            max_seq_length=1024,
-            load_in_4bit = True,  # 4 bit quantization to reduce memory
-            load_in_8bit = False
-        )
 
-        # Apply LoRA for fine-tuning
-        self.model = FastLanguageModel.get_peft_model(
-            self.model,
-            r=8,
-            target_modules=["q_proj", "v_proj"],
-            lora_alpha=16,
-            lora_dropout=0,
-            bias="none",
-            use_gradient_checkpointing="unsloth",
-            use_rslora=False,  # We support rank stabilized LoRA
-            loftq_config=None  # And LoftQ
-        )
+        # Load from checkpoint if provided, otherwise from base model
+        if checkpoint_path and os.path.exists(checkpoint_path):
+            CLIFormatter.print_info(f"Loading Challenger from checkpoint: {checkpoint_path}")
+            self.model, self.tokenizer = FastLanguageModel.from_pretrained(
+                model_name=checkpoint_path,
+                max_seq_length=1024,
+                load_in_4bit = True,  # 4 bit quantization to reduce memory
+                load_in_8bit = False
+            )
+        else:
+            CLIFormatter.print_info("Loading base Challenger model from Hugging Face")
+            self.model, self.tokenizer = FastLanguageModel.from_pretrained(
+                model_name="unsloth/gemma-3-4b-it-unsloth-bnb-4bit", # "unsloth/gemma-3-1b-it-unsloth-bnb-4bit" is stable
+                max_seq_length=1024,
+                load_in_4bit = True,  # 4 bit quantization to reduce memory
+                load_in_8bit = False
+            )
+
+        # Apply LoRA for fine-tuning (only if loading base model)
+        if not (checkpoint_path and os.path.exists(checkpoint_path)):
+            self.model = FastLanguageModel.get_peft_model(
+                self.model,
+                r=8,
+                target_modules=["q_proj", "v_proj"],
+                lora_alpha=16,
+                lora_dropout=0,
+                bias="none",
+                use_gradient_checkpointing="unsloth",
+                use_rslora=False,  # We support rank stabilized LoRA
+                loftq_config=None  # And LoftQ
+            )
 
         # Set pad token
         if self.tokenizer.pad_token is None:
@@ -262,6 +275,17 @@ Question:"""
         trainer.train()
         CLIFormatter.print_success("Challenger training completed")
 
+    def save_checkpoint(self, iteration: int) -> str:
+        """Save model checkpoint and return the path"""
+        checkpoint_dir = f"outputs/challenger/iteration_{iteration}"
+        os.makedirs(checkpoint_dir, exist_ok=True)
+
+        CLIFormatter.print_info(f"Saving Challenger checkpoint to {checkpoint_dir}")
+        self.model.save_pretrained(checkpoint_dir)
+        self.tokenizer.save_pretrained(checkpoint_dir)
+
+        return checkpoint_dir
+
     def cleanup(self):
         """Clean up model from memory"""
         del self.model
@@ -272,25 +296,38 @@ Question:"""
 class SolverAgent:
     """Gemma-270m Solver that solves problems"""
 
-    def __init__(self):
+    def __init__(self, checkpoint_path=None):
         CLIFormatter.print_info("Initializing Solver (Gemma-270m)...")
-        self.model, self.tokenizer = FastLanguageModel.from_pretrained(
-            model_name="unsloth/gemma-3-270m-it",
-            max_seq_length=512,
-            load_in_4bit=False,  # Use float32 to avoid dtype issues
-            dtype=torch.float32,
-        )
 
-        # Apply LoRA
-        self.model = FastLanguageModel.get_peft_model(
-            self.model,
-            r=16,
-            target_modules=["q_proj", "v_proj"],
-            lora_alpha=32,
-            lora_dropout=0,
-            bias="none",
-            use_gradient_checkpointing=False,  # Disable to avoid dtype issues
-        )
+        # Load from checkpoint if provided, otherwise from base model
+        if checkpoint_path and os.path.exists(checkpoint_path):
+            CLIFormatter.print_info(f"Loading Solver from checkpoint: {checkpoint_path}")
+            self.model, self.tokenizer = FastLanguageModel.from_pretrained(
+                model_name=checkpoint_path,
+                max_seq_length=512,
+                load_in_4bit=False,  # Use float32 to avoid dtype issues
+                dtype=torch.float32,
+            )
+        else:
+            CLIFormatter.print_info("Loading base Solver model from Hugging Face")
+            self.model, self.tokenizer = FastLanguageModel.from_pretrained(
+                model_name="unsloth/gemma-3-270m-it",
+                max_seq_length=512,
+                load_in_4bit=False,  # Use float32 to avoid dtype issues
+                dtype=torch.float32,
+            )
+
+        # Apply LoRA (only if loading base model)
+        if not (checkpoint_path and os.path.exists(checkpoint_path)):
+            self.model = FastLanguageModel.get_peft_model(
+                self.model,
+                r=16,
+                target_modules=["q_proj", "v_proj"],
+                lora_alpha=32,
+                lora_dropout=0,
+                bias="none",
+                use_gradient_checkpointing=False,  # Disable to avoid dtype issues
+            )
 
         # Set pad token
         if self.tokenizer.pad_token is None:
@@ -610,6 +647,17 @@ Answer:"""
         trainer.train()
         CLIFormatter.print_success("Solver training completed")
 
+    def save_checkpoint(self, iteration: int) -> str:
+        """Save model checkpoint and return the path"""
+        checkpoint_dir = f"outputs/solver/iteration_{iteration}"
+        os.makedirs(checkpoint_dir, exist_ok=True)
+
+        CLIFormatter.print_info(f"Saving Solver checkpoint to {checkpoint_dir}")
+        self.model.save_pretrained(checkpoint_dir)
+        self.tokenizer.save_pretrained(checkpoint_dir)
+
+        return checkpoint_dir
+
     def cleanup(self):
         """Clean up model from memory"""
         del self.model
@@ -645,7 +693,7 @@ def run_rzero_evolution(num_iterations: int = 5):
 
     # Pre-train Solver on format examples before baseline
     CLIFormatter.print_info("Pre-training Solver on Q&A format...")
-    solver = SolverAgent()
+    solver = SolverAgent()  # No checkpoint for initial baseline
 
     # Create format training examples
     format_examples = [
@@ -697,7 +745,13 @@ def run_rzero_evolution(num_iterations: int = 5):
         json.dump(baseline_samples, f, indent=2)
     CLIFormatter.print_info("Saved baseline samples to outputs/samples/baseline.json")
 
+    # Save the pre-trained solver checkpoint before cleanup
+    solver_checkpoint = solver.save_checkpoint(0)  # Save as iteration 0 for baseline
     solver.cleanup()
+
+    # Track checkpoint paths
+    challenger_checkpoint = None
+    # solver_checkpoint already set from baseline
 
     for iteration in range(num_iterations):
         CLIFormatter.print_generation_header(iteration + 1, num_iterations)
@@ -705,7 +759,9 @@ def run_rzero_evolution(num_iterations: int = 5):
 
         # Phase 1: Challenger generates problems
         CLIFormatter.print_subheader("Phase 1: Challenger Generating Problems")
-        challenger = ChallengerAgent()
+
+        # Load Challenger from checkpoint if available
+        challenger = ChallengerAgent(checkpoint_path=challenger_checkpoint)
 
         # Pre-train Challenger on first iteration to learn format
         if iteration == 0:
@@ -738,6 +794,9 @@ def run_rzero_evolution(num_iterations: int = 5):
             json.dump(challenger_samples, f, indent=2)
         CLIFormatter.print_info(f"Saved challenger samples to outputs/samples/challenger_iter_{iteration + 1}.json")
 
+        # Save Challenger checkpoint before cleanup
+        challenger_checkpoint = challenger.save_checkpoint(iteration + 1)
+
         # Clean up Challenger
         challenger.cleanup()
 
@@ -746,7 +805,9 @@ def run_rzero_evolution(num_iterations: int = 5):
 
         # Phase 2: Solver attempts to solve the problems
         CLIFormatter.print_subheader("Phase 2: Solver Solving Problems")
-        solver = SolverAgent()
+
+        # Load Solver from checkpoint if available
+        solver = SolverAgent(checkpoint_path=solver_checkpoint)
 
         # Train Solver on the new problems
         solver.train_on_problems(current_dataset)
@@ -777,6 +838,9 @@ def run_rzero_evolution(num_iterations: int = 5):
             difficulty = min(1.0, difficulty + 0.1)  # Increase difficulty
         elif solver_accuracy < 0.6:
             difficulty = max(0.1, difficulty - 0.1)  # Decrease difficulty
+
+        # Save Solver checkpoint before cleanup
+        solver_checkpoint = solver.save_checkpoint(iteration + 1)
 
         # Clean up Solver
         solver.cleanup()
@@ -823,4 +887,4 @@ def run_rzero_evolution(num_iterations: int = 5):
 
 if __name__ == "__main__":
     # Test with just 2 iterations to verify it works
-    run_rzero_evolution(num_iterations=2)
+    run_rzero_evolution(num_iterations=10)
