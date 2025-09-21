@@ -230,12 +230,24 @@ class FitnessEvaluator:
                 
         os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
 
+        # Ensure inputs match model dtype (important for BFloat16 models)
+        model_dtype = next(model.parameters()).dtype
+
         # Calculate perplexity for batch
         with torch.no_grad():
+            # Convert inputs to model's dtype if needed
+            input_ids = encodings['input_ids']
+            attention_mask = encodings['attention_mask']
+
+            # For embedding lookups, input_ids should stay as long tensors
+            # Only attention_mask might need dtype conversion
+            if attention_mask.dtype != model_dtype and model_dtype in [torch.float16, torch.bfloat16]:
+                attention_mask = attention_mask.to(model_dtype)
+
             outputs = model(
-                input_ids=encodings['input_ids'],
-                attention_mask=encodings['attention_mask'],
-                labels=encodings['input_ids']
+                input_ids=input_ids,
+                attention_mask=attention_mask,
+                labels=input_ids
             )
 
             # Try to get per-sample loss using logits
