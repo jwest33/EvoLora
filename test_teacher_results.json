@@ -1,0 +1,62 @@
+{
+  "difficulty_0.2": [
+    {
+      "question": "Tom has 12 marbles. He gives 4 marbles to his sister and then finds 3 more marbles under his bed. How many marbles does Tom have now?",
+      "answer": "11",
+      "full_solution": "Tom starts with 12 marbles.  \nHe gives away 4, so he has 12 - 4 = <<12-4=8>>8 marbles.  \nThen he finds 3 more, so he has 8 + 3 = <<8+3=11>>11 marbles.  \nTherefore, Tom has \\boxed{11} marbles.",
+      "difficulty": 0.2
+    },
+    {
+      "question": "Emma has 12 stickers. She gives 5 stickers to her brother so he can complete his sticker book. How many stickers does Emma have left?",
+      "answer": "7",
+      "full_solution": "Emma starts with 12 stickers.  \nShe gives away 5, so she has 12 - 5 = <<12-5=7>>7 stickers left.  \nTherefore, Emma has \\boxed{7} stickers.",
+      "difficulty": 0.2
+    },
+    {
+      "question": "Emma has 12 crayons. She gives 5 crayons to her brother so he can color too. How many crayons does Emma have left?",
+      "answer": "7",
+      "full_solution": "Emma starts with 12 crayons.  \nShe gives away 5, so she has 12 - 5 = <<12-5=7>>7 crayons left.  \nTherefore, Emma has \\boxed{7} crayons.",
+      "difficulty": 0.2
+    }
+  ],
+  "difficulty_0.5": [
+    {
+      "question": "Emma is planning a birthday party for her friend Liam. She wants to buy enough cupcakes so that each of the 12 guests can have 2 cupcakes, and she also wants 3 extra cupcakes in case more people show up. The cupcakes cost $1.75 each. Emma has $30. How much money will she have left after buying all the cupcakes?",
+      "answer": "27",
+      "full_solution": "First, calculate how many cupcakes Emma needs for the guests:  \n12 guests \u00d7 2 cupcakes each = <<12\u00d72=24>>24 cupcakes.  \n\nThen, add 3 extra cupcakes:  \n24 + 3 = <<24+3=27>>27 cupcakes total.",
+      "difficulty": 0.5
+    },
+    {
+      "question": "Emma is planning a birthday party for her brother and needs to budget for snacks and decorations. She buys 4 packs of party hats at $3.50 each and 6 bags of assorted candies at $2.75 per bag. She also wants to rent a bounce house for $120, but her mom agrees to cover half of that cost. Emma has $100 saved for the party. How much more money does Emma need to cover the total expenses?",
+      "answer": "60.00",
+      "full_solution": "First, calculate the cost of the party hats:  \n4 packs \u00d7 $3.50 per pack = <<4\u00d73.50=14>>$14.00.\n\nNext, calculate the cost of the candy:  \n6 bags \u00d7 $2.75 per bag = <<6\u00d72.75=16.50>>$16.50.\n\nThen, determine how much Emma\u2019s mom will pay for the bounce house:  \nHalf of $120 = <<120\u00f72=60>>$60.00.\n\nSo, Emma needs to pay the remaining half: $120 - $60 = <<120-60=60>>$60.00.",
+      "difficulty": 0.5
+    },
+    {
+      "question": "Maria is planning a birthday party for her younger brother and needs to buy snacks and decorations. She has a budget of $60. She buys 4 bags of chips at $3.50 each, 3 bottles of soda at $2.25 each, and a birthday cake that costs $18. She also wants to buy streamers and balloons that cost $1.75 per pack, and she plans to buy 5 packs. How much money will Maria have left after all her purchases?",
+      "answer": "18.00",
+      "full_solution": "First, calculate the cost of the chips:  \n4 bags \u00d7 $3.50 = <<4\u00d73.50=14>>$14.00\n\nNext, calculate the cost of the soda:  \n3 bottles \u00d7 $2.25 = <<3\u00d72.25=6.75>>$6.75\n\nAdd the cost of the cake:  \n$18.00",
+      "difficulty": 0.5
+    }
+  ],
+  "difficulty_0.8": [
+    {
+      "question": "Maya is planning a community garden and wants to divide a rectangular plot of land measuring 60 meters long and 40 meters wide into identical square sections for different types of vegetables. She wants each square section to be as large as possible while still fitting evenly into the garden\u2019s dimensions. She also plans to install a walking path 1 meter wide around the entire perimeter of the garden, which will not be used for planting. How many square planting sections can Maya create, and what is the area of each section in square meters?",
+      "answer": "38",
+      "full_solution": "First, we need to determine the size of the largest possible square section that can fit evenly into both the length and width of the garden. This requires finding the greatest common divisor (GCD) of 60 and 40.\n\n<<60 \u00f7 20 = 3>>  \n<<40 \u00f7 20 = 2>>  \nGCD(60, 40) = <<20>>20 meters.\n\nSo, each square planting section will be 20 meters by 20 meters.\n\nNext, we account for the walking path. The path is 1 meter wide around the entire perimeter, so it reduces the usable planting area on all sides.\n\nThe effective length for planting is:  \n60 meters \u2013 1 meter (left) \u2013 1 meter (right) = <<60 - 2 = 58>>58 meters.\n\nThe effective width for planting is:  \n40 meters \u2013 1 meter (top) \u2013 1 meter (bottom) = <<40 - 2 = 38>>38 meters.",
+      "difficulty": 0.8
+    },
+    {
+      "question": "Maria is a freelance graphic designer who runs a small online business. She charges $50 per design project and spends $12 on materials for each project. In one month, she completes 24 projects. She also pays a monthly website fee of $60 and a $30 software subscription. At the end of the month, she deposits 70% of her net profit into a savings account. How much money does Maria deposit into her savings account?",
+      "answer": "288",
+      "full_solution": "First, calculate Maria\u2019s total revenue from 24 projects:  \n24 projects \u00d7 $50 per project = <<24\u00d750=1200>>$1,200.\n\nNext, calculate her total material costs:  \n24 projects \u00d7 $12 per project = <<24\u00d712=288>>$288.",
+      "difficulty": 0.8
+    },
+    {
+      "question": "Maria is opening a small artisanal candle business and needs to determine her pricing strategy. She uses 8 ounces of soy wax per candle and buys wax in 5-pound boxes (1 pound = 16 ounces). Each box costs $24. She also spends $3.50 per candle on essential oils, labels, and wicks. Maria wants to make a profit of $4.50 per candle after covering all costs. She plans to sell each candle for $18.00. However, she must pay a monthly rent of $600 for her workspace, and she estimates that she will sell 120 candles per month. How many candles must she sell each month to break even (cover all her costs including rent)? Also, how much profit will she make if she sells 120 candles?",
+      "answer": "160",
+      "full_solution": "First, calculate the total cost per candle:  \n- Wax needed per candle: 8 ounces  \n- Wax per box: 5 pounds = 5 \u00d7 16 = <<5*16=80>>80 ounces  \n- Cost per ounce of wax: $24 \u00f7 80 = <<24/80=0.3>>$0.30 per ounce  \n- Wax cost per candle: 8 \u00d7 $0.30 = <<8*0.3=2.4>>$2.40  \n- Additional cost per candle (oils, labels, wicks): $3.50  \n- Total variable cost per candle: $2.40 + $3.50 = <<2.4+3.5=5.9>>$5.90  \n\nNext, determine the total fixed cost:  \n- Monthly rent: $600  \n\nTotal cost for producing and selling 120 candles:  \n- Variable cost: 120 \u00d7 $5.90 = <<120*5.9=708>>$708  \n- Fixed cost: $600  \n- Total cost: $708 + $600 = <<708+600=1308>>$1,308  \n\nTotal revenue from selling 120 candles at $18.00 each:  \n- 120 \u00d7 $18.00 = <<120*18=2160>>$2,160  \n\nProfit",
+      "difficulty": 0.8
+    }
+  ]
+}
