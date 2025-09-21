@@ -103,7 +103,7 @@ class CLIFormatter:
 
         top_line = "╔" + "═" * (width - 2) + "╗"
         title_line = f"║ {title.center(width - 4)} ║"
-        separator = "╠" + "═" * (width - 2) + "╣"
+        separator = "╚" + "═" * (width - 2) + "╝"
 
         print(f"{color}{top_line}")
         print(f"{color}{Style.BRIGHT}{title_line}{Style.RESET_ALL}")
@@ -115,7 +115,7 @@ class CLIFormatter:
         if width is None:
             width = min(80, CLIFormatter.get_terminal_width())
 
-        bottom_line = "╚" + "═" * (width - 2) + "╝"
+        bottom_line =  "═" * (width - 2)
         print(f"{color}{bottom_line}{Style.RESET_ALL}")
 
     @staticmethod

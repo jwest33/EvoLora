@@ -31,3 +31,4 @@ outputs/
 single_grpo_runs/
 lora_runs_*/
 unsloth_training_checkpoints/
+xformers/
