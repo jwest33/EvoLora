@@ -31,7 +31,7 @@ class ChallengerAgent:
     def __init__(self):
         CLIFormatter.print_info("Initializing Challenger...")
         self.model, self.tokenizer = FastLanguageModel.from_pretrained(
-            model_name="unsloth/gemma-3-1b-it-unsloth-bnb-4bit",
+            model_name="unsloth/gemma-3-4b-it-unsloth-bnb-4bit", # "unsloth/gemma-3-1b-it-unsloth-bnb-4bit" is stable
             max_seq_length=1024,
             load_in_4bit = True,  # 4 bit quantization to reduce memory
             load_in_8bit = False
@@ -57,6 +57,57 @@ class ChallengerAgent:
         trainable = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
         CLIFormatter.print_success(f"Challenger loaded: {trainable:,} trainable params")
 
+    def judge_answer(self, question: str, student_answer: str, ground_truth: str = None) -> bool:
+        """Use LLM to judge if an answer is correct
+
+        Args:
+            question: The math problem
+            student_answer: The answer to evaluate
+            ground_truth: Optional known correct answer
+
+        Returns:
+            bool: True if answer is correct, False otherwise
+        """
+        self.model.eval()
+
+        if ground_truth:
+            prompt = f"""Question: {question}
+Student's Answer: {student_answer}
+Correct Answer: {ground_truth}
+
+Is the student's answer mathematically equivalent to the correct answer? Consider that answers may be expressed differently (e.g., 72, $72, "72 dollars").
+Reply with only YES or NO.
+
+Answer:"""
+        else:
+            prompt = f"""Question: {question}
+Student's Answer: {student_answer}
+
+Solve this math problem step by step, then check if the student's answer is correct.
+Reply with only YES if correct or NO if incorrect.
+
+Answer:"""
+
+        inputs = self.tokenizer(prompt, return_tensors="pt", truncation=True, max_length=500)
+        inputs = {k: v.to(self.model.device) for k, v in inputs.items()}
+
+        with torch.no_grad():
+            outputs = self.model.generate(
+                **inputs,
+                max_new_tokens=50,
+                temperature=0.1,  # Low temperature for consistent judgment
+                do_sample=False,  # Greedy for consistency
+                pad_token_id=self.tokenizer.pad_token_id,
+                eos_token_id=self.tokenizer.eos_token_id,
+            )
+
+        # Decode only the generated part
+        generated_tokens = outputs[0][inputs['input_ids'].shape[1]:]
+        response = self.tokenizer.decode(generated_tokens, skip_special_tokens=True).strip().upper()
+
+        # Check if response contains YES
+        return "YES" in response and "NO" not in response
+
     def generate_problems(self, num_problems: int, difficulty: float = 0.5) -> List[Dict]:
         """Generate math problems based on difficulty level"""
         problems = []
@@ -71,22 +122,28 @@ class ChallengerAgent:
 
         self.model.eval()
         for _ in tqdm(range(num_problems), desc="Generating problems"):
-            inputs = self.tokenizer(prompt_template, return_tensors="pt")
+            inputs = self.tokenizer(prompt_template, return_tensors="pt", truncation=True, max_length=200)
             inputs = {k: v.to(self.model.device) for k, v in inputs.items()}
 
             with torch.no_grad():
                 outputs = self.model.generate(
                     **inputs,
-                    max_new_tokens=100,
+                    max_new_tokens=200,  # Increased for complete problems
+                    min_new_tokens=20,   # Ensure minimum problem length
                     temperature=0.7,
                     do_sample=True,
                     pad_token_id=self.tokenizer.pad_token_id,
+                    eos_token_id=self.tokenizer.eos_token_id,
+                    repetition_penalty=1.1,
                 )
 
-            problem_text = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
-            # Extract just the problem part (after "Problem:")
-            if "Problem:" in problem_text:
-                problem_text = problem_text.split("Problem:")[-1].strip()
+            # Decode only the generated part
+            generated_tokens = outputs[0][inputs['input_ids'].shape[1]:]
+            problem_text = self.tokenizer.decode(generated_tokens, skip_special_tokens=True).strip()
+
+            # Ensure we have a valid problem
+            if not problem_text or len(problem_text) < 10:
+                problem_text = f"Calculate {2+difficulty*10:.0f} + {3+difficulty*10:.0f}."
 
             problems.append({
                 "question": problem_text,
@@ -184,14 +241,80 @@ class SolverAgent:
         trainable = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
         CLIFormatter.print_success(f"Solver loaded: {trainable:,} trainable params")
 
-    def solve_problems(self, problems: List[Dict]) -> List[Dict]:
-        """Generate solutions for problems"""
-        results = []
+    def judge_answer(self, question: str, student_answer: str, ground_truth: str = None) -> bool:
+        """Use LLM to judge if an answer is correct
+
+        Args:
+            question: The problem question
+            student_answer: The student's answer to evaluate
+            ground_truth: Optional ground truth answer
+
+        Returns:
+            True if answer is correct, False otherwise
+        """
         self.model.eval()
 
+        if ground_truth:
+            prompt = f"""Question: {question}
+Student Answer: {student_answer}
+Correct Answer: {ground_truth}
+
+Is the student's answer mathematically equivalent to the correct answer? Consider that answers may be expressed differently (e.g., 72, $72, "72 dollars", "seventy-two").
+Reply with only 'YES' or 'NO'.
+Answer:"""
+        else:
+            prompt = f"""Question: {question}
+Student Answer: {student_answer}
+
+Solve this math problem step by step, then check if the student's answer is correct.
+Reply with only 'YES' if the answer is correct, or 'NO' if incorrect.
+Answer:"""
+
+        inputs = self.tokenizer(prompt, return_tensors="pt", truncation=True, max_length=500)
+        inputs = {k: v.to(self.model.device) for k, v in inputs.items()}
+
+        with torch.no_grad():
+            outputs = self.model.generate(
+                **inputs,
+                max_new_tokens=50,
+                temperature=0.1,  # Low temperature for consistent judgment
+                do_sample=False,  # Greedy decoding for consistency
+                pad_token_id=self.tokenizer.pad_token_id,
+                eos_token_id=self.tokenizer.eos_token_id,
+            )
+
+        # Decode only the generated part
+        generated_tokens = outputs[0][inputs['input_ids'].shape[1]:]
+        judgment = self.tokenizer.decode(generated_tokens, skip_special_tokens=True).strip().upper()
+
+        # Look for YES/NO in the response
+        if "YES" in judgment and "NO" not in judgment:
+            return True
+        elif "NO" in judgment:
+            return False
+        else:
+            # If unclear, default to False
+            return False
+
+    def solve_problems(self, problems: List[Dict], judge_agent=None, return_accuracy: bool = True) -> List[Dict]:
+        """Generate solutions for problems
+
+        Args:
+            problems: List of problem dicts with 'question' and optionally 'answer' (ground truth)
+            judge_agent: Optional ChallengerAgent to use for judging correctness
+            return_accuracy: If True and ground truth available, calculate actual accuracy
+        """
+        results = []
+        correct_count = 0
+        has_ground_truth = False
+
+        self.model.eval()
+
+        # Phase 1: Generate all solutions first
+        CLIFormatter.print_info("Generating solutions...")
         for problem in tqdm(problems, desc="Solving problems"):
             prompt = f"Question: {problem['question']}\nAnswer:"
-            inputs = self.tokenizer(prompt, return_tensors="pt")
+            inputs = self.tokenizer(prompt, return_tensors="pt", truncation=True, max_length=400)
             inputs = {k: v.to(self.model.device) for k, v in inputs.items()}
 
             with torch.no_grad():
@@ -200,38 +323,147 @@ class SolverAgent:
                 for _ in range(2):  # Generate 2 solutions
                     outputs = self.model.generate(
                         **inputs,
-                        max_new_tokens=50,
+                        max_new_tokens=200,  # Enough space for reasoning steps
+                        min_new_tokens=1,   # Allow short answers when appropriate
                         temperature=0.7,
                         do_sample=True,
                         pad_token_id=self.tokenizer.pad_token_id,
+                        eos_token_id=self.tokenizer.eos_token_id,
+                        repetition_penalty=1.3,  # Moderate repetition penalty
+                        no_repeat_ngram_size=4,  # Prevent repeating 4-grams like "Final Answer: X"
                     )
-                    answer = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
-                    # Extract answer part
-                    if "Answer:" in answer:
-                        answer = answer.split("Answer:")[-1].strip()
+                    # Decode only the generated part (skip the input prompt)
+                    generated_tokens = outputs[0][inputs['input_ids'].shape[1]:]
+                    answer = self.tokenizer.decode(generated_tokens, skip_special_tokens=True).strip()
+
+                    # Clean up the answer
+                    if not answer:
+                        answer = "Unable to solve"
                     solutions.append(answer)
 
-            # Calculate uncertainty (simplified - based on answer consistency)
+            # Calculate uncertainty based on answer consistency
             uncertainty = 0.0 if solutions[0] == solutions[1] else 1.0
 
-            results.append({
+            result = {
                 "question": problem["question"],
                 "answer": solutions[0],
                 "all_answers": solutions,
+                "ground_truth": problem.get("answer", ""),
                 "uncertainty": uncertainty,
-                "difficulty": problem.get("difficulty", 0.5)
-            })
+                "difficulty": problem.get("difficulty", 0.5),
+                "is_correct": False  # Will be updated in Phase 2
+            }
+            results.append(result)
+
+        # Phase 2: Batch evaluate all answers with judge (if ground truth available)
+        has_ground_truth = any("answer" in p and p["answer"] for p in problems)
+
+        if has_ground_truth:
+            CLIFormatter.print_info("Evaluating answers with LLM judge...")
+
+            # Use provided judge or self for evaluation
+            judge = judge_agent if judge_agent else self
+
+            for i, (problem, result) in enumerate(tqdm(zip(problems, results), desc="Judging answers", total=len(problems))):
+                if "answer" in problem and problem["answer"]:
+                    ground_truth = str(problem["answer"]).strip()
+
+                    try:
+                        # Use LLM judge to evaluate
+                        is_correct = judge.judge_answer(
+                            question=problem["question"],
+                            student_answer=result["answer"],
+                            ground_truth=ground_truth
+                        )
+                        result["is_correct"] = is_correct
+                        if is_correct:
+                            correct_count += 1
+                    except Exception as e:
+                        # Fallback to numeric extraction if judge fails
+                        import re
+
+                        def extract_number(text):
+                            patterns = [
+                                r'(?:=|is|equals?|answer:?)\s*([-]?\d+(?:\.\d+)?)',
+                                r'([-]?\d+(?:\.\d+)?)\s*$',
+                                r'\$?([-]?\d+(?:\.\d+)?)',
+                            ]
+                            for pattern in patterns:
+                                matches = re.findall(pattern, text.lower())
+                                if matches:
+                                    return matches[-1]
+                            return None
+
+                        gen_num = extract_number(result["answer"])
+                        gt_num = extract_number(ground_truth)
+
+                        if gen_num and gt_num:
+                            try:
+                                is_correct = abs(float(gen_num) - float(gt_num)) < 0.01
+                                result["is_correct"] = is_correct
+                                if is_correct:
+                                    correct_count += 1
+                            except:
+                                pass
+
+        # Add accuracy to results if we have ground truth
+        if has_ground_truth and return_accuracy:
+            accuracy = correct_count / len(problems) if problems else 0
+            for r in results:
+                r["accuracy"] = accuracy
 
         return results
 
-    def train_on_problems(self, dataset: Dataset):
-        """Train Solver on problem-solution pairs"""
+    def train_on_problems(self, dataset: Dataset, format_training: bool = True):
+        """Train Solver on problem-solution pairs
+
+        Args:
+            dataset: Dataset with questions and answers
+            format_training: If True, includes format examples to reduce repetition
+        """
         CLIFormatter.print_info("Training Solver...")
 
         # Manual tokenization
         tokenized_data = []
+
+        # Add format training examples if enabled
+        if format_training:
+            format_examples = [
+                {"question": "What is 5 + 3?", "answer": "5 + 3 = 8\n\nThe answer is 8"},
+                {"question": "If John has 10 apples and gives away 4, how many does he have left?",
+                 "answer": "John starts with 10 apples.\nHe gives away 4 apples.\n10 - 4 = 6\n\nJohn has 6 apples left."},
+                {"question": "Calculate 12 × 5", "answer": "12 × 5 = 60\n\nThe answer is 60"},
+                {"question": "A store sells pens for $2 each. How much do 5 pens cost?",
+                 "answer": "Each pen costs $2.\nNumber of pens: 5\nTotal cost: $2 × 5 = $10\n\nThe answer is $10"},
+                {"question": "What is 100 divided by 4?", "answer": "100 ÷ 4 = 25\n\nThe answer is 25"},
+            ]
+
+            for ex in format_examples:
+                # Show the model clean, concise answers without repetition
+                text = f"Question: {ex['question']}\nAnswer: {ex['answer']}"
+                tokens = self.tokenizer(
+                    text,
+                    truncation=True,
+                    padding="max_length",
+                    max_length=256,
+                    return_tensors=None,
+                )
+                tokens["labels"] = tokens["input_ids"].copy()
+                tokenized_data.append(tokens)
+
+        # Add the actual dataset
         for example in dataset:
-            text = f"Question: {example['question']}\nAnswer: {example.get('answer', 'Unknown')}"
+            # Clean the answer to avoid training on repetitions
+            answer = example.get('answer', 'Unknown')
+            if isinstance(answer, str):
+                # Remove repetitive "Final Answer" patterns
+                if "Final Answer" in answer:
+                    # Extract just the first answer
+                    answer = answer.split("Final Answer")[0].strip()
+                    if not answer and "Final Answer:" in example.get('answer', ''):
+                        answer = example['answer'].split("Final Answer:")[1].split('\n')[0].strip()
+
+            text = f"Question: {example['question']}\nAnswer: {answer}"
             tokens = self.tokenizer(
                 text,
                 truncation=True,
@@ -300,47 +532,113 @@ def run_rzero_evolution(num_iterations: int = 5):
     current_dataset = Dataset.from_list(initial_data)
     difficulty = 0.3  # Start with easy problems
 
+    # Calculate baseline accuracy on initial GSM8K data
+    CLIFormatter.print_info("Calculating baseline performance on GSM8K data...")
+
+    # Initialize judge for evaluation
+    judge = ChallengerAgent()
+    CLIFormatter.print_info("Using Challenger as judge for answer evaluation")
+
+    solver = SolverAgent()
+    test_problems = current_dataset.select(range(min(10, len(current_dataset))))
+    baseline_results = solver.solve_problems(test_problems.to_list(), judge_agent=judge)
+
+    # Calculate baseline accuracy using ground truth
+    if baseline_results and "accuracy" in baseline_results[0]:
+        solver_accuracy = baseline_results[0]["accuracy"]
+    else:
+        # Fallback to uncertainty-based estimate if no ground truth
+        avg_uncertainty = sum(r["uncertainty"] for r in baseline_results) / len(baseline_results)
+        solver_accuracy = 1.0 - avg_uncertainty
+
+    CLIFormatter.print_metric("Baseline Solver Accuracy (vs ground truth)", solver_accuracy * 100, "%",
+                              good_threshold=30, bad_threshold=10)  # Lower thresholds for untrained model
+
+    # Save baseline samples
+    baseline_samples = {
+        "iteration": 0,
+        "type": "baseline",
+        "solver_accuracy": solver_accuracy,
+        "samples": baseline_results[:5]
+    }
+    os.makedirs("outputs/samples", exist_ok=True)
+    with open("outputs/samples/baseline.json", "w") as f:
+        json.dump(baseline_samples, f, indent=2)
+    CLIFormatter.print_info("Saved baseline samples to outputs/samples/baseline.json")
+
+    solver.cleanup()
+    judge.cleanup()  # Clean up judge after baseline
+
     for iteration in range(num_iterations):
         CLIFormatter.print_generation_header(iteration + 1, num_iterations)
         CLIFormatter.print_metric("Current Difficulty", difficulty, good_threshold=0.7, bad_threshold=0.3)
 
-        # Phase 1: Solver training
-        CLIFormatter.print_subheader("Phase 1: Solver Training")
+        # Phase 1: Challenger generates problems
+        CLIFormatter.print_subheader("Phase 1: Challenger Generating Problems")
+        challenger = ChallengerAgent()
+
+        # Train Challenger if we have feedback from previous iteration
+        if iteration > 0:
+            challenger.train_on_feedback(current_dataset, solver_accuracy)
+
+        CLIFormatter.print_info(f"Generating New Problems (difficulty: {difficulty:.2f})")
+        new_problems = challenger.generate_problems(20, difficulty)
+
+        # Save challenger samples
+        challenger_samples = {
+            "iteration": iteration + 1,
+            "difficulty": difficulty,
+            "solver_accuracy": solver_accuracy if iteration > 0 else 0,
+            "samples": new_problems[:5]  # Save first 5 generated problems
+        }
+
+        os.makedirs("outputs/samples", exist_ok=True)
+        with open(f"outputs/samples/challenger_iter_{iteration + 1}.json", "w") as f:
+            json.dump(challenger_samples, f, indent=2)
+        CLIFormatter.print_info(f"Saved challenger samples to outputs/samples/challenger_iter_{iteration + 1}.json")
+
+        # Clean up Challenger
+        challenger.cleanup()
+
+        # Update dataset with new problems
+        current_dataset = Dataset.from_list(new_problems)
+
+        # Phase 2: Solver attempts to solve the problems
+        CLIFormatter.print_subheader("Phase 2: Solver Solving Problems")
         solver = SolverAgent()
+
+        # Train Solver on the new problems
         solver.train_on_problems(current_dataset)
 
-        # Evaluate Solver
+        # Evaluate Solver on test subset
         test_problems = current_dataset.select(range(min(10, len(current_dataset))))
         results = solver.solve_problems(test_problems.to_list())
 
-        # Calculate accuracy (simplified - would need ground truth in real scenario)
+        # Calculate accuracy
         avg_uncertainty = sum(r["uncertainty"] for r in results) / len(results)
         solver_accuracy = 1.0 - avg_uncertainty  # Simplified metric
         CLIFormatter.print_metric("Solver Accuracy", solver_accuracy * 100, "%",
                                   good_threshold=70, bad_threshold=40)
 
-        # Clean up Solver
-        solver.cleanup()
+        # Save solver samples
+        solver_samples = {
+            "iteration": iteration + 1,
+            "solver_accuracy": solver_accuracy,
+            "samples": results[:5]  # Save first 5 samples
+        }
 
-        # Phase 2: Challenger training and problem generation
-        CLIFormatter.print_subheader("Phase 2: Challenger Training")
-        challenger = ChallengerAgent()
-        challenger.train_on_feedback(current_dataset, solver_accuracy)
+        with open(f"outputs/samples/solver_iter_{iteration + 1}.json", "w") as f:
+            json.dump(solver_samples, f, indent=2)
+        CLIFormatter.print_info(f"Saved solver samples to outputs/samples/solver_iter_{iteration + 1}.json")
 
-        # Generate new problems with adjusted difficulty
+        # Adjust difficulty for next iteration based on solver performance
         if solver_accuracy > 0.7:
             difficulty = min(1.0, difficulty + 0.1)  # Increase difficulty
         elif solver_accuracy < 0.6:
             difficulty = max(0.1, difficulty - 0.1)  # Decrease difficulty
 
-        CLIFormatter.print_info(f"Generating New Problems (difficulty: {difficulty:.2f})")
-        new_problems = challenger.generate_problems(20, difficulty)
-
-        # Clean up Challenger
-        challenger.cleanup()
-
-        # Create new dataset for next iteration
-        current_dataset = Dataset.from_list(new_problems)
+        # Clean up Solver
+        solver.cleanup()
 
         # Save checkpoint
         checkpoint = {
@@ -362,9 +660,24 @@ def run_rzero_evolution(num_iterations: int = 5):
             "Total Iterations": num_iterations,
             "Final Difficulty": f"{difficulty:.2f}",
             "Final Dataset Size": len(current_dataset),
-            "Checkpoints Saved": f"outputs/checkpoints/"
+            "Checkpoints Saved": f"outputs/checkpoints/",
+            "Samples Saved": f"outputs/samples/"
         }
     )
+
+    # Create evolution summary
+    evolution_summary = {
+        "total_iterations": num_iterations,
+        "final_difficulty": difficulty,
+        "final_solver_accuracy": solver_accuracy,
+        "dataset_size": len(current_dataset),
+        "samples_location": "outputs/samples/",
+        "checkpoints_location": "outputs/checkpoints/"
+    }
+
+    with open("outputs/evolution_summary.json", "w") as f:
+        json.dump(evolution_summary, f, indent=2)
+    CLIFormatter.print_success("Evolution summary saved to outputs/evolution_summary.json")
 
 
 if __name__ == "__main__":
