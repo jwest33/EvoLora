@@ -12,7 +12,7 @@ model:
   path: "unsloth/gemma-3-270m-it"      # Small Gemma3 model (270M params)
   backend: "unsloth"                    # Use Unsloth for optimization
   type: "transformers"
-  torch_dtype: "float16"
+  torch_dtype: "bfloat16"               # Use bfloat16 for better Gemma compatibility
   device_map: "cuda:0"
   trust_remote_code: true
   low_cpu_mem_usage: true
@@ -29,11 +29,11 @@ model:
 # ============================================================================
 
 evolution:
-  population_size: 4                   # More variants to explore search space
-  generations: 10                       # More generations for better convergence
-  keep_top: 2                           # Keep more top performers
-  mutation_rate: 0.4                    # Higher mutation for exploration
-  crossover_rate: 0.3                   # Increased crossover for diversity
+  population_size: 6                   # Increased for more diversity
+  generations: 15                       # Sweet spot for convergence
+  keep_top: 3                           # Keep more top performers
+  mutation_rate: 0.35                   # Slightly lower for stability
+  crossover_rate: 0.3                   # Good crossover rate
   skip_perplexity: false                # Use full evaluation for small model
 
 # ============================================================================
@@ -45,7 +45,7 @@ lora_search_space:
   rank: [4, 8, 16]                      # Lower ranks for small model (removed 32)
   alpha_multiplier: [1, 2]              # Alpha = rank * multiplier (research: 2x is good heuristic)
   dropout: [0.05, 0.1]                  # Light dropout for regularization
-  learning_rate: [1e-5, 2e-5, 5e-5]    # Much lower LRs for GRPO stability
+  learning_rate: [1e-4, 1e-5, 2e-5, 5e-5]    # Much lower LRs for GRPO stability
   # Training hyperparameters - stronger regularization for small model
   weight_decay: [0.01, 0.05, 0.1]      # Stronger regularization to prevent overfitting
   warmup_ratio: [0.05, 0.1, 0.15]      # Warmup helps stability
@@ -67,8 +67,8 @@ training:
   max_grad_norm: 1.0                    # Gradient clipping
   weight_decay: 0.05                    # Strong default regularization
   warmup_ratio: 0.1                     # Warmup proportion
-  fp16: true                            # Use FP16 for speed
-  bf16: false                           # Avoid BFloat16 issues
+  fp16: false                           # Disable FP16 (Gemma prefers BF16)
+  bf16: true                            # Use BFloat16 for Gemma
   gradient_checkpointing: false         # Let Unsloth handle this
   dataloader_num_workers: 0             # Windows compatibility
   dataloader_pin_memory: true           # Pin memory
@@ -84,14 +84,14 @@ training:
 
 grpo:
   enabled: false                        # Enabled via command line flag
-  max_steps: 25                         # Very few steps to avoid instability
-  num_generations: 2                    # Minimum 2 for GRPO (3 can be unstable)
-  temperature: 0.5                      # Lower temperature for more stability
-  max_prompt_length: 256                # Shorter for stability
-  max_completion_length: 128            # Much shorter to prevent divergence
-  # KL regularization - CRITICAL for stability
-  beta: 0.5                             # Higher KL penalty to prevent divergence
-  epsilon: 0.1                          # Smaller clipping for stability
+  max_steps: 50                         # Optimal for learning without overfitting
+  num_generations: 2                    # Minimum 2 for GRPO
+  temperature: 0.7                      # Higher temp for GSM8K exploration
+  max_prompt_length: 384                # Longer for word problems
+  max_completion_length: 256            # Longer for multi-step solutions
+  # KL regularization - balanced for GSM8K
+  beta: 0.25                            # Slightly lower KL for more exploration
+  epsilon: 0.15                         # Moderate clipping
   # Generation parameters for stability
   top_k: 50                             # Limit sampling
   top_p: 0.9                            # Nucleus sampling
@@ -114,8 +114,8 @@ grpo:
 
 dataset:
   sources:
-    - "simple-math"                     # Much simpler arithmetic problems
-  train_size: 1000                     # Reduced for GRPO stability testing
+    - "gsm8k"                           # Back to harder word problems
+  train_size: 2000                     # Moderate size for testing
   eval_size: 100                       # Smaller eval for faster testing
   seed: 42
   max_seq_length: 512

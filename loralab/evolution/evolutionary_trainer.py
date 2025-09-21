@@ -153,18 +153,21 @@ class EvolutionaryTrainer:
     def train_variant(self,
                      variant: LoRAVariant,
                      train_data: List[Dict],
-                     epochs: int = 1) -> float:
+                     epochs: int = 1,
+                     variant_num: int = None) -> float:
         """Train a single LoRA variant
 
         Args:
             variant: LoRA variant to train
             train_data: Training dataset
             epochs: Number of epochs to train
+            variant_num: Variant number within generation (for job tracking)
 
         Returns:
             Average training loss or fitness score
         """
         start_time = time.time()
+
 
         # Create LoRA model for this variant with enhanced config
         lora_config = {
@@ -323,7 +326,9 @@ class EvolutionaryTrainer:
 
         generation_start = time.time()
 
-        # Train and evaluate each variant
+        # Sequential processing
+        processed_population = []
+
         for i, variant in enumerate(population):
             CLIFormatter.print_subheader(
                 f"Variant {i+1}/{len(population)}: {variant.variant_id}"
@@ -340,7 +345,8 @@ class EvolutionaryTrainer:
             train_loss = self.train_variant(
                 variant,
                 train_data,
-                epochs=self.config['training'].get('epochs_per_variant', 1)
+                epochs=self.config['training'].get('epochs_per_variant', 1),
+                variant_num=i + 1
             )
 
             # Evaluate
@@ -368,9 +374,11 @@ class EvolutionaryTrainer:
                 if torch.cuda.is_available():
                     torch.cuda.empty_cache()
 
+            processed_population.append(variant)
+
         # Select survivors
         keep_top = self.config['evolution'].get('keep_top', 2)
-        survivors = self.population_manager.select_survivors(population, keep_top)
+        survivors = self.population_manager.select_survivors(processed_population, keep_top)
 
         # Update best overall
         if survivors and (self.best_variant_overall is None or
@@ -443,7 +451,7 @@ class EvolutionaryTrainer:
 
         # Generate comparison report for best variant if requested
         if self.config.get('generate_comparison_report', True) and self.best_variant_overall:
-            self._generate_comparison_report(eval_data[:100])  # Use subset for report
+            self._generate_comparison_report()  # Uses fixed evaluation set
 
         return self.best_variant_overall
 
@@ -629,11 +637,11 @@ class EvolutionaryTrainer:
 
             CLIFormatter.print_success(f"Best variant saved to: {self.output_dir / 'best_variant'}")
 
-    def _generate_comparison_report(self, eval_data: List[Dict]):
-        """Generate comparison report for best variant
+    def _generate_comparison_report(self, eval_data: Optional[List[Dict]] = None):
+        """Generate comparison report for best variant using fixed evaluation set
 
         Args:
-            eval_data: Evaluation dataset
+            eval_data: Optional evaluation dataset (if None, uses fixed set)
         """
         try:
             from ..evaluation.comparative_evaluator import ComparativeEvaluator
@@ -673,10 +681,12 @@ class EvolutionaryTrainer:
                 output_dir=str(reports_dir)
             )
 
+            # Use fixed evaluation set by default
             comparison = comparator.compare_models(
                 base_model=base_model,
                 lora_model=lora_model,
-                eval_data=eval_data
+                eval_data=eval_data,
+                use_fixed_set=(eval_data is None)  # Use fixed set if no data provided
             )
 
             report_path = comparator.generate_report(

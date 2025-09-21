@@ -110,9 +110,10 @@ class UnslothModelManager:
                     dtype = torch.float32
                 logger.info(f"Using configured dtype: {config_dtype}")
             elif 'gemma' in model_path.lower() and not (load_in_4bit or load_in_8bit):
-                # Default to float16 for Gemma to avoid dtype conflicts
-                dtype = torch.float16
-                logger.info("Using float16 for Gemma model (avoiding BFloat16 conflicts)")
+                # Let Unsloth handle dtype selection for Gemma
+                # It will automatically use float32 if float16 doesn't work
+                dtype = None
+                logger.info("Letting Unsloth auto-select dtype for Gemma model")
 
             os.environ['UNSLOTH_RETURN_LOGITS'] = '1'
 

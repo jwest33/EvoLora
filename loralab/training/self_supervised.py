@@ -150,7 +150,9 @@ class SelfSupervisedTrainer:
              epochs: int = 1,
              variant_id: str = "",
              use_amp: bool = True,
-             monitor_memory: bool = True) -> float:
+             monitor_memory: bool = True,
+             job_tracker: Any = None,
+             **kwargs) -> float:
         """Train a model on the dataset
 
         Args:
@@ -265,7 +267,12 @@ class SelfSupervisedTrainer:
                     loss = outputs.loss / gradient_accumulation_steps
 
                     # Backward pass
-                    loss.backward()
+                    if scaler and use_fp16:
+                        # Scale loss for mixed precision
+                        scaled_loss = scaler.scale(loss)
+                        scaled_loss.backward()
+                    else:
+                        loss.backward()
 
                     # Update weights if accumulation complete
                     if (batch_idx + 1) % gradient_accumulation_steps == 0:
@@ -325,6 +332,13 @@ class SelfSupervisedTrainer:
             # Log epoch summary
             avg_epoch_loss = epoch_loss / epoch_batches if epoch_batches > 0 else float('inf')
             logger.info(f"{variant_id} - Epoch {epoch+1} - Avg Loss: {avg_epoch_loss:.4f}")
+
+            # Update job tracker if available
+            if job_tracker:
+                job_tracker.complete_epoch(
+                    epoch_num=epoch + 1,
+                    metrics={'loss': avg_epoch_loss}
+                )
 
             total_loss += epoch_loss
             num_batches += epoch_batches

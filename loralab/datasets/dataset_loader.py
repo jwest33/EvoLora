@@ -72,6 +72,23 @@ class DatasetLoader:
             'subset': 'arithmetic__mul',  # Simple multiplication
             'process_answer': lambda x: x if isinstance(x, str) else str(x)
         },
+        'arithmetic-mixed': {
+            'name': 'deepmind/math_dataset',
+            'split': 'train',
+            'question_field': 'question',
+            'answer_field': 'answer',
+            'subset': 'arithmetic__mixed',  # Mixed operations (harder)
+            'process_answer': lambda x: x if isinstance(x, str) else str(x)
+        },
+        'gsm8k-simple': {
+            'name': 'gsm8k',
+            'split': 'train',
+            'question_field': 'question',
+            'answer_field': 'answer',
+            'subset': 'main',
+            # Only use problems with shorter answers (simpler ones)
+            'filter': lambda x: len(x['answer']) < 100
+        },
         'squad': {
             'name': 'squad',
             'split': 'train',

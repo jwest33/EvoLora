@@ -96,6 +96,29 @@ class CLIFormatter:
             print()  # New line when complete
 
     @staticmethod
+    def print_box_start(title: str, color: str = Fore.CYAN, width: Optional[int] = None):
+        """Print the start of a box with a title"""
+        if width is None:
+            width = min(80, CLIFormatter.get_terminal_width())
+
+        top_line = "╔" + "═" * (width - 2) + "╗"
+        title_line = f"║ {title.center(width - 4)} ║"
+        separator = "╠" + "═" * (width - 2) + "╣"
+
+        print(f"{color}{top_line}")
+        print(f"{color}{Style.BRIGHT}{title_line}{Style.RESET_ALL}")
+        print(f"{color}{separator}{Style.RESET_ALL}")
+
+    @staticmethod
+    def print_box_end(color: str = Fore.CYAN, width: Optional[int] = None):
+        """Print the end of a box"""
+        if width is None:
+            width = min(80, CLIFormatter.get_terminal_width())
+
+        bottom_line = "╚" + "═" * (width - 2) + "╝"
+        print(f"{color}{bottom_line}{Style.RESET_ALL}")
+
+    @staticmethod
     def print_table(headers: List[str], rows: List[List[Any]],
                    colors: Optional[List[str]] = None):
         """Print a formatted table"""

@@ -349,9 +349,20 @@ class GRPOTrainer:
         solution_start = self.reward_functions.solution_start
         solution_end = self.reward_functions.solution_end
 
-        return f"""You are a reasoning assistant. Think through problems step-by-step.
-Place your reasoning between {reasoning_start} and {reasoning_end}.
-Then provide your final answer between {solution_start} and {solution_end}."""
+        return f"""You are a mathematical reasoning assistant. Solve problems step-by-step.
+
+Format your response as follows:
+1. Show your step-by-step reasoning and calculations
+2. End with a clear final answer
+
+IMPORTANT: Your last line must be: "Final Answer: [number]"
+
+For example:
+- If the answer is 42, end with: "Final Answer: 42"
+- If the answer is $1,250, end with: "Final Answer: 1250"
+- If the answer is 3.5, end with: "Final Answer: 3.5"
+
+Always provide just the numeric value in the final answer, without units or symbols."""
 
     def train(self, model: Any, train_data: List[Dict],
              learning_rate: float, max_steps: int = 100,
@@ -403,8 +414,8 @@ Then provide your final answer between {solution_start} and {solution_end}."""
             per_device_train_batch_size=batch_size,  # Must be 1 or multiple of num_generations
             gradient_accumulation_steps=2,  # Reduced for stability
             num_generations=self.num_generations,  # Number of completions per prompt
-            max_prompt_length=min(max_prompt_length, 128),  # Shorter prompts
-            max_completion_length=min(max_completion_length, 64),  # Much shorter completions
+            max_prompt_length=min(max_prompt_length, 384),  # Allow longer for word problems
+            max_completion_length=min(max_completion_length, 256),  # Longer for solutions
             max_steps=max_steps,
             save_steps=max_steps,  # Save only at the end
             # Stability settings - CRITICAL
@@ -462,10 +473,10 @@ Then provide your final answer between {solution_start} and {solution_end}."""
                     # Good length bonus
                     reward += 0.5
 
-                # Check for step-by-step reasoning (higher weight)
+                # Check for step-by-step reasoning (reduced weight)
                 lines = text.strip().split('\n')
                 if len(lines) >= 3:
-                    reward += 1.0  # Reward multi-line reasoning
+                    reward += 0.5  # Smaller reward for multi-line reasoning
                 elif len(lines) == 1:
                     reward -= 1.0  # Penalize single-line answers for math problems
 
@@ -476,75 +487,127 @@ Then provide your final answer between {solution_start} and {solution_end}."""
                 for pattern in step_patterns:
                     if re.search(pattern, text, re.MULTILINE | re.IGNORECASE):
                         step_count += 1
-                reward += min(step_count * 0.5, 2.0)  # Up to 2.0 for structured steps
+                reward += min(step_count * 0.3, 1.0)  # Reduced: Up to 1.0 for structured steps
 
-                # Mathematical operations (essential for math problems)
+                # Mathematical operations (reduced weight)
                 math_ops_found = 0
                 for op in ['+', '-', '*', '/', '=']:
                     if op in text:
                         math_ops_found += text.count(op)
                 if math_ops_found > 0:
-                    reward += min(math_ops_found * 0.3, 1.5)  # Up to 1.5 for math operations
+                    reward += min(math_ops_found * 0.2, 1.0)  # Reduced: Up to 1.0 for math operations
                 else:
                     reward -= 2.0  # Penalty for no math operations in a math problem
 
                 # Check for numbers in the response (should have calculations)
                 numbers = re.findall(r'\d+\.?\d*', text)
                 if len(numbers) >= 3:  # Multiple numbers suggest working
-                    reward += 1.0
+                    reward += 0.5  # Reduced reward
                 elif len(numbers) <= 1:
                     reward -= 2.0  # Too few numbers for a math problem
 
                 # CRITICAL: Check answer accuracy (biggest weight)
                 if answer and i < len(answer):
-                    correct_answer = str(answer[i]).strip()
+                    correct_answer_full = str(answer[i]).strip()
+
+                    # Extract the final numeric answer from GSM8K format
+                    if "####" in correct_answer_full:
+                        correct_answer = correct_answer_full.split("####")[-1].strip()
+                    else:
+                        correct_answer = correct_answer_full
 
                     # Try to find the answer in various formats
                     answer_found = False
 
-                    # For simple arithmetic, also check numeric equivalence
-                    try:
-                        # Try to extract a numeric answer from the text
-                        # Look for patterns like "= 42" or "answer: 42"
-                        numeric_patterns = [
-                            r'=\s*([-+]?\d*\.?\d+)\s*$',  # Ends with = number
-                            r'answer\s*[:=]\s*([-+]?\d*\.?\d+)',
-                            r'result\s*[:=]\s*([-+]?\d*\.?\d+)',
-                            r'([-+]?\d*\.?\d+)\s*$'  # Just ends with a number
+                    # IMPORTANT: For GSM8K, we need to check for the FINAL answer, not intermediate values
+                    # Look for answer patterns that indicate a final answer
+                    # Prioritize our preferred format
+                    final_answer_pattern = rf'Final Answer:\s*{re.escape(correct_answer)}(?:\D|$)'
+
+                    # Check for our preferred format first
+                    if re.search(final_answer_pattern, text, re.IGNORECASE):
+                        answer_found = True
+                        reward += 12.0  # Highest reward for following exact format
+                    else:
+                        # Fallback patterns for other formats
+                        final_answer_patterns = [
+                            rf'answer[:\s]*\$?{re.escape(correct_answer)}(?:\D|$)',  # "answer: 840" or "answer: $840"
+                            rf'total[:\s]*\$?{re.escape(correct_answer)}(?:\D|$)',   # "total: 840"
+                            rf'={re.escape(correct_answer)}(?:\D|$)',         # "= 840" (not part of longer number)
+                            rf'\$?{re.escape(correct_answer)}(?:\D|$).*$',   # Answer at very end
                         ]
 
-                        for pattern in numeric_patterns:
-                            match = re.search(pattern, text, re.IGNORECASE)
-                            if match:
-                                extracted = match.group(1)
-                                # Check if numerically equivalent
+                        # Check if final answer appears in proper context
+                        for pattern in final_answer_patterns:
+                            if re.search(pattern, text, re.IGNORECASE):
+                                answer_found = True
+                                # Lower rewards for non-standard formats
+                                if re.search(rf'answer[:\s]*\$?{re.escape(correct_answer)}', text, re.IGNORECASE):
+                                    reward += 9.0  # Good - has "answer" keyword
+                                elif text.strip().endswith(correct_answer):
+                                    reward += 8.0  # OK - answer at the end
+                                else:
+                                    reward += 6.0  # Acceptable - answer present
+                                break
+
+                    # If not found, try numeric matching with stricter context
+                    if not answer_found:
+                        try:
+                            # Try to parse the correct answer as a number
+                            correct_num = float(correct_answer.replace(',', ''))
+
+                            # Look for numbers in answer context only
+                            # Focus on the last part of the text where answers typically appear
+                            text_lower = text.lower()
+                            answer_section = text
+
+                            # Try to isolate the answer section
+                            for keyword in ['answer', 'therefore', 'total', 'result', 'so']:
+                                if keyword in text_lower:
+                                    # Get everything after the last occurrence of the keyword
+                                    parts = text_lower.split(keyword)
+                                    if len(parts) > 1:
+                                        answer_section = text[text_lower.rfind(keyword):]
+                                        break
+
+                            # Extract numbers from the answer section
+                            gen_numbers = re.findall(r'-?\d+\.?\d*', answer_section)
+
+                            # Check if any generated number matches
+                            for idx, gen_num_str in enumerate(gen_numbers):
                                 try:
-                                    extracted_num = float(extracted)
-                                    correct_num = float(correct_answer)
-                                    if abs(extracted_num - correct_num) < 0.01:  # Allow small rounding errors
+                                    gen_num = float(gen_num_str)
+                                    if abs(gen_num - correct_num) < 0.1:  # Small tolerance
                                         answer_found = True
-                                        if text.strip().endswith(extracted):
-                                            reward += 10.0  # Perfect for simple math
+                                        # Higher reward if it's the last number in answer section
+                                        if idx == len(gen_numbers) - 1:
+                                            reward += 8.0  # Last number in answer section
                                         else:
-                                            reward += 7.0
+                                            reward += 4.0  # Number appears in answer section
                                         break
                                 except:
-                                    pass
-                    except:
-                        pass
+                                    continue
 
-                    # Look for exact string match as fallback
-                    if not answer_found and correct_answer in text:
-                        answer_found = True
-                        reward += 5.0
+                        except (ValueError, AttributeError):
+                            pass
 
                     # Heavy penalty for wrong or missing answer
                     if not answer_found:
-                        # Check if there's any final answer attempt
-                        if re.search(r'answer\s*[:=]|final answer|the answer is|=\s*\d+', text, re.IGNORECASE):
-                            reward -= 5.0  # Wrong answer is very bad
-                        else:
-                            reward -= 8.0  # No answer attempt is worst
+                        # Strong base penalty for wrong answer
+                        reward -= 10.0  # Base penalty for being wrong
+
+                        # Additional penalties based on context
+                        if text.endswith("...") or len(text) > 250:
+                            # Slightly less penalty if truncated - might have been on track
+                            reward += 2.0  # Reduce penalty by 2 (net -8)
+                        elif re.search(r'answer|total|result|therefore|=\s*\d+', text.lower()):
+                            # They tried to give an answer but it was wrong
+                            reward += 1.0  # Reduce penalty by 1 (net -9)
+                        # else: full -10 penalty for no answer attempt
+
+                # Format bonus - encourage "Final Answer:" format
+                if re.search(r'Final Answer:\s*\d', text, re.IGNORECASE):
+                    reward += 2.0  # Bonus for using the correct format structure
 
                 # Reasoning quality keywords (smaller weight)
                 reasoning_indicators = ['because', 'therefore', 'thus', 'since', 'so we',
@@ -563,23 +626,107 @@ Then provide your final answer between {solution_start} and {solution_end}."""
                 # This provides much better discrimination
                 rewards.append(reward)
 
-            # Enhanced logging for debugging
+            # Enhanced logging for debugging with CLI formatting
             import random
             if random.random() < 0.3:  # Log 30% of the time for better debugging
+                try:
+                    from ..utils.cli_formatter import CLIFormatter, Fore, Style
+                    use_formatter = True
+                except ImportError:
+                    use_formatter = False
+
+                # Extract model's answer from the completion
+                def extract_model_answer(text):
+                    """Extract the model's final answer from the completion"""
+                    # Look for "Final Answer:" pattern first
+                    final_match = re.search(r'Final Answer:\s*([-\d.]+)', text, re.IGNORECASE)
+                    if final_match:
+                        return final_match.group(1)
+
+                    # Look for answer patterns
+                    answer_patterns = [
+                        r'answer[:\s]+\$?([-\d.]+)',
+                        r'total[:\s]+\$?([-\d.]+)',
+                        r'result[:\s]+\$?([-\d.]+)',
+                        r'=\s*([-\d.]+)\s*$',
+                    ]
+
+                    for pattern in answer_patterns:
+                        match = re.search(pattern, text, re.IGNORECASE)
+                        if match:
+                            return match.group(1)
+
+                    # Last resort: find last number in text
+                    numbers = re.findall(r'[-\d.]+', text)
+                    if numbers:
+                        return numbers[-1]
+                    return "NOT FOUND"
+
                 # Clean text for ASCII-safe logging
-                sample_text = completion_texts[0][:400] if completion_texts else 'None'
+                sample_text = completion_texts[0] if completion_texts else 'None'
                 # Replace problematic Unicode characters
                 sample_text = sample_text.replace('\u2212', '-').replace('−', '-').replace('–', '-')
                 sample_text = sample_text.encode('ascii', 'replace').decode('ascii')
 
-                logger.info(f"[GRPO Reward] Sample completion (first 400 chars):")
-                logger.info(f"  Text: {sample_text}...")
-                logger.info(f"  Reward: {rewards[0]:.2f} (range: -15 to +15)")
+                # Extract answers
+                model_answer = extract_model_answer(sample_text)
+                target_answer = None
                 if answer and len(answer) > 0:
-                    # Clean answer text too
-                    answer_text = str(answer[0]).replace('\u2212', '-').replace('−', '-').replace('–', '-')
-                    answer_text = answer_text.encode('ascii', 'replace').decode('ascii')
-                    logger.info(f"  Expected answer: {answer_text}")
+                    full_answer = str(answer[0])
+                    if "####" in full_answer:
+                        target_answer = full_answer.split("####")[-1].strip()
+                    else:
+                        target_answer = full_answer
+
+                # Check if correct
+                is_correct = False
+                if target_answer and model_answer != "NOT FOUND":
+                    try:
+                        is_correct = abs(float(model_answer) - float(target_answer)) < 0.1
+                    except:
+                        is_correct = model_answer == target_answer
+
+                if use_formatter:
+                    # Colored output using CLI formatter
+                    print()  # New line for spacing
+                    CLIFormatter.print_box_start("GRPO Reward Evaluation", color=Fore.CYAN)
+
+                    # Show response preview
+                    print(f"{Fore.WHITE}Response Preview (last 300 chars):{Style.RESET_ALL}")
+                    print(f"{Fore.LIGHTBLACK_EX}{sample_text[-300:]}...{Style.RESET_ALL}")
+                    print()
+
+                    # Show extracted vs target answer
+                    answer_color = Fore.GREEN if is_correct else Fore.RED
+                    print(f"{Fore.CYAN}Model's Answer: {answer_color}{model_answer}{Style.RESET_ALL}")
+                    print(f"{Fore.CYAN}Target Answer:  {Fore.YELLOW}{target_answer if target_answer else 'N/A'}{Style.RESET_ALL}")
+
+                    # Show correctness
+                    if is_correct:
+                        print(f"{Fore.GREEN}CORRECT{Style.RESET_ALL}")
+                    else:
+                        print(f"{Fore.RED}INCORRECT{Style.RESET_ALL}")
+
+                    # Show reward with clarity about what it represents
+                    reward_color = Fore.GREEN if rewards[0] > 5 else (Fore.YELLOW if rewards[0] > 0 else Fore.RED)
+                    print()
+                    print(f"{Fore.CYAN}This Sample's Reward: {reward_color}{rewards[0]:.2f}{Style.RESET_ALL} / 15.00")
+
+                    # Show average if we have multiple rewards
+                    if len(rewards) > 1:
+                        avg_reward = sum(rewards) / len(rewards)
+                        avg_color = Fore.GREEN if avg_reward > 5 else (Fore.YELLOW if avg_reward > 0 else Fore.RED)
+                        print(f"{Fore.CYAN}Batch Average Reward: {avg_color}{avg_reward:.2f}{Style.RESET_ALL}")
+
+                    CLIFormatter.print_box_end()
+                else:
+                    # Fallback to logger
+                    logger.info(f"[GRPO Reward] Sample completion (first 400 chars):")
+                    logger.info(f"  Text: {sample_text[:400]}...")
+                    logger.info(f"  Model's Answer: {model_answer}")
+                    logger.info(f"  Target Answer: {target_answer if target_answer else 'N/A'}")
+                    logger.info(f"  Correct: {'YES' if is_correct else 'NO'}")
+                    logger.info(f"  Reward: {rewards[0]:.2f} (range: -15 to +15)")
 
             return rewards
 

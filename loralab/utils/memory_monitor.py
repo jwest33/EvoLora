@@ -149,6 +149,7 @@ class MemoryMonitor:
             torch.cuda.empty_cache()
             CLIFormatter.print_info("Cleared CUDA cache due to high memory usage")
 
+
     def get_summary(self) -> str:
         """Get a summary of memory usage"""
         status = self.check_memory_pressure()
