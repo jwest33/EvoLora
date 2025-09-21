@@ -135,34 +135,82 @@ Answer:"""
 
         return extracted
 
-    def generate_problems(self, num_problems: int, difficulty: float = 0.5) -> List[Dict]:
-        """Generate math problems with ground truth answers"""
+    def generate_problems(self, num_problems: int, difficulty: float = 0.5, dataset_examples: List[Dict] = None) -> List[Dict]:
+        """Generate math problems with ground truth answers based on dataset examples"""
         problems = []
 
-        # Create prompts for different difficulty levels with explicit answer request
-        if difficulty < 0.3:
-            prompt_template = """Generate a simple math problem with its answer.
-Example format:
-Question: What is 5 + 3?
-Answer: 8
+        # If we have dataset examples, use them to create more relevant prompts
+        if dataset_examples and len(dataset_examples) >= 2:
+            # Use actual examples from the dataset
+            import random
+            sample_examples = random.sample(dataset_examples, min(2, len(dataset_examples)))
 
-Now generate a new problem:
+            if difficulty <= 0.3:
+                # Very easy - simplify the examples
+                prompt_template = f"""Generate a simple one-step math word problem similar to these examples.
+Example 1:
+Question: {sample_examples[0]['question'][:100]}...
+Answer: {sample_examples[0].get('answer', 'unknown')}
+
+Now generate a MUCH SIMPLER problem with small numbers (under 20) and only one calculation step:
 Question:"""
-        elif difficulty < 0.7:
-            prompt_template = """Generate a moderately complex math problem with its answer.
-Example format:
-Question: If John has 12 apples and gives away 4, how many does he have?
+            elif difficulty <= 0.6:
+                # Moderate - use examples more directly
+                prompt_template = f"""Generate a two-step math word problem similar to these examples.
+Example 1:
+Question: {sample_examples[0]['question']}
+Answer: {sample_examples[0].get('answer', 'unknown')}
+
+Now generate a similar problem but slightly easier:
+Question:"""
+            else:
+                # Hard - match the dataset complexity
+                prompt_template = f"""Generate a multi-step reasoning problem similar to these examples.
+Example 1:
+Question: {sample_examples[0]['question']}
+Answer: {sample_examples[0].get('answer', 'unknown')}
+
+Now generate a problem of similar complexity:
+Question:"""
+        elif difficulty <= 0.3:
+            # Fallback to hardcoded examples if no dataset provided
+                # Very easy problems - single step operations
+            prompt_template = """Generate a simple one-step math word problem similar to these examples.
+Example 1:
+Question: Sarah has 5 apples. She buys 3 more apples. How many apples does she have now?
 Answer: 8
 
-Now generate a new problem:
+Example 2:
+Question: Tom has 10 toy cars. He gives 2 to his friend. How many toy cars does Tom have left?
+Answer: 8
+
+Now generate a new simple problem with small numbers (under 20):
+Question:"""
+        elif difficulty <= 0.6:
+            # Moderate problems - two step operations
+            prompt_template = """Generate a two-step math word problem similar to these examples.
+Example 1:
+Question: Lisa has 15 stickers. She gives 3 to her friend and then buys 5 more. How many stickers does Lisa have now?
+Answer: 17
+
+Example 2:
+Question: A bakery sells 12 cookies in the morning and 8 cookies in the afternoon. How many cookies did they sell in total?
+Answer: 20
+
+Now generate a new problem requiring two calculation steps:
 Question:"""
         else:
-            prompt_template = """Generate a challenging math word problem with its answer.
-Example format:
-Question: A store sells pens for $3 each. If you buy 5 pens and get a 10% discount, what's the total?
-Answer: 13.50
+            # Harder problems - multiple steps or reasoning
+            prompt_template = """Generate a multi-step reasoning problem similar to these examples.
+Example 1:
+Question: A store has 45 apples. They sell 15 apples on Monday and twice as many on Tuesday. How many apples are left?
+Answer: 0
 
-Now generate a new problem:
+Example 2:
+Question: Jake earns $12 per hour. He works 5 hours on Monday and 3 hours on Tuesday. How much did he earn in total?
+Answer: 96
+
+Now generate a new problem requiring multiple steps or reasoning:
 Question:"""
 
         self.model.eval()
@@ -255,7 +303,7 @@ Question:"""
         training_args = TrainingArguments(
             output_dir="outputs/challenger",
             per_device_train_batch_size=1,
-            max_steps=10,  # Quick training
+            max_steps=50,  # Quick training
             learning_rate=2e-5 * reward_multiplier,
             optim="adamw_8bit",
             logging_steps=1,
@@ -622,7 +670,7 @@ Answer:"""
         train_dataset = Dataset.from_list(tokenized_data)
 
         # Use fewer steps if this is format pre-training (small dataset)
-        max_steps = 5 if len(tokenized_data) < 20 else 10
+        max_steps = 10 if len(tokenized_data) < 20 else 15
 
         training_args = TrainingArguments(
             output_dir="outputs/solver",
@@ -695,7 +743,7 @@ def run_rzero_evolution(num_iterations: int = 5):
     CLIFormatter.print_info("Pre-training Solver on Q&A format...")
     solver = SolverAgent()  # No checkpoint for initial baseline
 
-    # Create format training examples
+    # Create format training examples mixing simple format examples with actual GSM8K
     format_examples = [
         {"question": "What is 5 + 3?", "answer": "5 + 3 = 8\n\nThe answer is 8"},
         {"question": "If John has 10 apples and gives away 4, how many does he have left?",
@@ -703,13 +751,14 @@ def run_rzero_evolution(num_iterations: int = 5):
         {"question": "Calculate 12 × 5", "answer": "12 × 5 = 60\n\nThe answer is 60"},
         {"question": "A store sells pens for $2 each. How much do 5 pens cost?",
          "answer": "Each pen costs $2.\nNumber of pens: 5\nTotal cost: $2 × 5 = $10\n\nThe answer is $10"},
-        {"question": "What is 100 divided by 4?", "answer": "100 ÷ 4 = 25\n\nThe answer is 25"},
-        {"question": "Sarah had 15 cookies and ate 3. How many are left?",
-         "answer": "Sarah started with 15 cookies.\nShe ate 3 cookies.\n15 - 3 = 12\n\nSarah has 12 cookies left."},
-        {"question": "What is 7 × 8?", "answer": "7 × 8 = 56\n\nThe answer is 56"},
-        {"question": "If a book costs $15 and you buy 3 books, what's the total?",
-         "answer": "Cost per book: $15\nNumber of books: 3\nTotal: $15 × 3 = $45\n\nThe total cost is $45"},
     ]
+
+    # Add some actual GSM8K examples for better learning
+    for example in initial_data[:10]:  # Add first 10 GSM8K examples
+        format_examples.append({
+            "question": example["question"],
+            "answer": f"Let me solve this step by step.\n\nThe answer is {example['answer']}"
+        })
 
     format_dataset = Dataset.from_list(format_examples)
 
@@ -765,12 +814,22 @@ def run_rzero_evolution(num_iterations: int = 5):
 
         # Pre-train Challenger on first iteration to learn format
         if iteration == 0:
-            CLIFormatter.print_info("Pre-training Challenger on problem generation format...")
-            challenger_examples = [
+            CLIFormatter.print_info("Pre-training Challenger on GSM8K examples to learn problem generation...")
+
+            # Create training examples from GSM8K data
+            challenger_examples = []
+            for i, example in enumerate(initial_data[:20]):  # Use first 20 GSM8K examples
+                # Format as generation prompts
+                prompt_text = f"Generate a math word problem similar to this:\nQuestion: {example['question']}\nAnswer: {example['answer']}"
+                challenger_examples.append({"text": prompt_text})
+
+            # Also add some format examples
+            challenger_examples.extend([
                 {"text": "Generate a simple math problem with its answer.\nQuestion: What is 7 + 5?\nAnswer: 12"},
                 {"text": "Generate a simple math problem with its answer.\nQuestion: What is 15 - 8?\nAnswer: 7"},
                 {"text": "Generate a moderately complex math problem with its answer.\nQuestion: A box has 6 rows with 4 items each. How many items total?\nAnswer: 24"},
-            ]
+            ])
+
             challenger_dataset = Dataset.from_list(challenger_examples)
             challenger.train_on_feedback(challenger_dataset, solver_accuracy)
 
@@ -779,7 +838,9 @@ def run_rzero_evolution(num_iterations: int = 5):
             challenger.train_on_feedback(current_dataset, solver_accuracy)
 
         CLIFormatter.print_info(f"Generating New Problems (difficulty: {difficulty:.2f})")
-        new_problems = challenger.generate_problems(20, difficulty)
+        # Pass current dataset examples to help generate similar problems
+        dataset_examples = current_dataset.to_list() if iteration > 0 else initial_data
+        new_problems = challenger.generate_problems(75, difficulty, dataset_examples=dataset_examples)
 
         # Save challenger samples
         challenger_samples = {
