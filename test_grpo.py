@@ -36,10 +36,10 @@ def test_grpo_training():
     # Display sample problem
     if problems:
         CLIFormatter.print_info("Sample problem generated:")
-        CLIFormatter.print_item("Question", problems[0]['question'])
-        CLIFormatter.print_item("Answer", problems[0]['answer'])
+        CLIFormatter.print_status("Question", problems[0]['question'])
+        CLIFormatter.print_status("Answer", problems[0]['answer'])
         if problems[0].get('reasoning'):
-            CLIFormatter.print_item("Has reasoning", "Yes")
+            CLIFormatter.print_status("Has reasoning", "Yes")
 
     CLIFormatter.print_subheader("Step 2: Initialize Solver with GRPO")
 
@@ -117,9 +117,9 @@ def test_grpo_training():
     CLIFormatter.print_success("Test completed successfully!")
 
     CLIFormatter.print_info("Notes:")
-    CLIFormatter.print_item("", "The reward should increase over training steps")
-    CLIFormatter.print_item("", "The model needs more steps (50-200) to learn the format properly")
-    CLIFormatter.print_item("", "With full training, it will generate step-by-step reasoning")
+    print("  • The reward should increase over training steps")
+    print("  • The model needs more steps (50-200) to learn the format properly")
+    print("  • With full training, it will generate step-by-step reasoning")
 
 if __name__ == "__main__":
     test_grpo_training()

@@ -57,6 +57,9 @@ class TeacherAgent:
             n_ctx=8192,  # Increased context window for GSM8K format
             n_threads=8,  # CPU threads
             n_gpu_layers=-1,  # Use all GPU layers
+            offload_kqv=True,  # Offload KQV to GPU for MoE models
+            split_mode=1,  # Split mode for MoE (1 = split by layer)
+            tensor_split=None,  # Auto-split across GPUs if multiple
             chat_format="chatml",  # Use ChatML format for Qwen
             verbose=False
         )
@@ -588,9 +591,12 @@ Then, provide your solution between {SOLUTION_START}{SOLUTION_END}"""
         # Monkey-patch the log method to format output nicely
         original_log = trainer.log
 
-        def formatted_log(logs):
-            # Call original log method
-            original_log(logs)
+        def formatted_log(logs, start_time=None):
+            # Call original log method with both arguments
+            if start_time is not None:
+                original_log(logs, start_time)
+            else:
+                original_log(logs)
 
             # Format and display key metrics
             if logs:
@@ -599,35 +605,8 @@ Then, provide your solution between {SOLUTION_START}{SOLUTION_END}"""
                 # Only print on actual training steps (not initial eval)
                 if step > 0:
                     print("\n")  # Clear line after default output
-                    CLIFormatter.print_info(f"{'='*60}")
-                    CLIFormatter.print_status("Step", f"{step}/{max_steps}")
-                    CLIFormatter.print_status("Epoch", f"{logs.get('epoch', 0):.1f}")
-
-                    # Rewards
-                    reward = logs.get('reward', 0)
-                    reward_std = logs.get('reward_std', 0)
-                    CLIFormatter.print_status("Total Reward", f"{reward:.3f} ± {reward_std:.3f}")
-
-                    # Individual reward components
-                    format_exact = logs.get('rewards/match_format_exactly/mean', 0)
-                    format_approx = logs.get('rewards/match_format_approximately/mean', 0)
-                    answer_reward = logs.get('rewards/check_answer/mean', 0)
-                    numbers_reward = logs.get('rewards/check_numbers/mean', 0)
-
-                    CLIFormatter.print_item("Format (exact)", f"{format_exact:.2f}")
-                    CLIFormatter.print_item("Format (approx)", f"{format_approx:.2f}")
-                    CLIFormatter.print_item("Answer check", f"{answer_reward:.2f}")
-                    CLIFormatter.print_item("Number extract", f"{numbers_reward:.2f}")
-
-                    # Training metrics
-                    CLIFormatter.print_status("Learning Rate", f"{logs.get('learning_rate', 0):.2e}")
-                    CLIFormatter.print_status("Gradient Norm", f"{logs.get('grad_norm', 0):.2f}")
-                    CLIFormatter.print_status("KL Divergence", f"{logs.get('kl', 0):.4f}")
-
-                    # Completion stats
-                    mean_len = logs.get('completions/mean_length', 0)
-                    CLIFormatter.print_status("Avg Completion Length", f"{mean_len:.0f} tokens")
-                    CLIFormatter.print_info(f"{'='*60}\n")
+                    # Use the new synthwave-styled GRPO formatter
+                    CLIFormatter.format_grpo_stats(logs, step, max_steps)
 
         trainer.log = formatted_log
 
@@ -738,10 +717,10 @@ def run_simplified_rzero(num_iterations: int = 5, grpo_steps_per_iteration: int 
         # Show sample problem
         if new_problems:
             CLIFormatter.print_info("Sample generated problem:")
-            CLIFormatter.print_item("Question", new_problems[0]['question'][:100] + "..." if len(new_problems[0]['question']) > 100 else new_problems[0]['question'])
-            CLIFormatter.print_item("Answer", new_problems[0]['answer'])
+            CLIFormatter.print_status("Question", new_problems[0]['question'][:100] + "..." if len(new_problems[0]['question']) > 100 else new_problems[0]['question'])
+            CLIFormatter.print_status("Answer", new_problems[0]['answer'])
             if new_problems[0].get('reasoning'):
-                CLIFormatter.print_item("Has reasoning", "Yes")
+                CLIFormatter.print_status("Has reasoning", "Yes")
 
         # Save teacher samples
         os.makedirs("outputs/samples", exist_ok=True)
@@ -778,10 +757,10 @@ def run_simplified_rzero(num_iterations: int = 5, grpo_steps_per_iteration: int 
         # Show example solution
         if results:
             CLIFormatter.print_info("Example solver output:")
-            CLIFormatter.print_item("Question", results[0]['question'][:80] + "..." if len(results[0]['question']) > 80 else results[0]['question'])
-            CLIFormatter.print_item("Solver answer", results[0]['solver_answer'])
-            CLIFormatter.print_item("Correct answer", results[0]['ground_truth'])
-            CLIFormatter.print_item("Result", "✓ Correct" if results[0]['is_correct'] else "✗ Incorrect")
+            CLIFormatter.print_status("Question", results[0]['question'][:80] + "..." if len(results[0]['question']) > 80 else results[0]['question'])
+            CLIFormatter.print_status("Solver answer", results[0]['solver_answer'])
+            CLIFormatter.print_status("Correct answer", results[0]['ground_truth'])
+            CLIFormatter.print_status("Result", "✓ Correct" if results[0]['is_correct'] else "✗ Incorrect")
 
         # Save solver samples
         with open(f"outputs/samples/solver_iter_{iteration + 1}.json", "w") as f:
@@ -817,9 +796,9 @@ def run_simplified_rzero(num_iterations: int = 5, grpo_steps_per_iteration: int 
 
         # Iteration summary
         CLIFormatter.print_success(f"✓ Iteration {iteration + 1} completed!")
-        CLIFormatter.print_item("Final accuracy", f"{solver_accuracy:.2%}")
-        CLIFormatter.print_item("Next difficulty", f"{difficulty:.2f}")
-        CLIFormatter.print_item("Prompt iterations", str(len(teacher.prompt_history)))
+        CLIFormatter.print_status("Final accuracy", f"{solver_accuracy:.2%}")
+        CLIFormatter.print_status("Next difficulty", f"{difficulty:.2f}")
+        CLIFormatter.print_status("Prompt iterations", str(len(teacher.prompt_history)))
         print()  # Add spacing between iterations
 
     # Final summary
@@ -838,10 +817,10 @@ def run_simplified_rzero(num_iterations: int = 5, grpo_steps_per_iteration: int 
         }, f, indent=2)
 
     CLIFormatter.print_info("Results saved:")
-    CLIFormatter.print_item("Samples", "outputs/samples/")
-    CLIFormatter.print_item("Model checkpoints", "outputs/solver/")
-    CLIFormatter.print_item("Teacher state", "outputs/teacher/")
-    CLIFormatter.print_item("Evolution summary", "outputs/evolution_summary.json")
+    CLIFormatter.print_status("Samples", "outputs/samples/")
+    CLIFormatter.print_status("Model checkpoints", "outputs/solver/")
+    CLIFormatter.print_status("Teacher state", "outputs/teacher/")
+    CLIFormatter.print_status("Evolution summary", "outputs/evolution_summary.json")
 
     # Final cleanup
     teacher.cleanup()
