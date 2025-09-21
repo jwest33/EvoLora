@@ -75,8 +75,11 @@ class ChallengerAgent:
 Student's Answer: {student_answer}
 Correct Answer: {ground_truth}
 
-Is the student's answer mathematically equivalent to the correct answer? Consider that answers may be expressed differently (e.g., 72, $72, "72 dollars").
-Reply with only YES or NO.
+Compare ONLY the final numeric values. Is the student's final answer equal to {ground_truth}?
+- Student claims the answer is: {student_answer}
+- The correct answer is: {ground_truth}
+- If these numbers are equal (ignoring units/formatting), reply YES
+- If these numbers are different, reply NO
 
 Answer:"""
         else:
@@ -106,7 +109,24 @@ Answer:"""
         response = self.tokenizer.decode(generated_tokens, skip_special_tokens=True).strip().upper()
 
         # Check if response contains YES
-        return "YES" in response and "NO" not in response
+        if "YES" in response and "NO" not in response:
+            return True
+        elif "NO" in response:
+            return False
+        else:
+            # Fallback to numeric comparison if LLM response is unclear
+            import re
+            def extract_num(text):
+                text = text.replace("\\boxed{", "").replace("}", "")
+                numbers = re.findall(r'[-]?\d+(?:\.\d+)?', text)
+                return float(numbers[-1]) if numbers else None
+
+            student_num = extract_num(student_answer)
+            ground_num = extract_num(ground_truth)
+
+            if student_num is not None and ground_num is not None:
+                return abs(student_num - ground_num) < 0.01
+            return False
 
     def generate_problems(self, num_problems: int, difficulty: float = 0.5) -> List[Dict]:
         """Generate math problems based on difficulty level"""
@@ -259,8 +279,12 @@ class SolverAgent:
 Student Answer: {student_answer}
 Correct Answer: {ground_truth}
 
-Is the student's answer mathematically equivalent to the correct answer? Consider that answers may be expressed differently (e.g., 72, $72, "72 dollars", "seventy-two").
-Reply with only 'YES' or 'NO'.
+Task: Check if the student's final numeric answer matches the correct answer.
+- Extract the final number from student's answer
+- The correct final answer is: {ground_truth}
+- Reply YES only if the numbers match exactly
+- Reply NO if the numbers are different
+
 Answer:"""
         else:
             prompt = f"""Question: {question}
@@ -293,7 +317,19 @@ Answer:"""
         elif "NO" in judgment:
             return False
         else:
-            # If unclear, default to False
+            # Fallback to numeric comparison if LLM response is unclear
+            import re
+            def extract_num(text):
+                text = text.replace("\\boxed{", "").replace("}", "")
+                # Try to find the last number in the text
+                numbers = re.findall(r'[-]?\d+(?:\.\d+)?', text)
+                return float(numbers[-1]) if numbers else None
+
+            student_num = extract_num(student_answer)
+            ground_num = extract_num(ground_truth) if ground_truth else None
+
+            if student_num is not None and ground_num is not None:
+                return abs(student_num - ground_num) < 0.01
             return False
 
     def solve_problems(self, problems: List[Dict], judge_agent=None, return_accuracy: bool = True) -> List[Dict]:
