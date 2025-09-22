@@ -35,11 +35,11 @@ R-Zero is useful because it:
 4. **Domain agnostic** - While focused on math, generalizes to other reasoning tasks
 5. **Fresh initialization** - Each run starts from base models, no checkpoint dependency
 
-## Only tested on
+## Only tested on Windows 11:
 
 - Python 3.11.9
-- CUDA 12.8Awes
-- Windows 11
+- CUDA 12.8
+- Intel U7 265k (128GB DDR5 RAM)
 - RTX 5060 ti 16GB VRAM
 
 ## Installation
