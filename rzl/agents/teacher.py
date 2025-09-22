@@ -52,6 +52,13 @@ class TeacherAgent:
         self.prompt_history = [self.generation_prompt]
         self.iteration = 0
 
+        # Initialize problem history for deduplication
+        self.problem_history = set()
+        self.duplicate_count = 0
+
+        # Initialize rollback tracking
+        self.rollback_feedback = []
+
         CLIFormatter.print_success("Teacher model loaded successfully")
 
     def _get_initial_prompt(self) -> str:
@@ -80,6 +87,28 @@ She buys 7 more, so she has 12 + 7 = <<12+7=19>>19 apples.
 {SOLUTION_START}19{SOLUTION_END}
 
 Generate ONE word problem:"""
+
+    def _normalize_question(self, question: str) -> str:
+        """Normalize a question for deduplication comparison"""
+        import string
+        # Remove punctuation, lowercase, and strip whitespace
+        normalized = question.lower().strip()
+        # Remove common punctuation but keep numbers
+        translator = str.maketrans('', '', string.punctuation.replace('0123456789', ''))
+        normalized = normalized.translate(translator)
+        # Remove extra whitespace
+        normalized = ' '.join(normalized.split())
+        return normalized
+
+    def _is_duplicate(self, question: str) -> bool:
+        """Check if a question is a duplicate"""
+        normalized = self._normalize_question(question)
+        return normalized in self.problem_history
+
+    def _add_to_history(self, question: str):
+        """Add a question to the history"""
+        normalized = self._normalize_question(question)
+        self.problem_history.add(normalized)
 
     def _parse_problem_response(self, response: str) -> tuple:
         """Parse the model response to extract question, answer, and reasoning"""
@@ -116,35 +145,65 @@ Generate ONE word problem:"""
         return question, answer, full_solution, reasoning
 
     def generate_problems(self, num_problems: int, difficulty: float = 0.5, dataset_examples: List[Dict] = None) -> List[Dict]:
-        """Generate math problems using the current prompt"""
+        """Generate math problems using the current prompt with deduplication"""
+        import random
+        import hashlib
+
         problems = []
+        duplicates_found = 0
+        max_retries = 3
 
         # Adjust prompt based on difficulty
         difficulty_prompt = self._adjust_prompt_for_difficulty(difficulty, dataset_examples)
 
-        with SpinnerProgress(f"Generating {num_problems} problems at difficulty {difficulty:.1f}") as spinner:
-            for i in range(num_problems):
-                spinner.update(f"Generating problem {i+1}/{num_problems}")
+        # Create variety seeds for better diversity
+        variety_seeds = self._generate_variety_seeds(num_problems)
 
-                # Build the full prompt with example if this is the first problem and generation is failing
+        with SpinnerProgress(f"Generating {num_problems} unique problems at difficulty {difficulty:.1f}") as spinner:
+            i = 0
+            attempts = 0
+            consecutive_duplicates = 0
+
+            while len(problems) < num_problems and attempts < num_problems * max_retries:
+                attempts += 1
+                spinner.update(f"Generating problem {len(problems)+1}/{num_problems} (attempt {attempts})")
+
+                # Get variety seed for this problem
+                variety_seed = variety_seeds[len(problems) % len(variety_seeds)]
+
+                # Inject variety context to prevent repetition
+                variety_context = self._get_variety_context(len(problems), consecutive_duplicates, variety_seed)
+
+                # Build the full prompt with variety injection
                 if i == 0:
                     example_prompt = "\n\nExample:\nQuestion: Sarah has 8 apples and buys 5 more. How many apples does she have now?\nAnswer: Sarah has 8 apples. She buys 5 more, so 8 + 5 = <<8+5=13>>13. Therefore, she has \\boxed{13} apples.\n\n"
-                    full_prompt = f"{self.generation_prompt}{example_prompt}{difficulty_prompt}\n\nNow generate a new problem:\n\nQuestion: "
+                    full_prompt = f"{self.generation_prompt}{example_prompt}{difficulty_prompt}\n\n{variety_context}\n\nNow generate a new, unique problem:\n\nQuestion: "
                 else:
-                    full_prompt = f"{self.generation_prompt}\n\n{difficulty_prompt}\n\nQuestion: "
+                    full_prompt = f"{self.generation_prompt}\n\n{difficulty_prompt}\n\n{variety_context}\n\nQuestion: "
 
                 # Generate with llama.cpp using chat format
+                # Add randomization seed to system prompt
+                system_content = f"You are a helpful assistant that creates math word problems in GSM8K format. Always include real-world context and step-by-step solutions. Seed: {variety_seed['seed']}. Be creative and avoid repetition."
+
                 messages = [
-                    {"role": "system", "content": "You are a helpful assistant that creates math word problems in GSM8K format. Always include real-world context and step-by-step solutions."},
+                    {"role": "system", "content": system_content},
                     {"role": "user", "content": full_prompt}
                 ]
+
+                # Increase temperature significantly after consecutive duplicates
+                base_temp = 0.7
+                if consecutive_duplicates > 2:
+                    base_temp = 0.9  # Much higher for variety
+                elif consecutive_duplicates > 0:
+                    base_temp = 0.8
 
                 response = self.model.create_chat_completion(
                     messages=messages,
                     max_tokens=512,  # Increased for complete solutions
-                    temperature=0.7 + (i * 0.01),  # Slightly lower temperature for more focused generation
-                    top_p=0.9,
-                    stop=["\n\nQuestion:", "\n\nNow", "\n\n**", "Example:", "\nGenerate"]  # Better stop tokens
+                    temperature=base_temp + (attempts * 0.02),  # Increase temperature on retries
+                    top_p=0.95 if consecutive_duplicates > 0 else 0.9,  # Increase top_p for variety
+                    stop=["\n\nQuestion:", "\n\nNow", "\n\n**", "Example:", "\nGenerate"],  # Better stop tokens
+                    seed=variety_seed['numeric_seed'] if consecutive_duplicates > 3 else None  # Use seed for extreme cases
                 )
 
                 # Extract the generated text from chat completion
@@ -186,6 +245,18 @@ Generate ONE word problem:"""
                         question = f"What is {num1} × {num2}?"
                         answer = str(num1 * num2)
 
+                # Check for duplicate
+                if self._is_duplicate(question):
+                    duplicates_found += 1
+                    self.duplicate_count += 1
+                    consecutive_duplicates += 1
+                    continue  # Try again
+
+                # Reset consecutive duplicates counter on success
+                consecutive_duplicates = 0
+
+                # Add to history and problems list
+                self._add_to_history(question)
                 problems.append({
                     "question": question,
                     "answer": answer,
@@ -193,39 +264,104 @@ Generate ONE word problem:"""
                     "reasoning": reasoning if reasoning else "",
                     "difficulty": difficulty
                 })
+                i += 1
+
+        if duplicates_found > 0:
+            CLIFormatter.print_info(f"Avoided {duplicates_found} duplicate problems during generation")
 
         return problems
+
+    def _generate_variety_seeds(self, num_problems: int) -> List[Dict]:
+        """Generate variety seeds to encourage diverse problem generation"""
+        import random
+        import time
+
+        seeds = []
+        names = ["Emma", "Jake", "Sophia", "Liam", "Olivia", "Noah", "Ava", "Ethan", "Mia", "Lucas",
+                "Isabella", "Mason", "Charlotte", "Aiden", "Amelia", "Harper", "Elijah", "Evelyn", "Jackson", "Abigail"]
+
+        objects = ["apples", "pencils", "marbles", "cookies", "books", "toys", "stickers", "cards", "coins", "blocks",
+                  "crayons", "balls", "stamps", "shells", "flowers", "balloons", "candies", "buttons", "ribbons", "beads"]
+
+        actions = ["buys", "finds", "gets", "receives", "collects", "wins", "earns", "picks", "gathers", "discovers",
+                  "gives away", "shares", "loses", "uses", "trades", "sells", "donates", "splits", "distributes", "saves"]
+
+        contexts = ["at school", "at the store", "at home", "in the park", "at the beach", "during recess",
+                   "at the library", "at a party", "on vacation", "at the fair", "in the garden", "at camp",
+                   "during lunch", "after class", "on the weekend", "in the morning", "before dinner", "at the zoo"]
+
+        for i in range(max(num_problems * 2, 20)):  # Generate more seeds than needed
+            seed = {
+                "seed": f"{time.time()}_{i}_{random.randint(1000, 9999)}",
+                "numeric_seed": random.randint(1, 1000000),
+                "name": random.choice(names),
+                "object": random.choice(objects),
+                "action": random.choice(actions),
+                "context": random.choice(contexts),
+                "number1": random.randint(1, 20),
+                "number2": random.randint(1, 15)
+            }
+            seeds.append(seed)
+
+        random.shuffle(seeds)
+        return seeds
+
+    def _get_variety_context(self, problem_index: int, consecutive_duplicates: int, variety_seed: Dict) -> str:
+        """Get context to inject variety into problem generation"""
+        if consecutive_duplicates > 2:
+            # Strong variety injection after multiple duplicates
+            return f"""IMPORTANT: Create a unique problem that is DIFFERENT from previous ones.
+Use the character name '{variety_seed['name']}' and involve '{variety_seed['object']}' in a scenario '{variety_seed['context']}'.
+Avoid repeating patterns from earlier problems. Be creative!"""
+        elif consecutive_duplicates > 0:
+            # Mild variety suggestion
+            return f"Consider using different names, objects, and scenarios. Perhaps involve '{variety_seed['name']}' or '{variety_seed['object']}'."
+        elif problem_index % 5 == 0:  # Every 5th problem, suggest variety
+            return f"For variety, you might use '{variety_seed['name']}' as a character or '{variety_seed['object']}' as objects."
+        else:
+            return ""  # No special context needed
 
     def _adjust_prompt_for_difficulty(self, difficulty: float, dataset_examples: List[Dict] = None) -> str:
         """Adjust the prompt based on difficulty level"""
         if difficulty <= 0.3:
-            return """Create a SIMPLE word problem about everyday situations (like buying items, sharing toys, counting objects).
+            return """Create a SIMPLE word problem about everyday situations.
 Use small numbers (under 20) and only one calculation step.
-Include a real-world context with people or objects.
+Vary the characters, objects, and scenarios to avoid repetition.
 Show the calculation with <<>> brackets and put final answer in \\boxed{}."""
         elif difficulty <= 0.6:
-            return """Create a MODERATELY COMPLEX word problem involving real scenarios (like planning events, managing money, measuring things).
+            return """Create a MODERATELY COMPLEX word problem involving real scenarios.
 The problem should require 2-3 calculation steps.
-Include realistic context with names, places, or activities.
+Use diverse names, objects, and settings to ensure variety.
 Show each calculation step with <<>> brackets and put final answer in \\boxed{}."""
         else:
-            return """Create a CHALLENGING word problem with a rich story context (like running a business, planning a trip, solving a puzzle).
+            return """Create a CHALLENGING word problem with a rich story context.
 The problem should require multiple steps and logical reasoning.
-Include detailed scenario with multiple constraints or conditions.
+Ensure each problem is unique with different characters and scenarios.
 Show all calculation steps with <<>> brackets and put final answer in \\boxed{}."""
 
-    def evolve_prompt(self, solver_accuracy: float, problem_samples: List[Dict] = None):
+    def evolve_prompt(self, solver_accuracy: float, problem_samples: List[Dict] = None, had_rollback: bool = False):
         """Evolve the generation prompt based on solver performance"""
         self.iteration += 1
 
         CLIFormatter.print_info(f"Evolving Teacher prompt (Iteration {self.iteration}, Solver accuracy: {solver_accuracy:.2%})")
+
+        # Include rollback feedback if applicable
+        rollback_context = ""
+        if had_rollback:
+            rollback_context = "\n\nIMPORTANT: The solver's performance drastically dropped with your last prompt, so we rolled back. Please be more careful with difficulty adjustments."
+
+        if self.rollback_feedback:
+            recent_feedback = self.rollback_feedback[-3:]  # Last 3 rollback events
+            rollback_context += "\n\nRecent rollback history:"
+            for feedback in recent_feedback:
+                rollback_context += f"\n- Accuracy dropped from {feedback['previous']:.1%} to {feedback['current']:.1%}"
 
         # Build evolution prompt asking the model to revise itself
         evolution_prompt = f"""You are a math problem generator. Your current prompt is:
 
 {self.generation_prompt}
 
-The solver achieved {solver_accuracy:.1%} accuracy on the problems you generated.
+The solver achieved {solver_accuracy:.1%} accuracy on the problems you generated.{rollback_context}
 
 Based on this performance:
 - If accuracy is below 60%, problems are too hard. Make them simpler.
@@ -261,11 +397,13 @@ New prompt:"""
             CLIFormatter.print_warning("Prompt evolution failed, keeping current prompt")
 
     def save_state(self, path: str):
-        """Save the current state including prompts"""
+        """Save the current state including prompts and problem history"""
         state = {
             "generation_prompt": self.generation_prompt,
             "prompt_history": self.prompt_history,
-            "iteration": self.iteration
+            "iteration": self.iteration,
+            "problem_history": list(self.problem_history),  # Convert set to list for JSON serialization
+            "duplicate_count": self.duplicate_count
         }
         # Only create directory if path contains a directory
         dir_name = os.path.dirname(path)
@@ -275,14 +413,29 @@ New prompt:"""
             json.dump(state, f, indent=2)
 
     def load_state(self, path: str):
-        """Load saved state"""
+        """Load saved state including problem history"""
         if os.path.exists(path):
             with open(path, 'r') as f:
                 state = json.load(f)
             self.generation_prompt = state.get("generation_prompt", self._get_initial_prompt())
             self.prompt_history = state.get("prompt_history", [self.generation_prompt])
             self.iteration = state.get("iteration", 0)
+            # Load problem history and convert list back to set
+            self.problem_history = set(state.get("problem_history", []))
+            self.duplicate_count = state.get("duplicate_count", 0)
             CLIFormatter.print_success(f"Loaded Teacher state from iteration {self.iteration}")
+            if self.problem_history:
+                CLIFormatter.print_info(f"Loaded {len(self.problem_history)} unique problems from history")
+
+    def add_rollback_feedback(self, current_accuracy: float, accuracy_drop: float):
+        """Add feedback about a rollback event for better prompt evolution"""
+        self.rollback_feedback.append({
+            "iteration": self.iteration,
+            "current": current_accuracy,
+            "previous": current_accuracy + accuracy_drop,
+            "drop": accuracy_drop
+        })
+        CLIFormatter.print_info(f"Recorded rollback feedback: {accuracy_drop:.2%} accuracy drop")
 
     def cleanup(self):
         """Clean up model from memory"""

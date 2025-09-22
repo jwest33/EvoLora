@@ -68,6 +68,10 @@ def run_simplified_rzero(num_iterations: int = 8, grpo_steps_per_iteration: int 
     teacher = TeacherAgent()
     teacher_state_path = f"{run_dir}/teacher/state.json"
 
+    # Try to load existing teacher state to preserve problem history
+    if os.path.exists(teacher_state_path):
+        teacher.load_state(teacher_state_path)
+
     # Pre-train Solver on GSM8K examples using GRPO
     CLIFormatter.print_subheader("Pre-training Solver with GRPO")
     CLIFormatter.print_info("This teaches the model the basic reasoning format...")
@@ -84,124 +88,212 @@ def run_simplified_rzero(num_iterations: int = 8, grpo_steps_per_iteration: int 
     # Use moderate steps for pre-training to establish format well
     solver.train_with_grpo(initial_problems, max_steps=10)  # 10 steps to learn format properly
 
-    # Save pre-trained solver
-    solver_checkpoint = solver.save_checkpoint(0, run_id)
+    # Save pre-trained solver with metadata
+    initial_accuracy = 0.5  # Baseline accuracy assumption for pre-training
+    solver_checkpoint = solver.save_checkpoint(0, run_id, accuracy=initial_accuracy)
     solver.cleanup()
+
+    # Initialize tracking variables for rollback
+    accuracy_history = [initial_accuracy]
+    best_checkpoint = solver_checkpoint
+    best_accuracy = initial_accuracy
+    rollback_count = 0
+    max_rollbacks_per_iteration = 2
 
     # Evolution loop
     CLIFormatter.print_header("Starting Evolution Loop")
 
     for iteration in range(num_iterations):
-        CLIFormatter.print_header(f"Evolution Iteration {iteration + 1}/{num_iterations}")
-        CLIFormatter.print_status("Current Difficulty", f"{difficulty:.2f}")
+        iteration_rollbacks = 0  # Track rollbacks for this iteration
+        iteration_complete = False
 
-        # Phase 1: Teacher generates problems
-        CLIFormatter.print_subheader("Phase 1: Teacher Generating Problems")
-        num_problems = 20 + (iteration * 5)  # Increase dataset size over time
-        CLIFormatter.print_info(f"Generating {num_problems} problems at difficulty {difficulty:.2f}...")
+        while not iteration_complete and iteration_rollbacks < max_rollbacks_per_iteration:
+            CLIFormatter.print_header(f"Evolution Iteration {iteration + 1}/{num_iterations}")
+            if iteration_rollbacks > 0:
+                CLIFormatter.print_warning(f"Retry attempt {iteration_rollbacks} after rollback")
+            CLIFormatter.print_status("Current Difficulty", f"{difficulty:.2f}")
+            CLIFormatter.print_status("Previous Accuracy", f"{accuracy_history[-1]:.2%}")
 
-        new_problems = teacher.generate_problems(num_problems, difficulty, initial_data[:10])
+            # Phase 1: Teacher generates problems
+            CLIFormatter.print_subheader("Phase 1: Teacher Generating Problems")
+            num_problems = 20 + (iteration * 5)  # Increase dataset size over time
+            CLIFormatter.print_info(f"Generating {num_problems} problems at difficulty {difficulty:.2f}...")
+            CLIFormatter.print_status("Unique problems in history", str(len(teacher.problem_history)))
 
-        # Show sample problem
-        if new_problems:
-            CLIFormatter.print_info("Sample generated problem:")
-            CLIFormatter.print_status("Question", new_problems[0]['question'][:100] + "..." if len(new_problems[0]['question']) > 100 else new_problems[0]['question'])
-            CLIFormatter.print_status("Answer", new_problems[0]['answer'])
-            if new_problems[0].get('reasoning'):
-                CLIFormatter.print_status("Has reasoning", "Yes")
+            new_problems = teacher.generate_problems(num_problems, difficulty, initial_data[:10])
 
-        # Save teacher samples
-        samples_dir = f"{run_dir}/samples"
-        os.makedirs(samples_dir, exist_ok=True)
-        with open(f"{samples_dir}/teacher_iter_{iteration + 1}.json", "w") as f:
-            json.dump({
-                "iteration": iteration + 1,
-                "difficulty": difficulty,
-                "prompt": teacher.generation_prompt[:500] + "..." if len(teacher.generation_prompt) > 500 else teacher.generation_prompt,
-                "samples": new_problems[:5]
-            }, f, indent=2)
+            # Show deduplication stats if any duplicates were found
+            if teacher.duplicate_count > 0:
+                CLIFormatter.print_status("Total duplicates avoided", str(teacher.duplicate_count))
 
-        # Update dataset
-        current_dataset = Dataset.from_list(new_problems)
+            # Show sample problem
+            if new_problems:
+                CLIFormatter.print_info("Sample generated problem:")
+                CLIFormatter.print_status("Question", new_problems[0]['question'][:100] + "..." if len(new_problems[0]['question']) > 100 else new_problems[0]['question'])
+                CLIFormatter.print_status("Answer", new_problems[0]['answer'])
+                if new_problems[0].get('reasoning'):
+                    CLIFormatter.print_status("Has reasoning", "Yes")
 
-        # Phase 2: GRPO Training
-        CLIFormatter.print_subheader("Phase 2: Solver GRPO Training")
-        CLIFormatter.print_info(f"Training for {grpo_steps_per_iteration} steps to learn reasoning...")
-        CLIFormatter.print_info("Watch the reward metrics to see learning progress!")
+            # Save teacher samples
+            samples_dir = f"{run_dir}/samples"
+            os.makedirs(samples_dir, exist_ok=True)
+            with open(f"{samples_dir}/teacher_iter_{iteration + 1}.json", "w") as f:
+                json.dump({
+                    "iteration": iteration + 1,
+                    "difficulty": difficulty,
+                    "prompt": teacher.generation_prompt[:500] + "..." if len(teacher.generation_prompt) > 500 else teacher.generation_prompt,
+                    "samples": new_problems[:5]
+                }, f, indent=2)
 
-        solver = SolverAgent(checkpoint_path=solver_checkpoint)
+            # Update dataset
+            current_dataset = Dataset.from_list(new_problems)
 
-        # Train with GRPO on new problems - use configured step count
-        solver.train_with_grpo(new_problems, max_steps=grpo_steps_per_iteration)
+            # Phase 2: GRPO Training
+            solver = SolverAgent(checkpoint_path=solver_checkpoint)
 
-        # Phase 3: Evaluate solver
-        CLIFormatter.print_subheader("Phase 3: Evaluating Solver Performance")
-        # Test on subset for speed
-        test_problems = new_problems[:min(10, len(new_problems))]
-        results = solver.solve_problems(test_problems)
-        solver_accuracy = results[0]["accuracy"] if results else 0
+            # Train with GRPO on new problems - use configured step count
+            solver.train_with_grpo(new_problems, max_steps=grpo_steps_per_iteration)
 
-        CLIFormatter.print_status("Solver Accuracy", f"{solver_accuracy:.2%}")
+            # Phase 3: Evaluate solver
+            CLIFormatter.print_subheader("Phase 3: Evaluating Solver Performance")
+            # Test on subset for speed
+            test_problems = new_problems[:min(10, len(new_problems))]
+            results = solver.solve_problems(test_problems)
+            solver_accuracy = results[0]["accuracy"] if results else 0
 
-        # Show example solver output
-        if results:
-            CLIFormatter.print_info("Example solver output:")
-            print(f"Question: {results[0]['question'][:100]}...")
-            print(f"Solver answer: {results[0]['solver_answer']}")
-            print(f"Correct answer: {results[0]['ground_truth']}")
-            print(f"Result: {'✓ Correct' if results[0]['is_correct'] else '✗ Incorrect'}")
+            CLIFormatter.print_status("Solver Accuracy", f"{solver_accuracy:.2%}")
 
-        # Phase 4: Teacher evolves
-        CLIFormatter.print_subheader("Phase 4: Teacher Prompt Evolution")
+            # Check for drastic accuracy drop
+            accuracy_drop = accuracy_history[-1] - solver_accuracy
+            accuracy_drop_threshold = 0.3  # 30% drop threshold
+            min_acceptable_accuracy = 0.4  # Minimum 40% accuracy
 
-        old_prompt_len = len(teacher.generation_prompt)
-        teacher.evolve_prompt(solver_accuracy, new_problems[:5])
-        new_prompt_len = len(teacher.generation_prompt)
+            should_rollback = (
+                accuracy_drop > accuracy_drop_threshold or
+                solver_accuracy < min_acceptable_accuracy
+            ) and iteration > 0  # Don't rollback on first iteration
 
-        CLIFormatter.print_status("Prompt evolution", f"{old_prompt_len} → {new_prompt_len} chars")
-        teacher.save_state(teacher_state_path)
+            # Show example solver output
+            if results:
+                CLIFormatter.print_info("Example solver output:")
+                print(f"Question: {results[0]['question'][:100]}...")
+                print(f"Solver answer: {results[0]['solver_answer']}")
+                print(f"Correct answer: {results[0]['ground_truth']}")
+                print(f"Result: {'✓ Correct' if results[0]['is_correct'] else '✗ Incorrect'}")
 
-        # Adjust difficulty for next iteration
-        old_difficulty = difficulty
-        if solver_accuracy > 0.7:
-            difficulty = min(1.0, difficulty + 0.1)
-            CLIFormatter.print_success(f"Performance good! Increasing difficulty: {old_difficulty:.2f} → {difficulty:.2f}")
-        elif solver_accuracy < 0.4:
-            difficulty = max(0.1, difficulty - 0.1)
-            CLIFormatter.print_warning(f"Performance low. Decreasing difficulty: {old_difficulty:.2f} → {difficulty:.2f}")
-        else:
-            CLIFormatter.print_info(f"Maintaining difficulty at {difficulty:.2f}")
+            # Handle rollback if needed
+            if should_rollback and iteration_rollbacks < max_rollbacks_per_iteration:
+                CLIFormatter.print_error(f"⚠️ Drastic accuracy drop detected!")
+                CLIFormatter.print_status("Previous accuracy", f"{accuracy_history[-1]:.2%}")
+                CLIFormatter.print_status("Current accuracy", f"{solver_accuracy:.2%}")
+                CLIFormatter.print_status("Drop", f"{accuracy_drop:.2%}")
 
-        # Save solver checkpoint
-        solver_checkpoint = solver.save_checkpoint(iteration + 1, run_id)
-        solver.cleanup()
+                # Clean up failed model
+                solver.cleanup()
 
-        # Iteration summary
-        CLIFormatter.print_success(f"✓ Iteration {iteration + 1} completed!")
-        CLIFormatter.print_status("Final accuracy", f"{solver_accuracy:.2%}")
-        CLIFormatter.print_status("Next difficulty", f"{difficulty:.2f}")
-        CLIFormatter.print_status("Prompt iterations", str(len(teacher.prompt_history)))
-        print()  # Add spacing between iterations
+                # Rollback to best checkpoint
+                CLIFormatter.print_warning(f"Rolling back to best checkpoint (accuracy: {best_accuracy:.2%})")
+                solver_checkpoint = best_checkpoint
+
+                # Adjust difficulty more aggressively
+                old_difficulty = difficulty
+                difficulty = max(0.1, difficulty - 0.2)  # Larger adjustment on rollback
+                CLIFormatter.print_warning(f"Adjusting difficulty: {old_difficulty:.2f} → {difficulty:.2f}")
+
+                iteration_rollbacks += 1
+                rollback_count += 1
+
+                # Update teacher with rollback feedback
+                teacher.add_rollback_feedback(solver_accuracy, accuracy_drop)
+
+                continue  # Retry this iteration
+
+            # Phase 4: Teacher evolves
+            CLIFormatter.print_subheader("Phase 4: Teacher Prompt Evolution")
+
+            old_prompt_len = len(teacher.generation_prompt)
+            # Pass rollback info to teacher evolution
+            teacher.evolve_prompt(
+                solver_accuracy,
+                new_problems[:5],
+                had_rollback=(iteration_rollbacks > 0)
+            )
+            new_prompt_len = len(teacher.generation_prompt)
+
+            CLIFormatter.print_status("Prompt evolution", f"{old_prompt_len} → {new_prompt_len} chars")
+            teacher.save_state(teacher_state_path)
+
+            # Only adjust difficulty if not rolling back
+            if not should_rollback or iteration_rollbacks >= max_rollbacks_per_iteration:
+                # Adjust difficulty for next iteration
+                old_difficulty = difficulty
+                if solver_accuracy > 0.7:
+                    difficulty = min(1.0, difficulty + 0.1)
+                    CLIFormatter.print_success(f"Performance good! Increasing difficulty: {old_difficulty:.2f} → {difficulty:.2f}")
+                elif solver_accuracy < 0.4 and not should_rollback:  # Only decrease if we're not already rolling back
+                    difficulty = max(0.1, difficulty - 0.1)
+                    CLIFormatter.print_warning(f"Performance low. Decreasing difficulty: {old_difficulty:.2f} → {difficulty:.2f}")
+                else:
+                    CLIFormatter.print_info(f"Maintaining difficulty at {difficulty:.2f}")
+
+                # Save solver checkpoint with accuracy metadata
+                solver_checkpoint = solver.save_checkpoint(iteration + 1, run_id, accuracy=solver_accuracy)
+
+                # Update best checkpoint if this is better
+                if solver_accuracy > best_accuracy:
+                    best_checkpoint = solver_checkpoint
+                    best_accuracy = solver_accuracy
+                    CLIFormatter.print_success(f"New best model! Accuracy: {best_accuracy:.2%}")
+
+                # Add to accuracy history
+                accuracy_history.append(solver_accuracy)
+
+                solver.cleanup()
+                iteration_complete = True
+
+            # Iteration summary
+            CLIFormatter.print_success(f"✓ Iteration {iteration + 1} completed!")
+            CLIFormatter.print_status("Final accuracy", f"{solver_accuracy:.2%}")
+            CLIFormatter.print_status("Best accuracy so far", f"{best_accuracy:.2%}")
+            CLIFormatter.print_status("Next difficulty", f"{difficulty:.2f}")
+            CLIFormatter.print_status("Prompt iterations", str(len(teacher.prompt_history)))
+            CLIFormatter.print_status("Unique problems generated", str(len(teacher.problem_history)))
+            if iteration_rollbacks > 0:
+                CLIFormatter.print_status("Rollbacks this iteration", str(iteration_rollbacks))
+            print()  # Add spacing between iterations
 
     # Final summary
     CLIFormatter.print_header("GRPO Training Complete!")
     CLIFormatter.print_success(f"Completed {num_iterations} evolution iterations")
+    CLIFormatter.print_status("Best accuracy achieved", f"{best_accuracy:.2%}")
+    CLIFormatter.print_status("Final accuracy", f"{accuracy_history[-1]:.2%}")
     CLIFormatter.print_status("Final difficulty level", f"{difficulty:.2f}")
     CLIFormatter.print_status("Total prompt evolutions", str(len(teacher.prompt_history)))
+    CLIFormatter.print_status("Total unique problems", str(len(teacher.problem_history)))
+    CLIFormatter.print_status("Total duplicates avoided", str(teacher.duplicate_count))
+    CLIFormatter.print_status("Total rollbacks", str(rollback_count))
 
-    # Save final summary
+    # Save final summary with rollback info
     summary_path = f"{run_dir}/evolution_summary.json"
     with open(summary_path, "w") as f:
         json.dump({
             "run_id": run_id,
             "num_iterations": num_iterations,
             "final_difficulty": difficulty,
+            "best_accuracy": best_accuracy,
+            "final_accuracy": accuracy_history[-1],
+            "accuracy_history": accuracy_history,
             "grpo_steps_per_iteration": grpo_steps_per_iteration,
-            "teacher_prompts": teacher.prompt_history
+            "teacher_prompts": teacher.prompt_history,
+            "unique_problems_generated": len(teacher.problem_history),
+            "duplicates_avoided": teacher.duplicate_count,
+            "total_rollbacks": rollback_count,
+            "best_checkpoint": best_checkpoint
         }, f, indent=2)
 
     CLIFormatter.print_info("Results saved in:")
     CLIFormatter.print_status("Run directory", run_dir)
+    CLIFormatter.print_status("Best checkpoint", best_checkpoint)
     CLIFormatter.print_status("Model checkpoints", f"{run_dir}/solver/")
     CLIFormatter.print_status("Teacher state", f"{run_dir}/teacher/")
     CLIFormatter.print_status("Training samples", f"{run_dir}/samples/")

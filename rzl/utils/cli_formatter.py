@@ -538,8 +538,11 @@ class CLIFormatter:
         reward_std = metrics.get('reward_std', 0.0)
 
         # Display epoch and main reward with actual values
-        print(f"{CLIFormatter.NEON_CYAN}Epoch: {CLIFormatter.ELECTRIC_BLUE}{epoch:.1f}{Style.RESET_ALL}")
-        print(f"{CLIFormatter.NEON_CYAN}Reward: {CLIFormatter.NEON_GREEN if reward > 0.5 else CLIFormatter.SUNSET_ORANGE if reward > 0 else CLIFormatter.HOT_PINK}{reward:.3f} ± {reward_std:.3f}{Style.RESET_ALL}")
+        print(f"{CLIFormatter.NEON_CYAN}Epoch: {CLIFormatter.ELECTRIC_BLUE}{epoch:.2f}{Style.RESET_ALL}")
+
+        # Highlight total reward prominently
+        reward_color = CLIFormatter.NEON_GREEN if reward > 1.0 else CLIFormatter.SUNSET_ORANGE if reward > 0.5 else CLIFormatter.HOT_PINK
+        print(f"{CLIFormatter.NEON_CYAN}{Style.BRIGHT}Total Reward: {reward_color}{reward:.3f} ± {reward_std:.3f}{Style.RESET_ALL}")
 
         # Always display reward breakdown
         print(f"\n{CLIFormatter.NEON_PURPLE}Reward Components:{Style.RESET_ALL}")
@@ -549,12 +552,14 @@ class CLIFormatter:
         format_approx = metrics.get('rewards/match_format_approximately/mean', 0.0)
         answer_check = metrics.get('rewards/check_answer/mean', 0.0)
         number_extract = metrics.get('rewards/check_numbers/mean', 0.0)
+        length_penalty = metrics.get('rewards/length_penalty/mean', 0.0)
 
         # Display each component with color coding
         print(f"  {CLIFormatter.NEON_CYAN}Format (exact): {CLIFormatter.NEON_GREEN if format_exact > 0.5 else CLIFormatter.SUNSET_ORANGE if format_exact > 0 else CLIFormatter.HOT_PINK}{format_exact:.3f}{Style.RESET_ALL}")
-        print(f"  {CLIFormatter.NEON_CYAN}Format (approx): {CLIFormatter.NEON_GREEN if format_approx > 0 else CLIFormatter.SUNSET_ORANGE if format_approx > -0.5 else CLIFormatter.HOT_PINK}{format_approx:.3f}{Style.RESET_ALL}")
+        print(f"  {CLIFormatter.NEON_CYAN}Format (approx): {CLIFormatter.NEON_GREEN if format_approx > 0.5 else CLIFormatter.SUNSET_ORANGE if format_approx > 0 else CLIFormatter.HOT_PINK}{format_approx:.3f}{Style.RESET_ALL}")
         print(f"  {CLIFormatter.NEON_CYAN}Answer check: {CLIFormatter.NEON_GREEN if answer_check > 0.5 else CLIFormatter.SUNSET_ORANGE if answer_check > 0 else CLIFormatter.HOT_PINK}{answer_check:.3f}{Style.RESET_ALL}")
         print(f"  {CLIFormatter.NEON_CYAN}Number extract: {CLIFormatter.NEON_GREEN if number_extract > 0.5 else CLIFormatter.SUNSET_ORANGE if number_extract > 0 else CLIFormatter.HOT_PINK}{number_extract:.3f}{Style.RESET_ALL}")
+        print(f"  {CLIFormatter.NEON_CYAN}Length penalty: {CLIFormatter.NEON_GREEN if length_penalty > 0.5 else CLIFormatter.SUNSET_ORANGE if length_penalty > 0 else CLIFormatter.HOT_PINK}{length_penalty:.3f}{Style.RESET_ALL}")
 
         # Training metrics
         print(f"\n{CLIFormatter.NEON_PURPLE}Training Metrics:{Style.RESET_ALL}")
@@ -564,12 +569,40 @@ class CLIFormatter:
         kl = metrics.get('kl', 0)
         loss = metrics.get('loss', None)
 
-        print(f"  {CLIFormatter.NEON_CYAN}Learning Rate: {CLIFormatter.ELECTRIC_BLUE}{learning_rate:.2e}{Style.RESET_ALL}")
-        print(f"  {CLIFormatter.NEON_CYAN}Gradient Norm: {CLIFormatter.NEON_GREEN if 0.001 < grad_norm < 100 else CLIFormatter.HOT_PINK}{grad_norm:.2f}{Style.RESET_ALL}")
-        print(f"  {CLIFormatter.NEON_CYAN}KL Divergence: {CLIFormatter.ELECTRIC_BLUE}{kl:.4f}{Style.RESET_ALL}")
+        # Format learning rate with scientific notation if very small
+        if learning_rate != 0 and learning_rate < 1e-6:
+            lr_str = f"{learning_rate:.2e}"
+        elif learning_rate == 0:
+            lr_str = "0.00"
+        else:
+            lr_str = f"{learning_rate:.6f}"
+        print(f"  {CLIFormatter.NEON_CYAN}Learning Rate: {CLIFormatter.ELECTRIC_BLUE}{lr_str}{Style.RESET_ALL}")
+
+        # Format gradient norm
+        if grad_norm != 0 and grad_norm < 0.001:
+            grad_str = f"{grad_norm:.2e}"
+        elif grad_norm > 1000:
+            grad_str = f"{grad_norm:.2e}"
+        else:
+            grad_str = f"{grad_norm:.4f}"
+        grad_color = CLIFormatter.NEON_GREEN if 0.001 < grad_norm < 100 else CLIFormatter.SUNSET_ORANGE if grad_norm > 0 else CLIFormatter.HOT_PINK
+        print(f"  {CLIFormatter.NEON_CYAN}Gradient Norm: {grad_color}{grad_str}{Style.RESET_ALL}")
+
+        # Format KL divergence
+        if kl != 0 and abs(kl) < 0.0001:
+            kl_str = f"{kl:.2e}"
+        else:
+            kl_str = f"{kl:.6f}"
+        print(f"  {CLIFormatter.NEON_CYAN}KL Divergence: {CLIFormatter.ELECTRIC_BLUE}{kl_str}{Style.RESET_ALL}")
 
         if loss is not None:
-            print(f"  {CLIFormatter.NEON_CYAN}Loss: {CLIFormatter.NEON_GREEN if loss < 0.1 else CLIFormatter.SUNSET_ORANGE if loss < 1 else CLIFormatter.HOT_PINK}{loss:.4f}{Style.RESET_ALL}")
+            # Format loss with appropriate precision
+            if loss != 0 and loss < 0.0001:
+                loss_str = f"{loss:.2e}"
+            else:
+                loss_str = f"{loss:.6f}"
+            loss_color = CLIFormatter.NEON_GREEN if loss < 0.1 else CLIFormatter.SUNSET_ORANGE if loss < 1 else CLIFormatter.HOT_PINK
+            print(f"  {CLIFormatter.NEON_CYAN}Loss: {loss_color}{loss_str}{Style.RESET_ALL}")
 
         # Completion stats
         avg_length = metrics.get('completions/mean_length', 0)
@@ -587,6 +620,17 @@ class CLIFormatter:
             if clipped_ratio > 0:
                 color = CLIFormatter.NEON_GREEN if clipped_ratio < 0.1 else CLIFormatter.SUNSET_ORANGE if clipped_ratio < 0.3 else CLIFormatter.HOT_PINK
                 print(f"  {CLIFormatter.NEON_CYAN}Clipped: {color}{clipped_ratio:.1%}{Style.RESET_ALL}")
+
+        # Show token count if available
+        num_tokens = metrics.get('num_tokens', 0)
+        if num_tokens > 0:
+            if num_tokens > 1000000:
+                tokens_str = f"{num_tokens/1000000:.2f}M"
+            elif num_tokens > 1000:
+                tokens_str = f"{num_tokens/1000:.1f}K"
+            else:
+                tokens_str = f"{int(num_tokens)}"
+            print(f"\n{CLIFormatter.NEON_CYAN}Total Tokens: {CLIFormatter.ELECTRIC_BLUE}{tokens_str}{Style.RESET_ALL}")
 
         print(f"\n{CLIFormatter.NEON_PINK}{'═' * 60}{Style.RESET_ALL}")
 

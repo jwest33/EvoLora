@@ -347,37 +347,57 @@ Then, provide your solution between {SOLUTION_START}{SOLUTION_END}"""
             generation_config=generation_config,
         )
 
+        # Disable default verbose logging
+        trainer.args.logging_steps = 1
+        trainer.args.disable_tqdm = True  # Disable default progress bar
+
+        # Track if we should suppress output
         original_log = trainer.log
 
         def formatted_log(logs, start_time=None):
-            # Call original log method with both arguments
-            if start_time is not None:
-                original_log(logs, start_time)
-            else:
-                original_log(logs)
-
             # Format and display key metrics
             if logs and isinstance(logs, dict):
                 step = trainer.state.global_step
 
-                # Only print formatted output when we have complete training metrics
-                # (reward data indicates a full training step, not just eval)
-                has_rewards = 'reward' in logs and 'epoch' in logs
+                # Check what type of log this is
+                has_rewards = 'reward' in logs
                 has_components = any(k.startswith('rewards/') for k in logs.keys())
+                is_training_summary = 'train_runtime' in logs
 
-                if step > 0 and has_rewards and has_components:
-                    print("\n")  # Clear line after default output
+                # Use beautiful formatting for training steps
+                if step > 0 and (has_rewards or has_components):
                     # Use the new synthwave-styled GRPO formatter
                     CLIFormatter.format_grpo_stats(logs, step, max_steps)
+                elif is_training_summary:
+                    # Training summary
+                    runtime = logs.get('train_runtime', 0)
+                    CLIFormatter.print_success(f"GRPO training completed in {runtime:.1f}s")
+                    if 'train_loss' in logs:
+                        CLIFormatter.print_status("Final Loss", f"{logs['train_loss']:.6f}")
+                    if 'epoch' in logs:
+                        CLIFormatter.print_status("Epochs", f"{logs['epoch']:.2f}")
+                    if 'train_steps_per_second' in logs:
+                        CLIFormatter.print_status("Training Speed", f"{logs['train_steps_per_second']:.2f} steps/s")
+                # Suppress raw dictionary output by not calling original_log
+                # Only call for non-training logs
+                elif not any(k in logs for k in ['loss', 'grad_norm', 'learning_rate']):
+                    if start_time is not None:
+                        original_log(logs, start_time)
+                    else:
+                        original_log(logs)
 
         trainer.log = formatted_log
 
         # Train with GRPO
+        CLIFormatter.print_subheader(f"Phase 2: Solver GRPO Training")
+        CLIFormatter.print_info(f"Training for {max_steps} steps to learn reasoning...")
+        CLIFormatter.print_info("Watch the reward metrics to see learning progress!")
+        print()  # Add spacing
         trainer.train()
-        CLIFormatter.print_success("GRPO training completed")
+        print()  # Add spacing after training
 
-    def save_checkpoint(self, iteration: int, run_id: str = None) -> str:
-        """Save model checkpoint and return the path"""
+    def save_checkpoint(self, iteration: int, run_id: str = None, accuracy: float = None) -> str:
+        """Save model checkpoint with metadata and return the path"""
         if run_id is None:
             run_id = datetime.now().strftime("%Y%m%d_%H%M%S")
         checkpoint_dir = f"outputs/{run_id}/solver/iteration_{iteration}"
@@ -386,6 +406,17 @@ Then, provide your solution between {SOLUTION_START}{SOLUTION_END}"""
         CLIFormatter.print_info(f"Saving Solver checkpoint to {checkpoint_dir}")
         self.model.save_pretrained(checkpoint_dir)
         self.tokenizer.save_pretrained(checkpoint_dir)
+
+        # Save metadata
+        metadata = {
+            "iteration": iteration,
+            "accuracy": accuracy,
+            "timestamp": datetime.now().isoformat(),
+            "run_id": run_id
+        }
+        with open(f"{checkpoint_dir}/metadata.json", "w") as f:
+            import json
+            json.dump(metadata, f, indent=2)
 
         return checkpoint_dir
 

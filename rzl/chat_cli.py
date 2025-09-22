@@ -319,7 +319,7 @@ class HuggingFaceChat:
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
 
-        self.system_prompt = system_prompt or GGUFChat.get_default_system_prompt()
+        self.system_prompt = system_prompt if system_prompt is not None else "You are a helpful assistant."
         self.messages: List[Dict[str, str]] = []
         self.reset_conversation()
 
@@ -409,13 +409,15 @@ class ComparisonChat:
             n_gpu_layers: Number of layers to offload to GPU
             verbose: Enable verbose output
         """
-        self.system_prompt = system_prompt or GGUFChat.get_default_system_prompt()
+        # Use detailed prompt for trained model, minimal for base
+        self.trained_prompt = system_prompt or GGUFChat.get_default_system_prompt()
+        self.base_prompt = "You are a helpful assistant that solves math problems."
 
         # Initialize trained model (should be GGUF)
         CLIFormatter.print_info("Loading trained model...")
         self.trained_chat = GGUFChat(
             trained_model_path,
-            self.system_prompt,
+            self.trained_prompt,
             n_ctx,
             n_threads,
             n_gpu_layers,
@@ -431,7 +433,7 @@ class ComparisonChat:
             # It's a GGUF file
             self.base_chat = GGUFChat(
                 base_model_path,
-                self.system_prompt,
+                self.base_prompt,
                 n_ctx,
                 n_threads,
                 n_gpu_layers,
@@ -442,7 +444,7 @@ class ComparisonChat:
             # Assume it's a HuggingFace model
             self.base_chat = HuggingFaceChat(
                 base_model_path,
-                self.system_prompt,
+                self.base_prompt,
                 max_seq_length=n_ctx,
                 load_in_4bit=True,
                 verbose=verbose
