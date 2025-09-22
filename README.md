@@ -127,7 +127,7 @@ python rzl/chat_cli.py
 
 Here's an actual inference session with a trained RZL model solving a multi-step word problem:
 
-![Trained Example](RZL\example_trained_model.jpg)
+![Trained Example](rzl/example_trained_model.jpg)
 
 ```
 You: Michelle buys 3 books for $8.95 each and 2 magazines for $4.50 each. She has a membership
