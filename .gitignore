@@ -15,5 +15,5 @@ outputs/
 xformers/
 llama.cpp/
 tools/
-outputs_test_01
+outputs_example/
 .gitignore
