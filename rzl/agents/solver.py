@@ -5,7 +5,9 @@ import sys
 import torch
 import gc
 import re
-from typing import List, Dict
+import numpy as np
+from typing import List, Dict, Tuple, Optional
+from collections import Counter
 from datasets import Dataset
 from trl import GRPOConfig, GRPOTrainer
 from datetime import datetime
@@ -30,7 +32,13 @@ def clear_memory():
 
 
 class SolverAgent:
-    """Gemma-3-1B Solver that learns to reason step-by-step using GRPO"""
+    """Gemma-3-1B Solver that learns to reason step-by-step using GRPO
+
+    Implements R-Zero paper's Solver with:
+    - Self-consistency mechanism for answer extraction
+    - RLVR (Reinforcement Learning with Verifiable Rewards)
+    - Majority voting for robust pseudo-labels
+    """
 
     def __init__(self, checkpoint_path=None):
         CLIFormatter.print_info("Initializing Solver (Gemma-3-1B with GRPO)...")
@@ -211,8 +219,105 @@ Then, provide your solution between {SOLUTION_START}{SOLUTION_END}"""
             scores.append(score)
         return scores
 
+    def generate_solution(self, question: str, temperature: float = 0.7) -> str:
+        """Generate a single solution for a question
+
+        Args:
+            question: The problem to solve
+            temperature: Sampling temperature
+
+        Returns:
+            Generated solution text
+        """
+        prompt = f"Question: {question}\nAnswer:"
+        inputs = self.tokenizer(prompt, return_tensors="pt", truncation=True, max_length=256)
+        inputs = {k: v.to(self.model.device) for k, v in inputs.items()}
+
+        with torch.no_grad():
+            outputs = self.model.generate(
+                **inputs,
+                max_new_tokens=150,
+                temperature=temperature,
+                do_sample=True,
+                pad_token_id=self.tokenizer.pad_token_id,
+                eos_token_id=self.tokenizer.eos_token_id,
+                repetition_penalty=1.15,
+            )
+
+        # Decode only the generated part
+        generated_tokens = outputs[0][inputs['input_ids'].shape[1]:]
+        answer = self.tokenizer.decode(generated_tokens, skip_special_tokens=True).strip()
+        return answer
+
+    def solve_with_self_consistency(
+        self,
+        question: str,
+        m_samples: int = 10,
+        temperature: float = 0.7
+    ) -> Tuple[str, float, List[str]]:
+        """Solve problem using self-consistency (majority vote)
+
+        Args:
+            question: Problem to solve
+            m_samples: Number of solution samples
+            temperature: Sampling temperature
+
+        Returns:
+            Tuple of (pseudo_label, empirical_accuracy, all_solutions)
+        """
+        solutions = []
+        extracted_answers = []
+
+        # Generate m solutions
+        for _ in range(m_samples):
+            solution = self.generate_solution(question, temperature)
+            solutions.append(solution)
+
+            # Extract numerical answer
+            answer = self._extract_answer(solution)
+            if answer:
+                extracted_answers.append(answer)
+
+        if not extracted_answers:
+            return "", 0.0, solutions
+
+        # Compute majority vote
+        answer_counts = Counter(extracted_answers)
+        most_common = answer_counts.most_common(1)[0]
+        pseudo_label = most_common[0]
+        empirical_accuracy = most_common[1] / len(extracted_answers)
+
+        return pseudo_label, empirical_accuracy, solutions
+
+    def _extract_answer(self, solution: str) -> str:
+        """Extract numerical answer from solution
+
+        Args:
+            solution: Generated solution text
+
+        Returns:
+            Extracted numerical answer or empty string
+        """
+        # Try SOLUTION tags first
+        if SOLUTION_START in solution and SOLUTION_END in solution:
+            s_start = solution.find(SOLUTION_START) + len(SOLUTION_START)
+            s_end = solution.find(SOLUTION_END)
+            return solution[s_start:s_end].strip()
+
+        # Fall back to last number
+        numbers = re.findall(r'[-]?\d+(?:\.\d+)?', solution)
+        return numbers[-1] if numbers else ""
+
     def solve_problems(self, problems: List[Dict], return_accuracy: bool = True) -> List[Dict]:
-        """Generate solutions for problems"""
+        """Generate solutions for problems with self-consistency
+
+        Args:
+            problems: List of problems to solve
+            return_accuracy: Whether to compute overall accuracy
+
+        Returns:
+            List of results with solutions and correctness
+        """
         results = []
         correct_count = 0
 
@@ -221,42 +326,18 @@ Then, provide your solution between {SOLUTION_START}{SOLUTION_END}"""
         with SpinnerProgress(f"Solving {len(problems)} problems") as spinner:
             for idx, problem in enumerate(problems):
                 spinner.update(f"Solving problem {idx+1}/{len(problems)}")
-                prompt = f"Question: {problem['question']}\nAnswer:"
 
-                inputs = self.tokenizer(prompt, return_tensors="pt", truncation=True, max_length=256)
-                inputs = {k: v.to(self.model.device) for k, v in inputs.items()}
-
-                with torch.no_grad():
-                    outputs = self.model.generate(
-                        **inputs,
-                        max_new_tokens=100,
-                        temperature=0.7,
-                        do_sample=True,
-                        pad_token_id=self.tokenizer.pad_token_id,
-                        eos_token_id=self.tokenizer.eos_token_id,
-                        repetition_penalty=1.15,
-                    )
-
-                # Decode only the generated part
-                generated_tokens = outputs[0][inputs['input_ids'].shape[1]:]
-                answer = self.tokenizer.decode(generated_tokens, skip_special_tokens=True).strip()
-
-                # Extract numerical answer
-                # First try to extract from SOLUTION tags if present
-                if SOLUTION_START in answer and SOLUTION_END in answer:
-                    s_start = answer.find(SOLUTION_START) + len(SOLUTION_START)
-                    s_end = answer.find(SOLUTION_END)
-                    solver_answer = answer[s_start:s_end].strip()
-                else:
-                    # Fall back to extracting the last number
-                    numbers = re.findall(r'[-]?\d+(?:\.\d+)?', answer)
-                    solver_answer = numbers[-1] if numbers else ""
+                # Use self-consistency for robust answers
+                pseudo_label, empirical_acc, solutions = self.solve_with_self_consistency(
+                    problem['question'],
+                    m_samples=5  # Reduced for speed during evaluation
+                )
 
                 # Check correctness if ground truth available
                 is_correct = False
                 if "answer" in problem and problem["answer"]:
                     try:
-                        is_correct = abs(float(solver_answer) - float(problem["answer"])) < 0.01
+                        is_correct = abs(float(pseudo_label) - float(problem["answer"])) < 0.01
                         if is_correct:
                             correct_count += 1
                     except:
@@ -264,15 +345,16 @@ Then, provide your solution between {SOLUTION_START}{SOLUTION_END}"""
 
                 result = {
                     "question": problem["question"],
-                    "solver_answer": solver_answer,
-                    "full_answer": answer,
+                    "solver_answer": pseudo_label,
+                    "empirical_accuracy": empirical_acc,
+                    "full_answers": solutions,
                     "ground_truth": problem.get("answer", ""),
                     "is_correct": is_correct,
                     "difficulty": problem.get("difficulty", 0.5)
                 }
                 results.append(result)
 
-        # Calculate accuracy
+        # Calculate overall accuracy
         if return_accuracy and problems:
             accuracy = correct_count / len(problems)
             for r in results:
