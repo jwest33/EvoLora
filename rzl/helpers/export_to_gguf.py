@@ -10,7 +10,8 @@ from pathlib import Path
 from typing import Optional
 from transformers import AutoTokenizer
 from unsloth import FastModel
-from loralab.utils.cli_formatter import CLIFormatter, Style
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from utils.cli_formatter import CLIFormatter, Style
 
 # Add project root to path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -393,7 +394,7 @@ Examples:
     if output_file:
         print()
         CLIFormatter.print_info("To chat with the model, run:")
-        CLIFormatter.print_info(f"  python chat_with_gguf.py --model {output_file}")
+        CLIFormatter.print_info(f"  python chat_cli.py --model {output_file}")
         sys.exit(0)
     else:
         sys.exit(1)

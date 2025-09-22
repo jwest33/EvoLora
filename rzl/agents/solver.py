@@ -1,0 +1,396 @@
+"""Solver Agent for R-Zero implementation - Learns reasoning through GRPO"""
+from unsloth import FastModel
+import os
+import sys
+import torch
+import gc
+import re
+from typing import List, Dict
+from datasets import Dataset
+from trl import GRPOConfig, GRPOTrainer
+from datetime import datetime
+
+# Add parent directory to path for imports
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from utils.cli_formatter import CLIFormatter, SpinnerProgress
+
+# Define reasoning format tokens (matching Teacher's format)
+REASONING_START = "<start_working_out>"
+REASONING_END = "<end_working_out>"
+SOLUTION_START = "<SOLUTION>"
+SOLUTION_END = "</SOLUTION>"
+
+
+def clear_memory():
+    """Clear CUDA memory"""
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+        torch.cuda.synchronize()
+        gc.collect()
+
+
+class SolverAgent:
+    """Gemma-3-1B Solver that learns to reason step-by-step using GRPO"""
+
+    def __init__(self, checkpoint_path=None):
+        CLIFormatter.print_info("Initializing Solver (Gemma-3-1B with GRPO)...")
+
+        self.max_seq_length = 2048  # Increased for reasoning steps
+
+        # Load from checkpoint if provided, otherwise from base model
+        if checkpoint_path and os.path.exists(checkpoint_path):
+            CLIFormatter.print_info(f"Loading Solver from checkpoint: {checkpoint_path}")
+            self.model, self.tokenizer = FastModel.from_pretrained(
+                model_name=checkpoint_path,
+                max_seq_length=self.max_seq_length,
+                load_in_4bit=False,
+                load_in_8bit=False,
+            )
+        else:
+            CLIFormatter.print_info("Loading base Gemma-3-1B model from Hugging Face")
+            self.model, self.tokenizer = FastModel.from_pretrained(
+                model_name="unsloth/gemma-3-1b-it",
+                max_seq_length=self.max_seq_length,
+                load_in_4bit=False,
+                load_in_8bit=False,
+                full_finetuning=False,
+            )
+
+        # Apply LoRA for GRPO (only if loading base model)
+        if not (checkpoint_path and os.path.exists(checkpoint_path)):
+            self.model = FastModel.get_peft_model(
+                self.model,
+                finetune_vision_layers=False,
+                finetune_language_layers=True,
+                finetune_attention_modules=True,  # Important for reasoning
+                finetune_mlp_modules=True,
+                r=8,  # Following Unsloth notebook
+                lora_alpha=8,
+                lora_dropout=0,
+                bias="none",
+                random_state=3407,
+            )
+
+        # Set pad token
+        if self.tokenizer.pad_token is None:
+            self.tokenizer.pad_token = self.tokenizer.eos_token
+
+        # Create system prompt for reasoning
+        self.system_prompt = f"""You are given a problem.
+Think about the problem and provide your working out.
+Place it between {REASONING_START} and {REASONING_END}.
+Then, provide your solution between {SOLUTION_START}{SOLUTION_END}"""
+
+        # Compile regex patterns for extracting answers
+        self.match_format = re.compile(
+            rf"^[\s]{{0,}}"
+            rf"{REASONING_START}.+?{REASONING_END}.*?"
+            rf"{SOLUTION_START}(.+?){SOLUTION_END}"
+            rf"[\s]{{0,}}$",
+            flags=re.MULTILINE | re.DOTALL
+        )
+
+        # Pattern for extracting numbers from solution
+        self.match_numbers = re.compile(
+            rf"{SOLUTION_START}.*?([\d\.]{{1,}})",
+            flags=re.MULTILINE | re.DOTALL
+        )
+
+        trainable = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
+        CLIFormatter.print_success(f"Solver loaded: {trainable:,} trainable params")
+
+    def match_format_exactly(self, completions, **kwargs):
+        """Reward function: Check if format matches exactly"""
+        scores = []
+        for completion in completions:
+            score = 0
+            response = completion[0]["content"]
+            # Match if format is seen exactly
+            if self.match_format.search(response) is not None:
+                score += 3.0
+            scores.append(score)
+        return scores
+
+    def match_format_approximately(self, completions, **kwargs):
+        """Reward function: Partial credit for format elements"""
+        scores = []
+        for completion in completions:
+            score = 0
+            response = completion[0]["content"]
+            # Give partial credit for format elements, no negative penalties
+            score += 0.5 if REASONING_START in response else 0
+            score += 0.5 if REASONING_END in response else 0
+            score += 0.5 if SOLUTION_START in response else 0
+            score += 0.5 if SOLUTION_END in response else 0
+            # Bonus for having them in correct order
+            if REASONING_START in response and REASONING_END in response:
+                if response.index(REASONING_START) < response.index(REASONING_END):
+                    score += 0.5
+            scores.append(score)
+        return scores
+
+    def check_answer(self, prompts, completions, answer, **kwargs):
+        """Reward function: Check answer correctness"""
+        responses = [completion[0]["content"] for completion in completions]
+
+        extracted_responses = [
+            guess.group(1)
+            if (guess := self.match_format.search(r)) is not None else None
+            for r in responses
+        ]
+
+        scores = []
+        for guess, true_answer in zip(extracted_responses, answer):
+            score = 0
+            if guess is None:
+                scores.append(0)
+                continue
+            # Correct answer gets 3 points
+            if guess == true_answer:
+                score += 3.0
+            # Match if spaces are seen
+            elif guess.strip() == true_answer.strip():
+                score += 1.5
+            else:
+                # Reward if answer is close via ratios
+                try:
+                    ratio = float(guess) / float(true_answer)
+                    if ratio >= 0.9 and ratio <= 1.1:
+                        score += 0.5
+                    elif ratio >= 0.8 and ratio <= 1.2:
+                        score += 0.25
+                    else:
+                        score -= 1.0  # Penalize wrong answers
+                except:
+                    score -= 0.5  # Penalize non-numeric
+            scores.append(score)
+        return scores
+
+    def check_numbers(self, prompts, completions, answer, **kwargs):
+        """Reward function: Extract and check numerical answers"""
+        responses = [completion[0]["content"] for completion in completions]
+
+        extracted_responses = [
+            guess.group(1)
+            if (guess := self.match_numbers.search(r)) is not None else None
+            for r in responses
+        ]
+
+        scores = []
+        for guess, true_answer in zip(extracted_responses, answer):
+            if guess is None:
+                scores.append(0)
+                continue
+            # Convert to numbers
+            try:
+                true_answer = float(true_answer.strip())
+                guess = float(guess.strip())
+                scores.append(1.5 if guess == true_answer else 0.0)
+            except:
+                scores.append(0)
+                continue
+        return scores
+
+    def length_penalty(self, completions, **kwargs):
+        """Reward function: Penalize overly long or short completions"""
+        scores = []
+        for completion in completions:
+            response = completion[0]["content"]
+            length = len(response.split())
+
+            # Ideal length is 30-100 words
+            if 30 <= length <= 100:
+                score = 1.0
+            elif length < 30:
+                score = 0.5
+            elif length <= 150:
+                score = 0.3
+            else:
+                score = -0.5  # Way too long, penalize
+
+            scores.append(score)
+        return scores
+
+    def solve_problems(self, problems: List[Dict], return_accuracy: bool = True) -> List[Dict]:
+        """Generate solutions for problems"""
+        results = []
+        correct_count = 0
+
+        CLIFormatter.print_info(f"Solving {len(problems)} problems...")
+
+        with SpinnerProgress(f"Solving {len(problems)} problems") as spinner:
+            for idx, problem in enumerate(problems):
+                spinner.update(f"Solving problem {idx+1}/{len(problems)}")
+                prompt = f"Question: {problem['question']}\nAnswer:"
+
+                inputs = self.tokenizer(prompt, return_tensors="pt", truncation=True, max_length=256)
+                inputs = {k: v.to(self.model.device) for k, v in inputs.items()}
+
+                with torch.no_grad():
+                    outputs = self.model.generate(
+                        **inputs,
+                        max_new_tokens=100,
+                        temperature=0.7,
+                        do_sample=True,
+                        pad_token_id=self.tokenizer.pad_token_id,
+                        eos_token_id=self.tokenizer.eos_token_id,
+                        repetition_penalty=1.15,
+                    )
+
+                # Decode only the generated part
+                generated_tokens = outputs[0][inputs['input_ids'].shape[1]:]
+                answer = self.tokenizer.decode(generated_tokens, skip_special_tokens=True).strip()
+
+                # Extract numerical answer
+                # First try to extract from SOLUTION tags if present
+                if SOLUTION_START in answer and SOLUTION_END in answer:
+                    s_start = answer.find(SOLUTION_START) + len(SOLUTION_START)
+                    s_end = answer.find(SOLUTION_END)
+                    solver_answer = answer[s_start:s_end].strip()
+                else:
+                    # Fall back to extracting the last number
+                    numbers = re.findall(r'[-]?\d+(?:\.\d+)?', answer)
+                    solver_answer = numbers[-1] if numbers else ""
+
+                # Check correctness if ground truth available
+                is_correct = False
+                if "answer" in problem and problem["answer"]:
+                    try:
+                        is_correct = abs(float(solver_answer) - float(problem["answer"])) < 0.01
+                        if is_correct:
+                            correct_count += 1
+                    except:
+                        pass
+
+                result = {
+                    "question": problem["question"],
+                    "solver_answer": solver_answer,
+                    "full_answer": answer,
+                    "ground_truth": problem.get("answer", ""),
+                    "is_correct": is_correct,
+                    "difficulty": problem.get("difficulty", 0.5)
+                }
+                results.append(result)
+
+        # Calculate accuracy
+        if return_accuracy and problems:
+            accuracy = correct_count / len(problems)
+            for r in results:
+                r["accuracy"] = accuracy
+
+        return results
+
+    def train_with_grpo(self, problems: List[Dict], max_steps: int = 50):
+        """Train Solver using GRPO to learn reasoning"""
+        CLIFormatter.print_info("Training Solver with GRPO...")
+
+        # Format dataset for GRPO
+        dataset_items = []
+        for problem in problems:
+            dataset_items.append({
+                "prompt": [
+                    {"role": "system", "content": self.system_prompt},
+                    {"role": "user", "content": problem["question"]},
+                ],
+                "answer": problem["answer"],
+            })
+
+        dataset = Dataset.from_list(dataset_items)
+
+        # GRPO configuration
+        max_prompt_length = 128  # Reasonable prompt length
+        max_completion_length = 150  # Limit completions to prevent rambling
+        training_args = GRPOConfig(
+            learning_rate=5e-6,
+            adam_beta1=0.9,
+            adam_beta2=0.99,
+            weight_decay=0.1,
+            warmup_ratio=0.1,
+            lr_scheduler_type="cosine",
+            optim="adamw_torch_fused" if torch.cuda.is_available() else "adamw_torch",
+            logging_steps=1,
+            per_device_train_batch_size=4,  # Higher batch size to prevent overfitting
+            gradient_accumulation_steps=1,  # Less accumulation with higher batch
+            num_generations=4,  # More diverse completions to explore solution space
+            max_prompt_length=max_prompt_length,
+            max_completion_length=max_completion_length,
+            max_steps=max_steps,
+            save_steps=max_steps,
+            max_grad_norm=0.1,
+            report_to="none",
+            output_dir=f"outputs/grpo_temp_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
+        )
+
+        # Configure generation for training
+        generation_config = {
+            "temperature": 0.7,
+            "do_sample": True,
+            "top_p": 0.9,
+            "repetition_penalty": 1.15,
+            "pad_token_id": self.tokenizer.pad_token_id,
+            "eos_token_id": self.tokenizer.eos_token_id,
+        }
+
+        # Initialize GRPO trainer with reward functions
+        trainer = GRPOTrainer(
+            model=self.model,
+            processing_class=self.tokenizer,
+            reward_funcs=[
+                self.match_format_exactly,
+                self.match_format_approximately,
+                self.check_answer,
+                self.check_numbers,
+                self.length_penalty,  # Add length penalty
+            ],
+            args=training_args,
+            train_dataset=dataset,
+            generation_config=generation_config,
+        )
+
+        original_log = trainer.log
+
+        def formatted_log(logs, start_time=None):
+            # Call original log method with both arguments
+            if start_time is not None:
+                original_log(logs, start_time)
+            else:
+                original_log(logs)
+
+            # Format and display key metrics
+            if logs and isinstance(logs, dict):
+                step = trainer.state.global_step
+
+                # Only print formatted output when we have complete training metrics
+                # (reward data indicates a full training step, not just eval)
+                has_rewards = 'reward' in logs and 'epoch' in logs
+                has_components = any(k.startswith('rewards/') for k in logs.keys())
+
+                if step > 0 and has_rewards and has_components:
+                    print("\n")  # Clear line after default output
+                    # Use the new synthwave-styled GRPO formatter
+                    CLIFormatter.format_grpo_stats(logs, step, max_steps)
+
+        trainer.log = formatted_log
+
+        # Train with GRPO
+        trainer.train()
+        CLIFormatter.print_success("GRPO training completed")
+
+    def save_checkpoint(self, iteration: int, run_id: str = None) -> str:
+        """Save model checkpoint and return the path"""
+        if run_id is None:
+            run_id = datetime.now().strftime("%Y%m%d_%H%M%S")
+        checkpoint_dir = f"outputs/{run_id}/solver/iteration_{iteration}"
+        os.makedirs(checkpoint_dir, exist_ok=True)
+
+        CLIFormatter.print_info(f"Saving Solver checkpoint to {checkpoint_dir}")
+        self.model.save_pretrained(checkpoint_dir)
+        self.tokenizer.save_pretrained(checkpoint_dir)
+
+        return checkpoint_dir
+
+    def cleanup(self):
+        """Clean up model from memory"""
+        del self.model
+        del self.tokenizer
+        clear_memory()

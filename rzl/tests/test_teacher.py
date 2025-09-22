@@ -1,9 +1,10 @@
 """Simple test script for TeacherAgent problem generation using run_rzl functions"""
 import sys
 import os
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+# Add parent directory to path to import from rzl module
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from run_rzl import TeacherAgent
+from agents import TeacherAgent
 import json
 
 def test_teacher_generation():

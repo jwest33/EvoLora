@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Setup script to download and configure llama.cpp for GGUF conversion on Windows"""
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import os
 import sys
@@ -8,7 +9,7 @@ import subprocess
 import zipfile
 import urllib.request
 from pathlib import Path
-from loralab.utils.cli_formatter import CLIFormatter
+from utils.cli_formatter import CLIFormatter
 
 
 def download_file(url: str, destination: Path, description: str = "Downloading"):

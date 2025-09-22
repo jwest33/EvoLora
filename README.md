@@ -4,24 +4,24 @@
 
 ## Overview
 
-RZL (R-Zero Lite) is a streamlined implementation of the R-Zero paper's self-evolving reasoning system. It trains language models to develop step-by-step reasoning capabilities through a Teacher-Solver co-evolution approach, without requiring pre-existing training data.
+RZL (R-Zero Lite) is an R-Zero inspired implementation that trains language models to develop step-by-step reasoning capabilities through a Teacher-Solver co-evolution approach. While the original R-Zero generates training data from scratch, this implementation bootstraps with GSM8K examples for faster convergence, then evolves its own increasingly complex problems.
 
 ### Key Features
 
-- **Self-Bootstrapping**: Generates its own training data from scratch
-- **Co-Evolution**: Teacher and Solver agents improve together
+- **GSM8K Bootstrap**: Uses initial GSM8K examples for format learning, then generates novel problems
+- **Co-Evolution**: Teacher and Solver agents improve together through iterative training
 - **GRPO Training**: Uses Group Relative Policy Optimization for teaching reasoning
 - **Adaptive Difficulty**: Automatically adjusts problem complexity based on performance
 - **GGUF Export**: Convert trained models for efficient inference with llama.cpp
 
 ## What Makes RZL Special?
 
-Unlike traditional fine-tuning approaches that require large labeled datasets, RZL:
+Unlike traditional fine-tuning approaches, RZL:
 
-1. **Starts from zero** - No initial training data needed
+1. **Self-evolves** - After initial bootstrap, generates its own training problems
 2. **Teaches reasoning** - Not just pattern matching, but step-by-step problem solving
-3. **Evolves continuously** - Both problem generation and solving improve over time
-4. **Lightweight** - Runs on a single GPU with 8GB VRAM
+3. **Adapts dynamically** - Both problem generation and solving improve over time
+4. **Lightweight** - Runs efficiently on a single GPU with 16GB VRAM
 
 ## Requirements
 
@@ -47,7 +47,7 @@ source .venv/bin/activate
 ### 2. Install dependencies
 
 ```bash
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
 pip install unsloth transformers trl datasets
 pip install llama-cpp-python colorama
 ```
@@ -58,7 +58,7 @@ RZL uses a quantized Qwen3-30B model as the Teacher. Download the GGUF file:
 
 ```bash
 # Create models directory
-mkdir -p C:\models\Qwen3-30B
+# mkdir -p C:\models\Qwen3-30B-A3B-Instruct-2507\
 
 # Download the Q6_K quantized model (or use your preferred source)
 # Place it at: C:\models\Qwen3-30B-A3B-Instruct-2507\Qwen3-30B-A3B-Instruct-2507-Q6_K.gguf
@@ -73,7 +73,7 @@ python rzl/run_rzl.py
 ```
 
 This will:
-1. Initialize Teacher (Qwen3-30B) and Solver (Gemma-3-1B) agents
+1. Initialize Teacher (Qwen3-30B-A3B-Instruct-2507) and Solver (Gemma-3-1B) agents (change models as desired)
 2. Generate initial training problems
 3. Train the Solver with GRPO to learn reasoning
 4. Evolve both agents through multiple iterations
@@ -93,20 +93,23 @@ python rzl/tests/test_grpo.py
 
 ```mermaid
 graph LR
-    A[Teacher Agent] -->|Generates Problems| B[Training Data]
+    A[GSM8K Dataset] -->|Bootstrap| B[Initial Training]
     B --> C[Solver Agent]
-    C -->|GRPO Training| D[Reasoning Model]
-    D -->|Performance Metrics| E[Evaluation]
-    E -->|Feedback| A
+    D[Teacher Agent] -->|Generates Problems| E[Novel Training Data]
+    E --> C
+    C -->|GRPO Training| F[Reasoning Model]
+    F -->|Performance Metrics| G[Evaluation]
+    G -->|Feedback| D
 ```
 
 ### Evolution Process
 
-1. **Bootstrap Phase**: Teacher generates initial math problems
-2. **Training Phase**: Solver learns using GRPO with custom rewards
-3. **Evaluation Phase**: Test Solver accuracy on new problems
-4. **Evolution Phase**: Teacher adapts prompt based on results
-5. **Difficulty Adjustment**: Increase/decrease complexity dynamically
+1. **Bootstrap Phase**: Pre-train on 30 GSM8K examples to learn format (10 steps)
+2. **Problem Generation**: Teacher creates 20-55 novel problems per iteration
+3. **Training Phase**: Solver learns using GRPO with custom rewards (75 steps/iteration)
+4. **Evaluation Phase**: Test Solver accuracy on 10 new problems
+5. **Evolution Phase**: Teacher adapts prompt based on results
+6. **Difficulty Adjustment**: Increase complexity when accuracy >70%, decrease when <40%
 
 ## Interactive Chat
 
@@ -117,7 +120,7 @@ After training, chat with your model:
 python rzl/helpers/export_to_gguf.py
 
 # Start interactive chat
-python rzl/chat_with_gguf.py
+python rzl/chat_cli.py
 ```
 
 ### Real Example from Trained Model
@@ -160,54 +163,74 @@ This demonstrates the model's ability to:
 - Handle currency rounding appropriately
 - Present clear, step-by-step reasoning
 
+# Compare with HuggingFace base model (default)
+python rzl/chat_cli.py --compare
+
+# Compare with specific HuggingFace model
+python rzl/chat_cli.py --compare --base-model unsloth/gemma-3-1b-it
+
+# Or compare with GGUF base model (if you have one)
+python rzl/chat_cli.py --compare --base-model outputs/gguf/base_model.gguf
+
 ## Configuration
 
-### Training Parameters
+### Training Parameters (Optimized Defaults)
 
-Edit `run_rzl.py` to customize:
+Default settings in `run_rzl.py`:
 
 ```python
 # Model settings
-TEACHER_MODEL = "path/to/your/teacher.gguf"
+TEACHER_MODEL = "C:\models\Qwen3-30B-A3B-Instruct-2507\*.gguf"
 SOLVER_MODEL = "unsloth/gemma-3-1b-it-bnb-4bit"
 
-# Training configuration
-GRPO_STEPS = 100
-LEARNING_RATE = 1e-6
+# Optimal GRPO configuration
 BATCH_SIZE = 4
-MAX_SEQ_LENGTH = 256
+NUM_GENERATIONS = 4  # Total effective batch = 16
+GRPO_STEPS_PER_ITERATION = 75
+LEARNING_RATE = 5e-6
 
 # Evolution settings
-NUM_ITERATIONS = 10
-PROBLEMS_PER_ITERATION = 50
-TARGET_ACCURACY = 0.65
+NUM_ITERATIONS = 8  # Full training cycle
+INITIAL_PROBLEMS = 30  # GSM8K bootstrap
+PROBLEMS_PER_ITERATION = "20 + (iteration * 5)"  # Scales 20→55
+TARGET_ACCURACY_RANGE = "40-70%"  # Sweet spot for difficulty
+
 ```
 
 ### Reward Functions
 
-RZL uses four reward components:
-- **Format Match**: Correct reasoning structure
-- **Answer Check**: Mathematical correctness
-- **Number Extract**: Proper numerical extraction
-- **Approximate Format**: Partial credit for attempts
+RZL uses five reward components for GRPO training:
+- **Format Match Exactly**: +3.0 for perfect reasoning structure
+- **Format Match Approximately**: +0.5 per format element, +0.5 for correct order
+- **Answer Check**: +3.0 for correct answer, partial credit for close answers
+- **Number Extract**: +1.5 for correctly extracting numerical answer
+- **Length Penalty**: +1.0 for ideal length (30-100 words), penalties for too long
 
 ## Project Structure
 
 ```
 rzl/
 ├── run_rzl.py                 # Main training pipeline
-├── test_grpo.py              # GRPO testing utilities
-├── test_teacher.py           # Teacher testing utilities
-├── export_to_gguf.py         # Model export tool
-├── chat_with_gguf.py         # Interactive chat interface
-├── setup_llama_cpp.py        # GGUF tools setup
-├── qwen3_nonthinking.jinja   # Chat template
-├── loralab/
+├── chat_cli.py                # Interactive chat interface
+├── qwen3_nonthinking.jinja    # Chat template
+├── rzl/
+│   ├── agents/
+│   │   ├── solver.py
+│   │   └── teacher.py
+│   ├── evaluation/
+│   │   └── evaluation_problems.py 
+│   ├── helpers/
+│   │   ├── export_to_gguf.py
+│   │   └── setup_llama_cpp.py
+│   ├── tests/
+│   │   ├── test_grpo.py
+│   │   └── test_teacher.py
 │   └── utils/
-│       └── cli_formatter.py  # Synthwave UI utilities
+│       └── cli_formatter.py   # UI utilities
 └── outputs/
-    ├── solver/               # Training checkpoints
-    └── gguf/                 # Exported models
+    └── [output timestamp]/
+        ├── solver/
+        └── gguf/
 ```
 
 ## Advanced Usage
@@ -227,9 +250,9 @@ teacher = TeacherAgent(
 
 ```bash
 # Different quantization levels
-python export_to_gguf.py --quantization q8_0  # Best quality
-python export_to_gguf.py --quantization q6_k  # Balanced
-python export_to_gguf.py --quantization q4_k_m  # Smallest
+python rzl/helpers/export_to_gguf.py --quantization q8_0  # Best quality
+python rzl/helpers/export_to_gguf.py --quantization q6_k  # Balanced
+python rzl/helpers/export_to_gguf.py --quantization q4_k_m  # Smallest
 ```
 
 ## Citations
@@ -237,11 +260,14 @@ python export_to_gguf.py --quantization q4_k_m  # Smallest
 RZL is based on the R-Zero paper:
 
 ```bibtex
-@article{rzero2024,
-  title={R-Zero: Teaching Reasoning Through Reverse Self-Play},
-  author={...},
-  journal={arXiv preprint},
-  year={2024}
+@article{huang2025rzeroselfevolvingreasoningllm,
+      title={R-Zero: Self-Evolving Reasoning LLM from Zero Data}, 
+      author={Chengsong Huang and Wenhao Yu and Xiaoyang Wang and Hongming Zhang and Zongxia Li and Ruosen Li and Jiaxin Huang and Haitao Mi and Dong Yu},
+      year={2025},
+      eprint={2508.05004},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2508.05004}, 
 }
 ```
 
@@ -251,10 +277,12 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## Acknowledgments
 
-- **Unsloth** for efficient LoRA training
-- **llama.cpp** for GGUF inference
-- **Anthropic** for Claude's assistance
 - **R-Zero authors** for the original paper
+- **Unsloth** for efficient LoRA training
+- **Qwen** for amazing small models
+- **Google** for amazing small models
+- **DeepSeek** for GRPO
+- **llama.cpp** for GGUF inference
 
 ## Tips
 

@@ -1,17 +1,23 @@
 """Test script for GRPO-based R-Zero implementation"""
 import sys
 import os
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+# Add parent directory to path to import from rzl module
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from run_rzl import TeacherAgent, SolverAgent, REASONING_START, REASONING_END, SOLUTION_START, SOLUTION_END
-from loralab.utils.cli_formatter import CLIFormatter, SpinnerProgress
+from agents import TeacherAgent, SolverAgent, REASONING_START, REASONING_END, SOLUTION_START, SOLUTION_END
+from utils.cli_formatter import CLIFormatter, SpinnerProgress
 from datasets import Dataset
 import torch
+from datetime import datetime
 
 def test_grpo_training():
     """Test the GRPO training with a small dataset"""
 
     CLIFormatter.print_header("GRPO R-Zero Test")
+
+    # Create unique test ID
+    test_id = f"test_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+    CLIFormatter.print_status("Test ID", test_id)
 
     # Check CUDA
     if torch.cuda.is_available():
@@ -109,12 +115,27 @@ def test_grpo_training():
     CLIFormatter.print_status("Evolved prompt length", f"{len(teacher.generation_prompt)} chars")
     CLIFormatter.print_status("Prompt history", f"{len(teacher.prompt_history)} versions")
 
+    # Save test results
+    test_output_dir = f"outputs/{test_id}"
+    os.makedirs(test_output_dir, exist_ok=True)
+
+    # Save test summary
+    import json
+    with open(f"{test_output_dir}/test_summary.json", "w") as f:
+        json.dump({
+            "test_id": test_id,
+            "teacher_prompt_versions": len(teacher.prompt_history),
+            "problems_generated": len(problems),
+            "test_completed": True
+        }, f, indent=2)
+
     # Cleanup
     solver.cleanup()
     teacher.cleanup()
 
     CLIFormatter.print_header("GRPO R-Zero Test Completed")
     CLIFormatter.print_success("Test completed successfully!")
+    CLIFormatter.print_status("Test results saved to", test_output_dir)
 
     CLIFormatter.print_info("Notes:")
     print("  • The reward should increase over training steps")
