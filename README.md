@@ -163,13 +163,13 @@ This demonstrates the model's ability to:
 - Handle currency rounding appropriately
 - Present clear, step-by-step reasoning
 
-# Compare with HuggingFace base model (default)
+### Compare with HuggingFace base model (default)
 python rzl/chat_cli.py --compare
 
-# Compare with specific HuggingFace model
+### Compare with specific HuggingFace model
 python rzl/chat_cli.py --compare --base-model unsloth/gemma-3-1b-it
 
-# Or compare with GGUF base model (if you have one)
+### Or compare with GGUF base model (if you have one)
 python rzl/chat_cli.py --compare --base-model outputs/gguf/base_model.gguf
 
 ## Configuration
