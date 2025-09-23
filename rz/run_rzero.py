@@ -4,6 +4,7 @@ import sys
 import json
 import torch
 import gc
+import warnings
 from datetime import datetime
 from typing import Dict, List, Optional
 from datasets import Dataset, load_dataset
@@ -17,6 +18,12 @@ from agents import ChallengerAgent, SolverAgent
 # Disable multiprocessing to avoid Windows issues
 os.environ['TOKENIZERS_PARALLELISM'] = 'false'
 os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'
+
+# Globally suppress the padding warnings that persist despite correct configuration
+# These warnings come from transformers library internals and we've already set padding_side="left"
+warnings.filterwarnings("ignore", message=".*decoder-only.*right-padding.*")
+warnings.filterwarnings("ignore", message=".*right-padding.*")
+warnings.filterwarnings("ignore", message=".*padding_side.*")
 
 
 def clear_memory():

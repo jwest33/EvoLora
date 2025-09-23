@@ -13,6 +13,10 @@ from datasets import Dataset
 from trl import GRPOConfig, GRPOTrainer
 from datetime import datetime
 
+# Globally suppress padding warnings that persist despite correct configuration
+warnings.filterwarnings("ignore", message=".*decoder-only.*right-padding.*")
+warnings.filterwarnings("ignore", message=".*right-padding.*")
+
 # Add parent directory to path for imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils.cli_formatter import CLIFormatter, SpinnerProgress

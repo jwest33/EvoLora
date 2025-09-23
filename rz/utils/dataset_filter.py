@@ -3,7 +3,12 @@ import sys
 import os
 import time
 import random
+import warnings
 from typing import List, Dict, Tuple, Optional
+
+# Globally suppress padding warnings that persist despite correct configuration
+warnings.filterwarnings("ignore", message=".*decoder-only.*right-padding.*")
+warnings.filterwarnings("ignore", message=".*right-padding.*")
 
 # Add parent directory to path for imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -81,6 +86,8 @@ class DatasetFilter:
         # Early stopping: evaluate a sample first
         if early_stopping and len(valid_problems) > sample_size:
             CLIFormatter.print_info(f"Early stopping check: evaluating {sample_size} sample problems...")
+            warnings.filterwarnings("ignore", message=".*decoder-only.*right-padding.*")
+            warnings.filterwarnings("ignore", message=".*right-padding.*")
             sample_problems = random.sample(valid_problems, sample_size)
 
             # Use batch processing if available
@@ -160,6 +167,9 @@ class DatasetFilter:
 
                     spinner.update(f"Processing problems {chunk_start+1}-{chunk_end}/{len(valid_problems)}")
 
+                    warnings.filterwarnings("ignore", message=".*decoder-only.*right-padding.*")
+                    warnings.filterwarnings("ignore", message=".*right-padding.*")
+                    
                     questions = [p["question"] for p in chunk_problems]
                     results = solver.solve_with_self_consistency_batch(
                         questions, m_samples=m_samples, batch_size=batch_size

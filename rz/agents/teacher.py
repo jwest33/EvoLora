@@ -5,6 +5,7 @@ import json
 import re
 from typing import List, Dict
 import sys
+import warnings
 
 # Add parent directory to path for imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -16,6 +17,9 @@ REASONING_END = "<end_working_out>"
 SOLUTION_START = "<SOLUTION>"
 SOLUTION_END = "</SOLUTION>"
 
+warnings.filterwarnings("ignore", message=".*decoder-only.*right-padding.*")
+warnings.filterwarnings("ignore", message=".*right-padding.*")
+warnings.filterwarnings("ignore", message=".*padding_side.*")
 
 class TeacherAgent:
     """Qwen3-30B Teacher that generates problems and evolves its prompts"""
