@@ -303,8 +303,9 @@ class RZero:
                 # Save solver checkpoint
                 solver_checkpoint = solver.save_checkpoint(iteration, self.run_id)
 
-                # Evaluate solver on test set
-                test_problems = filtered_problems[:10]  # Use subset for testing
+                # Evaluate solver on test set (20% of filtered problems, minimum 10)
+                test_size = max(10, int(len(filtered_problems) * 0.2))
+                test_problems = filtered_problems[:test_size]
                 test_results = solver.solve_problems(test_problems)
                 solver_accuracy = test_results[0]["accuracy"] if test_results else 0.0
                 previous_accuracy = solver_accuracy  # Store for progressive scaling
