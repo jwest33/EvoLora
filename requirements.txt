@@ -1,0 +1,37 @@
+# Core ML frameworks
+torch==2.8.0+cu128
+torchvision==0.23.0+cu128
+torchaudio==2.8.0+cu128
+transformers==4.56.2
+datasets==3.6.0
+trl==0.22.2
+accelerate==1.10.1
+peft==0.17.1
+
+# Efficient training
+unsloth==2025.9.7
+bitsandbytes==0.47.0
+xformers==0.0.33+115df95.d20250921
+
+# GGUF model inference support
+llama-cpp-python==0.3.16
+
+# Scientific computing
+numpy==2.2.6
+scipy==1.16.2
+scikit-learn==1.7.2
+matplotlib==3.10.6
+
+# NLP utilities
+nltk==3.9.1
+sentencepiece==0.2.1
+
+# Utilities
+colorama==0.4.6
+tqdm==4.67.1
+python-dotenv==1.1.1
+
+# Additional dependencies
+huggingface-hub==0.35.0
+safetensors==0.6.2
+tokenizers==0.22.1

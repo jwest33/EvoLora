@@ -1,7 +1,7 @@
 """Test script for GRPO-based R-Zero implementation"""
 import sys
 import os
-# Add parent directory to path to import from rzl module
+# Add parent directory to path to import from rz module
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from agents import TeacherAgent, SolverAgent, REASONING_START, REASONING_END, SOLUTION_START, SOLUTION_END

@@ -1,34 +1,46 @@
-# RZL - R-Zero Lite
+# RZ - R-Zero
 
-**A lightweight implementation of self-evolving reasoning through Teacher-Solver co-evolution**
+**A functional implementation of R-Zero: Self-Evolving Reasoning LLM from Zero Data**
 
 ## Overview
 
-RZL (R-Zero Lite) is an R-Zero inspired implementation that trains language models to develop step-by-step reasoning capabilities through a Teacher-Solver co-evolution approach. While the original R-Zero generates training data from scratch, this implementation bootstraps with GSM8K examples for faster convergence, then evolves its own increasingly complex problems.
+RZ is an implementation of the R-Zero framework from the paper ["R-Zero: Self-Evolving Reasoning LLM from Zero Data"](https://arxiv.org/abs/2508.05004). This implementation attempts to reproduce the paper's co-evolutionary framework where a Challenger and Solver, both initialized from the same base model, evolve together to improve reasoning capabilities without any human-labeled data (only a tiny sample of data to bootstrap response format is provided).
+
+## Implementation Status
+
+- **Challenger-Solver Co-evolution** from the same Gemma-3-1B base model
+- **Uncertainty-based rewards**: `r = 1 - 2|p̂(x; Sφ) - 0.5|`
+- **Self-consistency** with majority voting (m=10 samples)
+- **Dataset filtering** keeping 25-75% accuracy problems (δ=0.25)
+- **BLEU-based repetition penalty** for diversity
+- **GRPO training** for both models
+- **Composite reward system** with format verification
 
 ### Key Features
 
-- **GSM8K Bootstrap**: Uses initial GSM8K examples for format learning, then generates novel problems
-- **Co-Evolution**: Teacher and Solver agents improve together through iterative training
-- **GRPO Training**: Uses Group Relative Policy Optimization for teaching reasoning
-- **Adaptive Difficulty**: Automatically adjusts problem complexity based on performance
+- **Co-Evolution**: Challenger and Solver models evolve together from same base model
+- **Uncertainty Rewards**: Challenger rewarded for generating problems at edge of Solver's capability
+- **Self-Consistency**: Solver uses majority voting for robust pseudo-labels
+- **Adaptive Filtering**: Automatically filters problems to optimal difficulty range
+- **GSM8K Bootstrap**: Optional bootstrapping for faster initial convergence
 - **GGUF Export**: Convert trained models for efficient inference with llama.cpp
 
-## What Makes RZL Special?
+## What Makes R-Zero Special?
 
-Unlike traditional fine-tuning approaches, RZL:
+R-Zero is useful because it:
 
-1. **Self-evolves** - After initial bootstrap, generates its own training problems
-2. **Teaches reasoning** - Not just pattern matching, but step-by-step problem solving
-3. **Adapts dynamically** - Both problem generation and solving improve over time
-4. **Lightweight** - Runs efficiently on a single GPU with 16GB VRAM
+1. **Requires zero human data** - Models evolve entirely through self-generated problems
+2. **Co-evolution dynamics** - Challenger learns to generate problems at optimal difficulty
+3. **Theoretically motivated** - Uncertainty reward maximizes learning efficiency (proven in paper)
+4. **Domain agnostic** - While focused on math, generalizes to other reasoning tasks
+5. **Fresh initialization** - Each run starts from base models, no checkpoint dependency
 
-## Requirements
+## Only tested on Windows 11:
 
-- Python 3.11+
-- CUDA 12.0+ compatible GPU (8GB+ VRAM recommended)
-- Windows/Linux/MacOS
-- 16GB+ RAM
+- Python 3.11.9
+- CUDA 12.8
+- Intel U7 265k (128GB DDR5 RAM)
+- RTX 5060 ti 16GB VRAM
 
 ## Installation
 
@@ -40,76 +52,89 @@ python -m venv .venv
 # Windows
 .venv\Scripts\activate
 
-# Linux/MacOS
+# Linux/MacOS (not tested)
 source .venv/bin/activate
 ```
 
-### 2. Install dependencies
+### 2. Install dependencies (Good luck!)
 
 ```bash
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
-pip install unsloth transformers trl datasets
-pip install llama-cpp-python colorama
+pip install -r requirements.txt 
 ```
 
-### 3. Download Teacher model
+### 3. Optional: Download models for other implementations
 
-RZL uses a quantized Qwen3-30B model as the Teacher. Download the GGUF file:
+The main R-Zero implementation uses Gemma-3-1B (automatically downloaded). For the legacy Teacher-Solver implementation in `run_rz.py`, you may need:
 
 ```bash
-# Create models directory
-# mkdir -p C:\models\Qwen3-30B-A3B-Instruct-2507\
-
-# Download the Q6_K quantized model (or use your preferred source)
-# Place it at: C:\models\Qwen3-30B-A3B-Instruct-2507\Qwen3-30B-A3B-Instruct-2507-Q6_K.gguf
+# For legacy Teacher-Solver mode (optional)
+# Download Qwen3-30B GGUF model if using run_rz.py
 ```
 
 ## Quick Start
 
-### Train your first RZL model
+### Run R-Zero Co-evolution
 
 ```bash
-python rzl/run_rzl.py
+# Run full R-Zero implementation (recommended)
+python rz/run_rzero.py
+
+# With custom settings
+python rz/run_rzero.py --iterations 5 --n-problems 100 --test
 ```
 
 This will:
-1. Initialize Teacher (Qwen3-30B-A3B-Instruct-2507) and Solver (Gemma-3-1B) agents (change models as desired)
-2. Generate initial training problems
-3. Train the Solver with GRPO to learn reasoning
-4. Evolve both agents through multiple iterations
+1. Initialize Challenger and Solver from same Gemma-3-1B base model
+2. Run co-evolution loop with uncertainty-based rewards
+3. Filter problems to optimal difficulty (25-75% accuracy)
+4. Train both models using GRPO
 5. Save checkpoints after each iteration
 
-### Test the system
+### Test the implementation
 
 ```bash
-# Test Teacher problem generation
-python rzl/tests/test_teacher.py
+# Test minimal R-Zero pipeline
+python rz/tests/test_rzero_pipeline.py
 
-# Test GRPO training with small dataset
-python rzl/tests/test_grpo.py
+# Test with more iterations
+python rz/tests/test_rzero_pipeline.py --integration
 ```
 
-## Training Pipeline
+### Legacy Teacher-Solver mode
+
+```bash
+# Run original Teacher-Solver implementation
+python rz/run_rz.py
+```
+
+## R-Zero Co-Evolution Pipeline
 
 ```mermaid
-graph LR
-    A[GSM8K Dataset] -->|Bootstrap| B[Initial Training]
-    B --> C[Solver Agent]
-    D[Teacher Agent] -->|Generates Problems| E[Novel Training Data]
-    E --> C
-    C -->|GRPO Training| F[Reasoning Model]
-    F -->|Performance Metrics| G[Evaluation]
-    G -->|Feedback| D
+graph TB
+    A[Base Model<br/>Gemma-3-1B] -->|Initialize| B[Challenger]
+    A -->|Initialize| C[Solver]
+
+    B -->|Generate Problems| D[Candidate Pool<br/>N=8000]
+    D -->|Filter 25-75%| E[Training Dataset]
+
+    C -->|Self-Consistency<br/>m=10 samples| F[Pseudo-Labels]
+    F --> E
+
+    E -->|GRPO Training| C
+    C -->|Uncertainty Signal| G[Rewards]
+    G -->|GRPO Training| B
+
+    B -.->|Iterate| D
 ```
 
 ### Evolution Process
 
-1. **Bootstrap Phase**: Pre-train on 30 GSM8K examples to learn format (10 steps)
-2. **Problem Generation**: Teacher creates 20-55 novel problems per iteration
-3. **Training Phase**: Solver learns using GRPO with custom rewards (75 steps/iteration)
-4. **Evaluation Phase**: Test Solver accuracy on 10 new problems
-5. **Evolution Phase**: Teacher adapts prompt based on results
-6. **Difficulty Adjustment**: Increase complexity when accuracy >70%, decrease when <40%
+1. **Initialization**: Both models start from same Gemma-3-1B base
+2. **Challenger Phase**: Generate N candidate problems, reward based on uncertainty
+3. **Filtering**: Keep problems where Solver achieves 25-75% accuracy
+4. **Solver Phase**: Train on filtered problems with pseudo-labels from majority voting
+5. **Iteration**: Repeat for multiple rounds (default: 3-5 iterations)
+6. **Fresh Runs**: Each new execution starts from fresh base models
 
 ## Interactive Chat
 
@@ -117,17 +142,17 @@ After training, chat with your model:
 
 ```bash
 # Export to GGUF format
-python rzl/helpers/export_to_gguf.py
+python rz/helpers/export_to_gguf.py
 
 # Start interactive chat
-python rzl/chat_cli.py
+python rz/chat_cli.py
 ```
 
 ### Real Example from Trained Model
 
-Here's an actual inference session with a trained RZL model solving a multi-step word problem:
+Here's an actual inference session with a trained RZ model solving a multi-step word problem:
 
-![Trained Example](rzl/example_trained_model.jpg)
+![Trained Example](rz/example_trained_model.jpg)
 
 ```
 You: Michelle buys 3 books for $8.95 each and 2 magazines for $4.50 each. She has a membership
@@ -164,101 +189,103 @@ This demonstrates the model's ability to:
 - Present clear, step-by-step reasoning
 
 ### Compare with HuggingFace base model (default)
-python rzl/chat_cli.py --compare
+python rz/chat_cli.py --compare
 
 ### Compare with specific HuggingFace model
-python rzl/chat_cli.py --compare --base-model unsloth/gemma-3-1b-it
+python rz/chat_cli.py --compare --base-model unsloth/gemma-3-1b-it
 
 ### Or compare with GGUF base model (if you have one)
-python rzl/chat_cli.py --compare --base-model outputs/gguf/base_model.gguf
+python rz/chat_cli.py --compare --base-model outputs/gguf/base_model.gguf
 
 ## Configuration
 
-### Training Parameters (Optimized Defaults)
+### R-Zero Parameters (Paper Defaults)
 
-Default settings in `run_rzl.py`:
+Default settings in `run_rzero.py`:
 
 ```python
 # Model settings
-TEACHER_MODEL = "C:\models\Qwen3-30B-A3B-Instruct-2507\*.gguf"
-SOLVER_MODEL = "unsloth/gemma-3-1b-it-bnb-4bit"
+BASE_MODEL = "unsloth/gemma-3-1b"  # Both Challenger and Solver
+MAX_SEQ_LENGTH = 2048
 
-# Optimal GRPO configuration
-BATCH_SIZE = 4
-NUM_GENERATIONS = 4  # Total effective batch = 16
-GRPO_STEPS_PER_ITERATION = 75
-LEARNING_RATE = 5e-6
+# Co-evolution settings
+NUM_ITERATIONS = 3  # Paper default
+N_CANDIDATE_PROBLEMS = 8000  # Problems generated per iteration
+CHALLENGER_GRPO_STEPS = 5
+SOLVER_GRPO_STEPS = 15
 
-# Evolution settings
-NUM_ITERATIONS = 8  # Full training cycle
-INITIAL_PROBLEMS = 30  # GSM8K bootstrap
-PROBLEMS_PER_ITERATION = "20 + (iteration * 5)"  # Scales 20→55
-TARGET_ACCURACY_RANGE = "40-70%"  # Sweet spot for difficulty
+# Filtering parameters
+M_SAMPLES = 10  # Self-consistency samples
+DELTA = 0.25  # Keep problems with 25-75% accuracy
 
+# Reward parameters
+TAU_BLEU = 0.5  # BLEU threshold for clustering
 ```
 
 ### Reward Functions
 
-RZL uses five reward components for GRPO training:
-- **Format Match Exactly**: +3.0 for perfect reasoning structure
-- **Format Match Approximately**: +0.5 per format element, +0.5 for correct order
-- **Answer Check**: +3.0 for correct answer, partial credit for close answers
-- **Number Extract**: +1.5 for correctly extracting numerical answer
-- **Length Penalty**: +1.0 for ideal length (30-100 words), penalties for too long
+R-Zero uses sophisticated reward design:
 
-## Project Structure
+**Challenger Rewards:**
+- **Uncertainty Reward**: `r = 1 - 2|p̂(x; Sφ) - 0.5|` (maximized at 50% solver accuracy)
+- **Repetition Penalty**: BLEU-based clustering to prevent duplicate problems
+- **Format Verification**: Ensures proper problem structure
 
-```
-rzl/
-├── run_rzl.py                 # Main training pipeline
-├── chat_cli.py                # Interactive chat interface
-├── qwen3_nonthinking.jinja    # Chat template
-├── rzl/
-│   ├── agents/
-│   │   ├── solver.py
-│   │   └── teacher.py
-│   ├── evaluation/
-│   │   └── evaluation_problems.py 
-│   ├── helpers/
-│   │   ├── export_to_gguf.py
-│   │   └── setup_llama_cpp.py
-│   ├── tests/
-│   │   ├── test_deduplication.py
-│   │   ├── test_grpo.py
-│   │   └── test_teacher.py
-│   └── utils/
-│       └── cli_formatter.py   # UI utilities
-└── outputs/
-    └── [output timestamp]/
-        ├── solver/
-        └── gguf/
-```
+**Solver Rewards:**
+- **Binary correctness**: 1 if answer matches pseudo-label, 0 otherwise
+- **Self-consistency**: Pseudo-labels from majority voting over m samples
 
 ## Advanced Usage
 
-### Custom Teacher Models
-
-```python
-# Use your own GGUF model
-teacher = TeacherAgent(
-    model_path="path/to/your/model.gguf",
-    n_ctx=8192,
-    n_gpu_layers=-1
-)
-```
-
-### Export Options
+### Command Line Arguments
 
 ```bash
-# Different quantization levels
-python rzl/helpers/export_to_gguf.py --quantization q8_0  # Best quality
-python rzl/helpers/export_to_gguf.py --quantization q6_k  # Balanced
-python rzl/helpers/export_to_gguf.py --quantization q4_k_m  # Smallest
+python rz/run_rzero.py --help
+
+Options:
+  --iterations N        Number of co-evolution iterations (default: 3)
+  --n-problems N        Candidate problems per iteration (default: 8000)
+  --challenger-steps N  GRPO steps for Challenger (default: 5)
+  --solver-steps N      GRPO steps for Solver (default: 15)
+  --m-samples N         Self-consistency samples (default: 10)
+  --no-bootstrap        Skip GSM8K bootstrapping
+  --test                Run in test mode with minimal settings
 ```
+
+### Export Trained Models
+
+```bash
+# Export to GGUF format
+python rz/helpers/export_to_gguf.py
+
+# Different quantization levels
+python rz/helpers/export_to_gguf.py --quantization q8_0  # Best quality
+python rz/helpers/export_to_gguf.py --quantization q6_k  # Balanced
+python rz/helpers/export_to_gguf.py --quantization q4_k_m  # Smallest
+```
+
+### Theoretical Foundations
+
+R-Zero is theoretically motivated by the insight that learning is maximized when problems are at the edge of the learner's capability. The uncertainty reward `r = 1 - 2|p̂(x; Sφ) - 0.5|` is derived from the KL divergence bound:
+
+```
+DKL(Sφ||S*) ≥ p̂(1 - p̂) / 2β²
+```
+
+This bound is maximized when `p̂ = 0.5`, justifying the reward design.
+
+## Differences from Paper
+
+While this is a nearly complete implementation of R-Zero, there are some practical differences:
+
+1. **Base Model**: Paper uses Qwen3-4B/8B, we use Gemma-3-1B for accessibility
+2. **Scale**: Paper uses 8,000 candidate problems, adjustable via `--n-problems`
+3. **Evaluation**: Paper includes AMC/AIME benchmarks, we focus on GSM8K
+4. **Bootstrap**: We offer optional GSM8K bootstrapping for faster convergence
 
 ## Citations
 
-RZL is based on the R-Zero paper:
+This implementation is based on the R-Zero paper:
 
 ```bibtex
 @article{huang2025rzeroselfevolvingreasoningllm,
@@ -278,16 +305,17 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## Acknowledgments
 
-- **R-Zero authors** for the original paper
+- **R-Zero authors** (Huang et al., 2025) for the groundbreaking algorithm
 - **Unsloth** for efficient LoRA training
-- **Qwen** for amazing small models
-- **Google** for amazing small models
-- **DeepSeek** for GRPO
+- **Google DeepMind** for Gemma models
+- **DeepSeek** for GRPO implementation
 - **llama.cpp** for GGUF inference
+- **HuggingFace** for the awesome infrastructure
 
 ## Tips
 
-1. **Start small**: Test with 10-20 problems first
-2. **Monitor rewards**: Ensure all reward components are improving
-3. **Save checkpoints**: Iterations are saved automatically
-4. **Experiment**: Try different Teacher models and prompts
+1. **Start small**: Use `rz\tests\test_rzero_pipeline.py` to ensure the pipeline is functional, then start with a small batch.
+2. **Monitor uncertainty**: Check that Challenger targets ~50% solver accuracy
+3. **Watch filtering**: Ensure adequate problems pass the 25-75% filter
+4. **Fresh starts**: Each run begins from base models (no old checkpoints)
+5. **Memory management**: Checkpoints reload between iterations within a run

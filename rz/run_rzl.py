@@ -23,7 +23,7 @@ def run_simplified_rzero(num_iterations: int = 8, grpo_steps_per_iteration: int 
         num_iterations: Number of evolution cycles (default: 8)
         grpo_steps_per_iteration: GRPO training steps per iteration (default: 75)
     """
-    CLIFormatter.print_header("RZL Training with GRPO")
+    CLIFormatter.print_header("RZ Training with GRPO")
 
     # Create unique run ID for this training session
     run_id = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -311,7 +311,7 @@ def run_simplified_rzero(num_iterations: int = 8, grpo_steps_per_iteration: int 
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(description="Run RZL training with GRPO")
+    parser = argparse.ArgumentParser(description="Run RZ training with GRPO")
     parser.add_argument(
         "--iterations",
         type=int,

@@ -1,7 +1,7 @@
-"""Simple test script for TeacherAgent problem generation using run_rzl functions"""
+"""Simple test script for TeacherAgent problem generation using run_rz functions"""
 import sys
 import os
-# Add parent directory to path to import from rzl module
+# Add parent directory to path to import from rz module
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from agents import TeacherAgent
@@ -13,7 +13,7 @@ def test_teacher_generation():
     print("Teacher Problem Generation Test")
     print("="*80)
 
-    # Initialize the actual TeacherAgent from run_rzl
+    # Initialize the actual TeacherAgent from run_rz
     teacher = TeacherAgent()
 
     # Test different difficulty levels
