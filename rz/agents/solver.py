@@ -8,6 +8,7 @@ import re
 import numpy as np
 import warnings
 from typing import List, Dict, Tuple, Optional
+from functools import partial
 from collections import Counter
 from datasets import Dataset
 from trl import GRPOConfig, GRPOTrainer
@@ -99,8 +100,12 @@ class SolverAgent:
         # This needs to be set every time, even when loading from checkpoint
         self.tokenizer.padding_side = "left"
 
-        # Create system prompt for reasoning
-        self.system_prompt = f"""You are given a problem.
+        # Create simpler system prompt - start without complex formatting
+        self.use_simple_format = True  # Start with simple format
+        if self.use_simple_format:
+            self.system_prompt = """Solve the following math problem step by step. Show your work and provide the final numerical answer."""
+        else:
+            self.system_prompt = f"""You are given a problem.
 Think about the problem and provide your working out.
 Place it between {REASONING_START} and {REASONING_END}.
 Then, provide your solution between {SOLUTION_START}{SOLUTION_END}"""
@@ -233,6 +238,52 @@ Then, provide your solution between {SOLUTION_START}{SOLUTION_END}"""
                 score = -0.5  # Way too long, penalize
 
             scores.append(score)
+        return scores
+
+    def check_answer_simple(self, prompts, completions, answer, **kwargs):
+        """Simplified reward: Focus on answer correctness"""
+        scores = []
+        for i, completion in enumerate(completions):
+            response = completion[0]["content"]
+            extracted = self._extract_answer(response)
+
+            if not extracted:
+                scores.append(-1.0)  # No answer found
+                continue
+
+            try:
+                # Get the corresponding answer for this completion
+                true_answer = answer[i % len(answer)] if isinstance(answer, list) else answer
+                # Compare numerical answers
+                pred_val = float(extracted.strip())
+                true_val = float(true_answer.strip())
+
+                if abs(pred_val - true_val) < 0.01:  # Exact match
+                    scores.append(3.0)
+                elif abs(pred_val - true_val) / max(abs(true_val), 1) < 0.1:  # Within 10%
+                    scores.append(1.0)
+                else:
+                    scores.append(-0.5)  # Wrong answer
+            except:
+                scores.append(-0.5)  # Non-numeric
+
+        return scores
+
+    def length_penalty_simple(self, completions, **kwargs):
+        """Simplified length penalty"""
+        scores = []
+        for completion in completions:
+            response = completion[0]["content"]
+            length = len(response.split())
+
+            # More lenient length requirements
+            if 10 <= length <= 200:
+                scores.append(0.5)
+            elif length < 10:
+                scores.append(-0.5)  # Too short
+            else:
+                scores.append(-1.0)  # Way too long
+
         return scores
 
     def generate_solution(self, question: str, temperature: float = 0.7) -> str:
@@ -398,15 +449,34 @@ Then, provide your solution between {SOLUTION_START}{SOLUTION_END}"""
         Returns:
             Extracted numerical answer or empty string
         """
-        # Try SOLUTION tags first
-        if SOLUTION_START in solution and SOLUTION_END in solution:
-            s_start = solution.find(SOLUTION_START) + len(SOLUTION_START)
-            s_end = solution.find(SOLUTION_END)
-            return solution[s_start:s_end].strip()
+        if hasattr(self, 'use_simple_format') and self.use_simple_format:
+            # For simple format, look for clear answer indicators
+            patterns = [
+                r'(?:answer|Answer)[:\s]+([\d\.\-,]+)',  # "Answer: 42"
+                r'(?:equals?|=)[\s]+([\d\.\-,]+)(?:\s|$)',  # "= 42"
+                r'(?:is|are)[\s]+([\d\.\-,]+)(?:\s|$)',  # "is 42"
+                r'^([\d\.\-,]+)$',  # Just number on own line
+            ]
 
-        # Fall back to last number
-        numbers = re.findall(r'[-]?\d+(?:\.\d+)?', solution)
-        return numbers[-1] if numbers else ""
+            for pattern in patterns:
+                match = re.search(pattern, solution, re.MULTILINE | re.IGNORECASE)
+                if match:
+                    return match.group(1).replace(',', '').strip()
+
+            # Fallback: last number
+            numbers = re.findall(r'[-]?\d+(?:\.\d+)?', solution)
+            return numbers[-1] if numbers else ""
+        else:
+            # Original complex format extraction
+            # Try SOLUTION tags first
+            if SOLUTION_START in solution and SOLUTION_END in solution:
+                s_start = solution.find(SOLUTION_START) + len(SOLUTION_START)
+                s_end = solution.find(SOLUTION_END)
+                return solution[s_start:s_end].strip()
+
+            # Fall back to last number
+            numbers = re.findall(r'[-]?\d+(?:\.\d+)?', solution)
+            return numbers[-1] if numbers else ""
 
     def solve_problems(self, problems: List[Dict], return_accuracy: bool = True) -> List[Dict]:
         """Generate solutions for problems with self-consistency
@@ -437,13 +507,18 @@ Then, provide your solution between {SOLUTION_START}{SOLUTION_END}"""
                 is_correct = False
                 if "answer" in problem and problem["answer"]:
                     try:
-                        is_correct = abs(float(pseudo_label) - float(problem["answer"])) < 0.01
-                        if is_correct:
-                            correct_count += 1
-                    except Exception as e:
-                        # Debug: Show what went wrong
-                        if idx == 0:  # Only show for first problem to avoid spam
-                            CLIFormatter.print_warning(f"Answer extraction issue: pseudo_label='{pseudo_label}', ground_truth='{problem['answer']}'")
+                        # Validate both answers are numeric
+                        pred_val = float(pseudo_label) if pseudo_label else None
+                        true_val = float(problem["answer"]) if problem["answer"] else None
+
+                        if pred_val is not None and true_val is not None:
+                            is_correct = abs(pred_val - true_val) < 0.01
+                            if is_correct:
+                                correct_count += 1
+                    except (ValueError, TypeError) as e:
+                        # Debug: Show what went wrong only for first few problems
+                        if idx < 3 and pseudo_label and problem.get('answer'):
+                            CLIFormatter.print_warning(f"Answer format issue: solver='{pseudo_label}', expected='{problem['answer']}'")
                         pass
 
                 result = {
@@ -495,7 +570,7 @@ Then, provide your solution between {SOLUTION_START}{SOLUTION_END}"""
             optim="adamw_torch_fused" if torch.cuda.is_available() else "adamw_torch",
             logging_steps=1,
             per_device_train_batch_size=4,  # Higher batch size to prevent overfitting
-            gradient_accumulation_steps=1,  # Less accumulation with higher batch
+            gradient_accumulation_steps=2,  # Effective batch size = 8
             num_generations=4,  # More diverse completions to explore solution space
             max_prompt_length=max_prompt_length,
             max_completion_length=max_completion_length,

@@ -1,10 +1,18 @@
 """Main R-Zero implementation following the paper's co-evolution algorithm"""
 import os
 import sys
+import warnings
+
+# IMPORTANT: Set up comprehensive warning suppression BEFORE any imports
+# These warnings come from transformers library internals and we've already correctly configured padding
+warnings.filterwarnings("ignore")
+os.environ['TRANSFORMERS_NO_ADVISORY_WARNINGS'] = 'true'
+os.environ['TOKENIZERS_PARALLELISM'] = 'false'
+os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'
+
 import json
 import torch
 import gc
-import warnings
 from datetime import datetime
 from typing import Dict, List, Optional
 from datasets import Dataset, load_dataset
@@ -14,16 +22,6 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from utils.cli_formatter import CLIFormatter
 from utils.dataset_filter import DatasetFilter
 from agents import ChallengerAgent, SolverAgent
-
-# Disable multiprocessing to avoid Windows issues
-os.environ['TOKENIZERS_PARALLELISM'] = 'false'
-os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'
-
-# Globally suppress the padding warnings that persist despite correct configuration
-# These warnings come from transformers library internals and we've already set padding_side="left"
-warnings.filterwarnings("ignore", message=".*decoder-only.*right-padding.*")
-warnings.filterwarnings("ignore", message=".*right-padding.*")
-warnings.filterwarnings("ignore", message=".*padding_side.*")
 
 
 def clear_memory():
@@ -81,11 +79,27 @@ class RZero:
         # Track evolution metrics
         self.evolution_history = []
 
+        # Load validation set for tracking real progress
+        self.validation_set = None
+        if use_gsm8k_bootstrap:
+            val_dataset = load_dataset("openai/gsm8k", "main", split="test[:20]")
+            self.validation_set = []
+            for example in val_dataset:
+                answer = example["answer"].split("####")[-1].strip() if "####" in example["answer"] else example["answer"]
+                try:
+                    float(answer)  # Validate it's numeric
+                    self.validation_set.append({
+                        "question": example["question"],
+                        "answer": answer
+                    })
+                except:
+                    pass  # Skip non-numeric answers
+
         CLIFormatter.print_header("R-Zero: Self-Evolving Reasoning from Zero Data")
         CLIFormatter.print_status("Run ID", self.run_id)
         CLIFormatter.print_status("Output Directory", self.run_dir)
 
-    def bootstrap_with_gsm8k(self, n_examples: int = 30) -> List[Dict]:
+    def bootstrap_with_gsm8k(self, n_examples: int = 100) -> List[Dict]:
         """Bootstrap with GSM8K examples for initial training
 
         Args:
@@ -133,7 +147,7 @@ class RZero:
         num_iterations: int = 3,
         n_candidate_problems: int = 200,  # Reduced from 8000 for faster training
         challenger_steps: int = 5,
-        solver_steps: int = 15,
+        solver_steps: int = 30,  # Increased for better learning
         m_solver_samples: int = 3,  # Reduced from 10 for faster evaluation
         progressive_scaling: bool = True,  # Enable progressive scaling
         early_stopping: bool = True  # Enable early stopping for filtering
@@ -193,10 +207,10 @@ class RZero:
 
         # Bootstrap Solver if requested
         if self.use_gsm8k_bootstrap:
-            bootstrap_data = self.bootstrap_with_gsm8k(30)
+            bootstrap_data = self.bootstrap_with_gsm8k(100)  # Increased from 30
 
             CLIFormatter.print_subheader("Pre-training Solver on GSM8K")
-            solver.train_with_grpo(bootstrap_data, max_steps=10)
+            solver.train_with_grpo(bootstrap_data, max_steps=30)  # Increased from 10
             solver_checkpoint = solver.save_checkpoint(0, self.run_id)
 
             # Only reload if in sequential mode for memory efficiency
@@ -312,6 +326,13 @@ class RZero:
 
                 iteration_metrics["solver_accuracy"] = solver_accuracy
                 CLIFormatter.print_status("Solver test accuracy", f"{solver_accuracy:.2%}")
+
+                # Evaluate on validation set if available
+                if self.validation_set and len(self.validation_set) > 0:
+                    val_results = solver.solve_problems(self.validation_set[:10])  # Test on 10 validation problems
+                    val_accuracy = val_results[0]["accuracy"] if val_results else 0.0
+                    iteration_metrics["validation_accuracy"] = val_accuracy
+                    CLIFormatter.print_status("GSM8K validation accuracy", f"{val_accuracy:.2%}")
             else:
                 CLIFormatter.print_warning("No problems passed filtering - skipping Solver training")
                 solver_accuracy = 0.0
@@ -478,7 +499,7 @@ def main():
             num_iterations=2,
             n_candidate_problems=50,
             challenger_steps=2,
-            solver_steps=3,
+            solver_steps=5,  # Small for test mode
             m_solver_samples=2,
             progressive_scaling=not args.no_progressive_scaling,
             early_stopping=not args.no_early_stopping

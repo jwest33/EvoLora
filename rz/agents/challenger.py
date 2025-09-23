@@ -96,17 +96,21 @@ class ChallengerAgent:
         self.tokenizer.padding_side = "left"
 
         # System prompt for problem generation
-        self.system_prompt = """You are an expert competition-math problem setter. Generate a challenging but solvable math problem.
-The problem should:
-1. Be a word problem with real-world context
-2. Require mathematical reasoning
-3. Have a clear numerical answer
+        self.system_prompt = """You are an expert math problem creator. Generate a clear, solvable math word problem.
 
-Format your output exactly as:
+Requirements:
+1. Create a realistic scenario with specific numbers
+2. The problem must have a single numerical answer
+3. Include all information needed to solve it
+4. The answer must be a whole number or simple decimal
+
+Format your output EXACTLY as shown:
 <question>
-[Problem statement here]
+A store sells apples for $2 each. If John buys 5 apples, how much does he pay?
 </question>
-Answer: [numerical answer only]"""
+Answer: 10
+
+Now generate a new problem following this format:"""
 
         trainable = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
         CLIFormatter.print_success(f"Challenger loaded: {trainable:,} trainable params")
@@ -224,11 +228,20 @@ Answer: [numerical answer only]"""
                     break
 
         if not answer:
-            numbers = re.findall(r'[\d\.\-]+', response)
+            numbers = re.findall(r'[\d\.]+', response)  # Don't match standalone dashes
             if numbers:
                 answer = numbers[-1]
 
-        return question, answer
+        # Validate that we have both question and numeric answer
+        if question and answer:
+            try:
+                # Check if answer is a valid number
+                float(answer)
+                return question, answer
+            except ValueError:
+                # Invalid answer, return empty
+                return "", ""
+        return "", ""
 
     def compute_uncertainty_reward(
         self,

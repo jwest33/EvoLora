@@ -75,7 +75,12 @@ class DatasetFilter:
         valid_problems = []
         for problem in problems:
             if problem.get("question") and problem.get("answer"):
-                valid_problems.append(problem)
+                # Also validate answer is numeric
+                try:
+                    float(problem["answer"])
+                    valid_problems.append(problem)
+                except (ValueError, TypeError):
+                    statistics["invalid"] += 1
             else:
                 statistics["invalid"] += 1
 
