@@ -6,6 +6,7 @@ import torch
 import gc
 import re
 import numpy as np
+import warnings
 from typing import List, Dict, Tuple, Optional
 from collections import Counter
 from datasets import Dataset
@@ -48,21 +49,27 @@ class SolverAgent:
         # Load from checkpoint if provided, otherwise from base model
         if checkpoint_path and os.path.exists(checkpoint_path):
             CLIFormatter.print_info(f"Loading Solver from checkpoint: {checkpoint_path}")
-            self.model, self.tokenizer = FastModel.from_pretrained(
-                model_name=checkpoint_path,
-                max_seq_length=self.max_seq_length,
-                load_in_4bit=False,
-                load_in_8bit=False,
-            )
+            # Suppress padding warnings during model loading
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", message=".*right-padding.*")
+                self.model, self.tokenizer = FastModel.from_pretrained(
+                    model_name=checkpoint_path,
+                    max_seq_length=self.max_seq_length,
+                    load_in_4bit=False,
+                    load_in_8bit=False,
+                )
         else:
             CLIFormatter.print_info("Loading base Gemma-3-1B model from Hugging Face")
-            self.model, self.tokenizer = FastModel.from_pretrained(
-                model_name="unsloth/gemma-3-1b-it",
-                max_seq_length=self.max_seq_length,
-                load_in_4bit=False,
-                load_in_8bit=False,
-                full_finetuning=False,
-            )
+            # Suppress padding warnings during model loading
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", message=".*right-padding.*")
+                self.model, self.tokenizer = FastModel.from_pretrained(
+                    model_name="unsloth/gemma-3-1b-it",
+                    max_seq_length=self.max_seq_length,
+                    load_in_4bit=False,
+                    load_in_8bit=False,
+                    full_finetuning=False,
+                )
 
         # Apply LoRA for GRPO (only if loading base model)
         if not (checkpoint_path and os.path.exists(checkpoint_path)):
@@ -79,9 +86,13 @@ class SolverAgent:
                 random_state=3407,
             )
 
-        # Set pad token
+        # Set pad token and padding side for decoder-only models
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
+
+        # IMPORTANT: Always set left padding for decoder-only models
+        # This needs to be set every time, even when loading from checkpoint
+        self.tokenizer.padding_side = "left"
 
         # Create system prompt for reasoning
         self.system_prompt = f"""You are given a problem.
@@ -234,15 +245,18 @@ Then, provide your solution between {SOLUTION_START}{SOLUTION_END}"""
         inputs = {k: v.to(self.model.device) for k, v in inputs.items()}
 
         with torch.no_grad():
-            outputs = self.model.generate(
-                **inputs,
-                max_new_tokens=150,
-                temperature=temperature,
-                do_sample=True,
-                pad_token_id=self.tokenizer.pad_token_id,
-                eos_token_id=self.tokenizer.eos_token_id,
-                repetition_penalty=1.15,
-            )
+            # Suppress the padding warning since we've already configured it correctly
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", message=".*right-padding.*")
+                outputs = self.model.generate(
+                    **inputs,
+                    max_new_tokens=150,
+                    temperature=temperature,
+                    do_sample=True,
+                    pad_token_id=self.tokenizer.pad_token_id,
+                    eos_token_id=self.tokenizer.eos_token_id,
+                    repetition_penalty=1.15,
+                )
 
         # Decode only the generated part
         generated_tokens = outputs[0][inputs['input_ids'].shape[1]:]
@@ -288,6 +302,87 @@ Then, provide your solution between {SOLUTION_START}{SOLUTION_END}"""
         empirical_accuracy = most_common[1] / len(extracted_answers)
 
         return pseudo_label, empirical_accuracy, solutions
+
+    def solve_with_self_consistency_batch(
+        self,
+        questions: List[str],
+        m_samples: int = 10,
+        temperature: float = 0.7,
+        batch_size: int = 4
+    ) -> List[Tuple[str, float, List[str]]]:
+        """Batch version of solve_with_self_consistency for faster processing
+
+        Args:
+            questions: List of problems to solve
+            m_samples: Number of solution samples per problem
+            temperature: Sampling temperature
+            batch_size: Number of problems to process in parallel
+
+        Returns:
+            List of tuples (pseudo_label, empirical_accuracy, all_solutions) for each problem
+        """
+        results = []
+
+        # Process questions in batches
+        for batch_start in range(0, len(questions), batch_size):
+            batch_end = min(batch_start + batch_size, len(questions))
+            batch_questions = questions[batch_start:batch_end]
+
+            # Prepare batch inputs
+            batch_prompts = [f"Question: {q}\nAnswer:" for q in batch_questions]
+
+            # Generate solutions for the batch
+            batch_solutions = [[] for _ in batch_questions]
+            batch_answers = [[] for _ in batch_questions]
+
+            for _ in range(m_samples):
+                # Tokenize all prompts in the batch
+                inputs = self.tokenizer(
+                    batch_prompts,
+                    return_tensors="pt",
+                    padding=True,
+                    truncation=True,
+                    max_length=256
+                )
+                inputs = {k: v.to(self.model.device) for k, v in inputs.items()}
+
+                with torch.no_grad():
+                    # Suppress the padding warning since we've already configured it correctly
+                    with warnings.catch_warnings():
+                        warnings.filterwarnings("ignore", message=".*right-padding.*")
+                        outputs = self.model.generate(
+                            **inputs,
+                            max_new_tokens=150,
+                            temperature=temperature,
+                            do_sample=True,
+                            pad_token_id=self.tokenizer.pad_token_id,
+                            eos_token_id=self.tokenizer.eos_token_id,
+                            repetition_penalty=1.15,
+                        )
+
+                # Decode each output
+                for i, output in enumerate(outputs):
+                    generated_tokens = output[inputs['input_ids'][i].shape[0]:]
+                    answer = self.tokenizer.decode(generated_tokens, skip_special_tokens=True).strip()
+                    batch_solutions[i].append(answer)
+
+                    # Extract numerical answer
+                    extracted = self._extract_answer(answer)
+                    if extracted:
+                        batch_answers[i].append(extracted)
+
+            # Compute majority vote for each problem in the batch
+            for solutions, answers in zip(batch_solutions, batch_answers):
+                if not answers:
+                    results.append(("", 0.0, solutions))
+                else:
+                    answer_counts = Counter(answers)
+                    most_common = answer_counts.most_common(1)[0]
+                    pseudo_label = most_common[0]
+                    empirical_accuracy = most_common[1] / len(answers)
+                    results.append((pseudo_label, empirical_accuracy, solutions))
+
+        return results
 
     def _extract_answer(self, solution: str) -> str:
         """Extract numerical answer from solution
@@ -340,7 +435,10 @@ Then, provide your solution between {SOLUTION_START}{SOLUTION_END}"""
                         is_correct = abs(float(pseudo_label) - float(problem["answer"])) < 0.01
                         if is_correct:
                             correct_count += 1
-                    except:
+                    except Exception as e:
+                        # Debug: Show what went wrong
+                        if idx == 0:  # Only show for first problem to avoid spam
+                            CLIFormatter.print_warning(f"Answer extraction issue: pseudo_label='{pseudo_label}', ground_truth='{problem['answer']}'")
                         pass
 
                 result = {
@@ -471,12 +569,14 @@ Then, provide your solution between {SOLUTION_START}{SOLUTION_END}"""
         trainer.log = formatted_log
 
         # Train with GRPO
-        CLIFormatter.print_subheader(f"Phase 2: Solver GRPO Training")
-        CLIFormatter.print_info(f"Training for {max_steps} steps to learn reasoning...")
-        CLIFormatter.print_info("Watch the reward metrics to see learning progress!")
+        CLIFormatter.print_subheader(f"Solver GRPO Training")
+        CLIFormatter.print_info(f"Training for {max_steps} steps with GRPO to learn reasoning...")
         print()  # Add spacing
         trainer.train()
         print()  # Add spacing after training
+
+        # IMPORTANT: Set model back to eval mode after training
+        self.model.eval()
 
     def save_checkpoint(self, iteration: int, run_id: str = None, accuracy: float = None) -> str:
         """Save model checkpoint with metadata and return the path"""

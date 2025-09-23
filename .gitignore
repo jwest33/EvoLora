@@ -16,4 +16,4 @@ xformers/
 llama.cpp/
 tools/
 outputs_example/
-.gitignore
+notes.txt

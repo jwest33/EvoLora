@@ -100,10 +100,12 @@ class RZero:
     def run(
         self,
         num_iterations: int = 3,
-        n_candidate_problems: int = 8000,
+        n_candidate_problems: int = 200,  # Reduced from 8000 for faster training
         challenger_steps: int = 5,
         solver_steps: int = 15,
-        m_solver_samples: int = 10
+        m_solver_samples: int = 3,  # Reduced from 10 for faster evaluation
+        progressive_scaling: bool = True,  # Enable progressive scaling
+        early_stopping: bool = True  # Enable early stopping for filtering
     ):
         """Run full R-Zero co-evolution
 
@@ -117,12 +119,17 @@ class RZero:
             challenger_steps: GRPO steps for Challenger training
             solver_steps: GRPO steps for Solver training
             m_solver_samples: Number of solver samples for self-consistency
+            progressive_scaling: Whether to progressively scale problem count
+            early_stopping: Whether to use early stopping in filtering
         """
         CLIFormatter.print_header("Starting R-Zero Co-Evolution")
         CLIFormatter.print_status("Iterations", str(num_iterations))
-        CLIFormatter.print_status("Candidate problems per iteration", str(n_candidate_problems))
+        CLIFormatter.print_status("Initial candidate problems", str(n_candidate_problems))
         CLIFormatter.print_status("Challenger GRPO steps", str(challenger_steps))
         CLIFormatter.print_status("Solver GRPO steps", str(solver_steps))
+        CLIFormatter.print_status("Solver samples (m)", str(m_solver_samples))
+        CLIFormatter.print_status("Progressive scaling", "Enabled" if progressive_scaling else "Disabled")
+        CLIFormatter.print_status("Early stopping", "Enabled" if early_stopping else "Disabled")
 
         # Check CUDA availability
         if torch.cuda.is_available():
@@ -154,21 +161,41 @@ class RZero:
             clear_memory()
             solver = SolverAgent(checkpoint_path=solver_checkpoint)
 
+        # Track metrics for progressive scaling
+        previous_accuracy = 0.0
+        current_n_problems = min(100, n_candidate_problems) if progressive_scaling else n_candidate_problems
+        current_m_samples = m_solver_samples
+
         # Main co-evolution loop
         for iteration in range(1, num_iterations + 1):
             CLIFormatter.print_header(f"Iteration {iteration}/{num_iterations}")
 
+            # Apply progressive scaling based on previous accuracy
+            if progressive_scaling and iteration > 1:
+                if previous_accuracy > 0.5 and current_n_problems < 2000:
+                    # Good performance - scale up
+                    current_n_problems = min(int(current_n_problems * 1.5), 2000)
+                    current_m_samples = min(current_m_samples + 1, 10)
+                    CLIFormatter.print_success(f"Scaling up: {current_n_problems} problems, {current_m_samples} samples")
+                elif previous_accuracy < 0.3 and current_n_problems > 50:
+                    # Poor performance - scale down
+                    current_n_problems = max(int(current_n_problems * 0.5), 50)
+                    current_m_samples = max(current_m_samples - 1, 2)
+                    CLIFormatter.print_warning(f"Scaling down: {current_n_problems} problems, {current_m_samples} samples")
+
             iteration_metrics = {
                 "iteration": iteration,
-                "timestamp": datetime.now().isoformat()
+                "timestamp": datetime.now().isoformat(),
+                "n_problems_target": current_n_problems,
+                "m_samples": current_m_samples
             }
 
             # Phase 1: Challenger generates candidate problems
             CLIFormatter.print_subheader("Phase 1: Challenger Generates Problems")
-            CLIFormatter.print_info(f"Generating {n_candidate_problems} candidate problems...")
+            CLIFormatter.print_info(f"Generating {current_n_problems} candidate problems...")
 
             candidate_problems = challenger.generate_candidate_problems(
-                num_problems=min(n_candidate_problems, 100 if iteration == 1 else n_candidate_problems),
+                num_problems=current_n_problems,
                 temperature=0.8
             )
 
@@ -188,7 +215,8 @@ class RZero:
             filtered_problems, filter_stats = self.dataset_filter.filter_dataset(
                 candidate_problems,
                 solver,
-                m_samples=m_solver_samples
+                m_samples=current_m_samples,
+                early_stopping=early_stopping
             )
 
             iteration_metrics["filter_stats"] = filter_stats
@@ -206,7 +234,8 @@ class RZero:
                 additional_filtered, _ = self.dataset_filter.filter_dataset(
                     additional_problems,
                     solver,
-                    m_samples=m_solver_samples
+                    m_samples=current_m_samples,
+                    early_stopping=early_stopping
                 )
 
                 filtered_problems.extend(additional_filtered)
@@ -234,6 +263,7 @@ class RZero:
                 test_problems = filtered_problems[:10]  # Use subset for testing
                 test_results = solver.solve_problems(test_problems)
                 solver_accuracy = test_results[0]["accuracy"] if test_results else 0.0
+                previous_accuracy = solver_accuracy  # Store for progressive scaling
 
                 iteration_metrics["solver_accuracy"] = solver_accuracy
                 CLIFormatter.print_status("Solver test accuracy", f"{solver_accuracy:.2%}")
@@ -248,9 +278,9 @@ class RZero:
             # Freeze solver for Challenger training
             challenger.train_with_grpo(
                 frozen_solver=solver,
-                num_problems=50,  # Smaller batch for Challenger
+                num_problems=min(50, len(filtered_problems)),  # Smaller batch for Challenger
                 max_steps=challenger_steps,
-                m_solver_samples=m_solver_samples
+                m_solver_samples=current_m_samples
             )
 
             # Save challenger checkpoint
@@ -340,8 +370,8 @@ def main():
     parser.add_argument(
         "--n-problems",
         type=int,
-        default=8000,
-        help="Number of candidate problems per iteration (default: 8000)"
+        default=200,
+        help="Initial number of candidate problems per iteration (default: 200)"
     )
     parser.add_argument(
         "--challenger-steps",
@@ -358,13 +388,23 @@ def main():
     parser.add_argument(
         "--m-samples",
         type=int,
-        default=10,
-        help="Number of solver samples for self-consistency (default: 10)"
+        default=3,
+        help="Number of solver samples for self-consistency (default: 3)"
     )
     parser.add_argument(
         "--no-bootstrap",
         action="store_true",
         help="Skip GSM8K bootstrapping"
+    )
+    parser.add_argument(
+        "--no-progressive-scaling",
+        action="store_true",
+        help="Disable progressive scaling of problem count"
+    )
+    parser.add_argument(
+        "--no-early-stopping",
+        action="store_true",
+        help="Disable early stopping in dataset filtering"
     )
     parser.add_argument(
         "--test",
@@ -382,7 +422,9 @@ def main():
             n_candidate_problems=50,
             challenger_steps=2,
             solver_steps=3,
-            m_solver_samples=3
+            m_solver_samples=2,
+            progressive_scaling=not args.no_progressive_scaling,
+            early_stopping=not args.no_early_stopping
         )
     else:
         rzero = RZero(use_gsm8k_bootstrap=not args.no_bootstrap)
@@ -391,7 +433,9 @@ def main():
             n_candidate_problems=args.n_problems,
             challenger_steps=args.challenger_steps,
             solver_steps=args.solver_steps,
-            m_solver_samples=args.m_samples
+            m_solver_samples=args.m_samples,
+            progressive_scaling=not args.no_progressive_scaling,
+            early_stopping=not args.no_early_stopping
         )
 
 

@@ -6,12 +6,13 @@ import torch
 import gc
 import re
 import numpy as np
+import warnings
 from typing import List, Dict, Optional, Tuple
 from collections import Counter
 from datasets import Dataset
 from trl import GRPOConfig, GRPOTrainer
 from datetime import datetime
-from nltk.translate.bleu_score import sentence_bleu
+from nltk.translate.bleu_score import sentence_bleu, SmoothingFunction
 from sklearn.cluster import AgglomerativeClustering
 import json
 
@@ -44,21 +45,27 @@ class ChallengerAgent:
         # Load from checkpoint if provided, otherwise from base model
         if checkpoint_path and os.path.exists(checkpoint_path):
             CLIFormatter.print_info(f"Loading Challenger from checkpoint: {checkpoint_path}")
-            self.model, self.tokenizer = FastModel.from_pretrained(
-                model_name=checkpoint_path,
-                max_seq_length=self.max_seq_length,
-                load_in_4bit=False,
-                load_in_8bit=False,
-            )
+            # Suppress padding warnings during model loading
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", message=".*right-padding.*")
+                self.model, self.tokenizer = FastModel.from_pretrained(
+                    model_name=checkpoint_path,
+                    max_seq_length=self.max_seq_length,
+                    load_in_4bit=False,
+                    load_in_8bit=False,
+                )
         else:
             CLIFormatter.print_info("Loading base Gemma-3-1B model for Challenger")
-            self.model, self.tokenizer = FastModel.from_pretrained(
-                model_name="unsloth/gemma-3-1b-it",
-                max_seq_length=self.max_seq_length,
-                load_in_4bit=False,
-                load_in_8bit=False,
-                full_finetuning=False,
-            )
+            # Suppress padding warnings during model loading
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", message=".*right-padding.*")
+                self.model, self.tokenizer = FastModel.from_pretrained(
+                    model_name="unsloth/gemma-3-1b-it",
+                    max_seq_length=self.max_seq_length,
+                    load_in_4bit=False,
+                    load_in_8bit=False,
+                    full_finetuning=False,
+                )
 
             # Apply LoRA for GRPO
             self.model = FastModel.get_peft_model(
@@ -74,9 +81,13 @@ class ChallengerAgent:
                 random_state=3407,
             )
 
-        # Set pad token
+        # Set pad token and padding side for decoder-only models
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
+
+        # IMPORTANT: Always set left padding for decoder-only models
+        # This needs to be set every time, even when loading from checkpoint
+        self.tokenizer.padding_side = "left"
 
         # System prompt for problem generation
         self.system_prompt = """You are an expert competition-math problem setter. Generate a challenging but solvable math problem.
@@ -146,16 +157,19 @@ Answer: [numerical answer only]"""
 
                 # Generate
                 with torch.no_grad():
-                    outputs = self.model.generate(
-                        **inputs,
-                        max_new_tokens=200,
-                        temperature=temperature,
-                        do_sample=True,
-                        top_p=0.95,
-                        pad_token_id=self.tokenizer.pad_token_id,
-                        eos_token_id=self.tokenizer.eos_token_id,
-                        repetition_penalty=1.15,
-                    )
+                    # Suppress the padding warning since we've already configured it correctly
+                    with warnings.catch_warnings():
+                        warnings.filterwarnings("ignore", message=".*right-padding.*")
+                        outputs = self.model.generate(
+                            **inputs,
+                            max_new_tokens=200,
+                            temperature=temperature,
+                            do_sample=True,
+                            top_p=0.95,
+                            pad_token_id=self.tokenizer.pad_token_id,
+                            eos_token_id=self.tokenizer.eos_token_id,
+                            repetition_penalty=1.15,
+                        )
 
                 # Decode and parse
                 for i in range(current_batch_size):
@@ -284,9 +298,11 @@ Answer: [numerical answer only]"""
                 ref = problems[i]["question"].split()
                 hyp = problems[j]["question"].split()
 
-                # Compute BLEU score
+                # Compute BLEU score with smoothing to avoid warnings
                 try:
-                    bleu = sentence_bleu([ref], hyp)
+                    # Use smoothing to handle cases with no n-gram overlaps
+                    smoothing = SmoothingFunction().method1
+                    bleu = sentence_bleu([ref], hyp, smoothing_function=smoothing)
                 except:
                     bleu = 0.0
 
@@ -472,6 +488,9 @@ Answer: [numerical answer only]"""
         print()
         trainer.train()
         print()
+
+        # IMPORTANT: Set model back to eval mode after training
+        self.model.eval()
 
     def save_checkpoint(self, iteration: int, run_id: str = None) -> str:
         """Save model checkpoint
