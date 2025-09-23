@@ -36,13 +36,15 @@ def clear_memory():
 class ChallengerAgent:
     """Trainable Challenger that learns to generate problems at optimal difficulty using GRPO"""
 
-    def __init__(self, checkpoint_path: Optional[str] = None):
+    def __init__(self, checkpoint_path: Optional[str] = None, persistent: bool = False):
         """Initialize Challenger from base model or checkpoint
 
         Args:
             checkpoint_path: Path to existing checkpoint, or None to load base model
+            persistent: If True, model won't be cleaned up (for concurrent mode)
         """
         CLIFormatter.print_info("Initializing Challenger (Gemma-3-1B with GRPO)...")
+        self.persistent = persistent
 
         self.max_seq_length = 2048
 
@@ -529,7 +531,11 @@ Answer: [numerical answer only]"""
         return checkpoint_dir
 
     def cleanup(self):
-        """Clean up model from memory"""
-        del self.model
-        del self.tokenizer
-        clear_memory()
+        """Clean up model from memory (unless persistent)"""
+        if not self.persistent:
+            del self.model
+            del self.tokenizer
+            clear_memory()
+        else:
+            # Keep model in memory for concurrent mode
+            pass

@@ -52,7 +52,8 @@ class RZero:
         self,
         run_id: Optional[str] = None,
         output_dir: str = "outputs",
-        use_gsm8k_bootstrap: bool = True
+        use_gsm8k_bootstrap: bool = True,
+        memory_mode: str = "auto"
     ):
         """Initialize R-Zero system
 
@@ -60,10 +61,13 @@ class RZero:
             run_id: Unique identifier for this run
             output_dir: Base output directory
             use_gsm8k_bootstrap: Whether to bootstrap with GSM8K examples
+            memory_mode: Memory management mode ("auto", "concurrent", "sequential")
         """
         self.run_id = run_id or datetime.now().strftime("%Y%m%d_%H%M%S")
         self.run_dir = f"{output_dir}/{self.run_id}"
         self.use_gsm8k_bootstrap = use_gsm8k_bootstrap
+        self.memory_mode = memory_mode
+        self.concurrent_loading_possible = False
 
         # Create output directories
         os.makedirs(f"{self.run_dir}/challenger", exist_ok=True)
@@ -103,6 +107,26 @@ class RZero:
 
         CLIFormatter.print_success(f"Loaded {len(bootstrap_data)} GSM8K examples")
         return bootstrap_data
+
+    def check_concurrent_loading_feasibility(self) -> bool:
+        """Check if both models can fit in VRAM simultaneously
+
+        Returns:
+            True if concurrent loading is possible, False otherwise
+        """
+        if not torch.cuda.is_available():
+            return False
+
+        # Estimate memory requirements (in GB)
+        solver_memory = 4.5  # Gemma-3-1B with LoRA
+        challenger_memory = 4.5  # Same model architecture
+        overhead = 2.0  # Buffer for gradients, activations, etc.
+
+        total_required = solver_memory + challenger_memory + overhead
+        available_vram = torch.cuda.get_device_properties(0).total_memory / 1e9
+
+        # Leave some buffer for safety
+        return available_vram >= total_required * 1.1
 
     def run(
         self,
@@ -146,13 +170,26 @@ class RZero:
         else:
             CLIFormatter.print_warning("CUDA not available - training will be slow")
 
+        # Determine memory management strategy
+        if self.memory_mode == "auto":
+            self.concurrent_loading_possible = self.check_concurrent_loading_feasibility()
+            actual_mode = "concurrent" if self.concurrent_loading_possible else "sequential"
+            CLIFormatter.print_status("Memory Mode", f"Auto-selected: {actual_mode}")
+        elif self.memory_mode == "concurrent":
+            self.concurrent_loading_possible = True
+            CLIFormatter.print_status("Memory Mode", "Concurrent (both models in VRAM)")
+        else:  # sequential
+            self.concurrent_loading_possible = False
+            CLIFormatter.print_status("Memory Mode", "Sequential (swap models as needed)")
+
         # Initialize models from same base - ALWAYS fresh, never from old checkpoints
         CLIFormatter.print_subheader("Initializing Fresh Models from Base")
         CLIFormatter.print_info("Starting from raw Gemma-3-1B base model (no checkpoint loading)")
 
-        # Never pass checkpoint_path here to ensure fresh start
-        challenger = ChallengerAgent()  # Always loads fresh base model
-        solver = SolverAgent()  # Always loads fresh base model
+        # Pass persistent flag based on memory mode
+        persistent = self.concurrent_loading_possible
+        challenger = ChallengerAgent(persistent=persistent)  # Always loads fresh base model
+        solver = SolverAgent(persistent=persistent)  # Always loads fresh base model
 
         # Bootstrap Solver if requested
         if self.use_gsm8k_bootstrap:
@@ -162,11 +199,11 @@ class RZero:
             solver.train_with_grpo(bootstrap_data, max_steps=10)
             solver_checkpoint = solver.save_checkpoint(0, self.run_id)
 
-            # Reload solver from checkpoint for memory efficiency within the same run
-            # This is still within the current run, so reloading is acceptable
-            solver.cleanup()
-            clear_memory()
-            solver = SolverAgent(checkpoint_path=solver_checkpoint)
+            # Only reload if in sequential mode for memory efficiency
+            if not self.concurrent_loading_possible:
+                solver.cleanup()
+                clear_memory()
+                solver = SolverAgent(checkpoint_path=solver_checkpoint, persistent=persistent)
 
         # Track metrics for progressive scaling
         previous_accuracy = 0.0
@@ -300,17 +337,19 @@ class RZero:
             with open(f"{self.run_dir}/metrics/evolution_history.json", "w") as f:
                 json.dump(self.evolution_history, f, indent=2)
 
-            # Clean up models for next iteration
-            CLIFormatter.print_info("Cleaning up for next iteration...")
-            solver.cleanup()
-            challenger.cleanup()
-            clear_memory()
+            # Clean up models for next iteration (only if in sequential mode)
+            if not self.concurrent_loading_possible:
+                CLIFormatter.print_info("Cleaning up models for next iteration...")
+                solver.cleanup()
+                challenger.cleanup()
+                clear_memory()
 
-            # Reload models from checkpoints for next iteration (memory efficiency)
-            # This is within the same run, so checkpoint reloading is acceptable
-            if iteration < num_iterations:
-                challenger = ChallengerAgent(checkpoint_path=challenger_checkpoint)
-                solver = SolverAgent(checkpoint_path=solver_checkpoint)
+                # Reload models from checkpoints for next iteration
+                if iteration < num_iterations:
+                    challenger = ChallengerAgent(checkpoint_path=challenger_checkpoint, persistent=persistent)
+                    solver = SolverAgent(checkpoint_path=solver_checkpoint, persistent=persistent)
+            else:
+                CLIFormatter.print_info("Keeping models in VRAM (concurrent mode)")
 
             CLIFormatter.print_success(f"Iteration {iteration} complete!")
             print()
@@ -414,6 +453,13 @@ def main():
         help="Disable early stopping in dataset filtering"
     )
     parser.add_argument(
+        "--memory-mode",
+        type=str,
+        choices=["auto", "concurrent", "sequential"],
+        default="auto",
+        help="Memory management mode: auto (detect), concurrent (both models in VRAM), sequential (swap models)"
+    )
+    parser.add_argument(
         "--test",
         action="store_true",
         help="Run in test mode with minimal iterations"
@@ -423,7 +469,10 @@ def main():
 
     # Test mode for quick validation
     if args.test:
-        rzero = RZero(use_gsm8k_bootstrap=not args.no_bootstrap)
+        rzero = RZero(
+            use_gsm8k_bootstrap=not args.no_bootstrap,
+            memory_mode=args.memory_mode
+        )
         rzero.run(
             num_iterations=2,
             n_candidate_problems=50,
@@ -434,7 +483,10 @@ def main():
             early_stopping=not args.no_early_stopping
         )
     else:
-        rzero = RZero(use_gsm8k_bootstrap=not args.no_bootstrap)
+        rzero = RZero(
+            use_gsm8k_bootstrap=not args.no_bootstrap,
+            memory_mode=args.memory_mode
+        )
         rzero.run(
             num_iterations=args.iterations,
             n_candidate_problems=args.n_problems,

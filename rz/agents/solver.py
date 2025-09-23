@@ -45,8 +45,9 @@ class SolverAgent:
     - Majority voting for robust pseudo-labels
     """
 
-    def __init__(self, checkpoint_path=None):
+    def __init__(self, checkpoint_path=None, persistent=False):
         CLIFormatter.print_info("Initializing Solver (Gemma-3-1B with GRPO)...")
+        self.persistent = persistent  # Whether to keep model in memory
 
         self.max_seq_length = 2048  # Increased for reasoning steps
 
@@ -607,7 +608,11 @@ Then, provide your solution between {SOLUTION_START}{SOLUTION_END}"""
         return checkpoint_dir
 
     def cleanup(self):
-        """Clean up model from memory"""
-        del self.model
-        del self.tokenizer
-        clear_memory()
+        """Clean up model from memory (unless persistent)"""
+        if not self.persistent:
+            del self.model
+            del self.tokenizer
+            clear_memory()
+        else:
+            # Keep model in memory for concurrent mode
+            pass
