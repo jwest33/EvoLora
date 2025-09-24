@@ -85,15 +85,26 @@ class RZero:
             val_dataset = load_dataset("openai/gsm8k", "main", split="test[:20]")
             self.validation_set = []
             for example in val_dataset:
-                answer = example["answer"].split("####")[-1].strip() if "####" in example["answer"] else example["answer"]
-                try:
-                    float(answer)  # Validate it's numeric
-                    self.validation_set.append({
-                        "question": example["question"],
-                        "answer": answer
-                    })
-                except:
-                    pass  # Skip non-numeric answers
+                # Extract just the numerical answer from GSM8K format
+                raw_answer = example["answer"]
+                if "####" in raw_answer:
+                    answer = raw_answer.split("####")[-1].strip()
+                else:
+                    answer = raw_answer
+
+                # Clean up the answer - remove commas, dollar signs, etc.
+                import re
+                numbers = re.findall(r'[\d,\.]+', answer)
+                if numbers:
+                    clean_answer = numbers[0].replace(',', '')
+                    try:
+                        float(clean_answer)  # Validate it's numeric
+                        self.validation_set.append({
+                            "question": example["question"],
+                            "answer": clean_answer
+                        })
+                    except:
+                        pass  # Skip if still not numeric
 
         CLIFormatter.print_header("R-Zero: Self-Evolving Reasoning from Zero Data")
         CLIFormatter.print_status("Run ID", self.run_id)
@@ -252,6 +263,7 @@ class RZero:
             CLIFormatter.print_subheader("Phase 1: Challenger Generates Problems")
             CLIFormatter.print_info(f"Generating {current_n_problems} candidate problems...")
 
+            # Challenger learns appropriate difficulty through GRPO training
             candidate_problems = challenger.generate_candidate_problems(
                 num_problems=current_n_problems,
                 temperature=0.8
@@ -324,8 +336,13 @@ class RZero:
                 solver_accuracy = test_results[0]["accuracy"] if test_results else 0.0
                 previous_accuracy = solver_accuracy  # Store for progressive scaling
 
+                # Calculate average empirical accuracy
+                avg_empirical = sum(r.get("empirical_accuracy", 0) for r in test_results) / len(test_results) if test_results else 0
+
                 iteration_metrics["solver_accuracy"] = solver_accuracy
-                CLIFormatter.print_status("Solver test accuracy", f"{solver_accuracy:.2%}")
+                iteration_metrics["empirical_accuracy"] = avg_empirical
+                CLIFormatter.print_status("Solver test accuracy (exact match)", f"{solver_accuracy:.2%}")
+                CLIFormatter.print_status("Solver empirical accuracy (consistency)", f"{avg_empirical:.2%}")
 
                 # Evaluate on validation set if available
                 if self.validation_set and len(self.validation_set) > 0:
@@ -388,16 +405,29 @@ class RZero:
             # Extract key metrics
             iterations = [m["iteration"] for m in self.evolution_history]
             accuracies = [m.get("solver_accuracy", 0) for m in self.evolution_history]
+            empirical_accs = [m.get("empirical_accuracy", 0) for m in self.evolution_history]
+            val_accuracies = [m.get("validation_accuracy", 0) for m in self.evolution_history]
 
-            # Print trajectory
+            # Print trajectory with both test and empirical accuracy
             CLIFormatter.print_info("Solver accuracy trajectory:")
-            for it, acc in zip(iterations, accuracies):
-                bar = "█" * int(acc * 50)
-                CLIFormatter.print_status(f"Iteration {it}", f"{bar} {acc:.2%}")
+            for it, acc, emp_acc, val_acc in zip(iterations, accuracies, empirical_accs, val_accuracies):
+                bar = "█" * int(acc * 20)
+                emp_bar = "░" * int(emp_acc * 20)
+                print(f"Iteration {it}: Exact: {acc:5.1%} {bar:<20} | Empirical: {emp_acc:5.1%} {emp_bar:<20}")
 
             # Best performance
-            best_idx = accuracies.index(max(accuracies))
-            CLIFormatter.print_success(f"Best accuracy: {accuracies[best_idx]:.2%} at iteration {iterations[best_idx]}")
+            if accuracies:
+                best_idx = accuracies.index(max(accuracies))
+                CLIFormatter.print_success(f"Best exact accuracy: {accuracies[best_idx]:.2%} at iteration {iterations[best_idx]}")
+
+            if empirical_accs:
+                best_emp_idx = empirical_accs.index(max(empirical_accs))
+                CLIFormatter.print_success(f"Best empirical accuracy: {empirical_accs[best_emp_idx]:.2%} at iteration {iterations[best_emp_idx]}")
+
+            # Show validation progress if available
+            if any(val_accuracies):
+                best_val_idx = val_accuracies.index(max(val_accuracies))
+                CLIFormatter.print_success(f"Best validation: {val_accuracies[best_val_idx]:.2%} at iteration {iterations[best_val_idx]}")
 
             # Problem generation statistics
             total_generated = sum(m.get("n_candidate_problems", 0) for m in self.evolution_history)
@@ -423,8 +453,7 @@ def main():
     import argparse
 
     CLIFormatter.print_warning("=" * 60)
-    CLIFormatter.print_warning("Starting NEW R-Zero run from FRESH BASE MODELS")
-    CLIFormatter.print_warning("Previous checkpoints will NOT be loaded")
+    CLIFormatter.print_warning("Starting R-Zero run from new base models")
     CLIFormatter.print_warning("=" * 60)
     print()
 
@@ -432,26 +461,26 @@ def main():
     parser.add_argument(
         "--iterations",
         type=int,
-        default=3,
-        help="Number of co-evolution iterations (default: 3)"
+        default=8,
+        help="Number of co-evolution iterations (default: 8)"
     )
     parser.add_argument(
         "--n-problems",
         type=int,
-        default=200,
-        help="Initial number of candidate problems per iteration (default: 200)"
+        default=100,
+        help="Initial number of candidate problems per iteration (default: 100)"
     )
     parser.add_argument(
         "--challenger-steps",
         type=int,
-        default=5,
-        help="GRPO training steps for Challenger (default: 5)"
+        default=30,
+        help="GRPO training steps for Challenger (default: 30)"
     )
     parser.add_argument(
         "--solver-steps",
         type=int,
-        default=15,
-        help="GRPO training steps for Solver (default: 15)"
+        default=50,
+        help="GRPO training steps for Solver (default: 50)"
     )
     parser.add_argument(
         "--m-samples",
@@ -498,7 +527,7 @@ def main():
         rzero.run(
             num_iterations=2,
             n_candidate_problems=50,
-            challenger_steps=2,
+            challenger_steps=5,  # Minimal but meaningful for test
             solver_steps=5,  # Small for test mode
             m_solver_samples=2,
             progressive_scaling=not args.no_progressive_scaling,

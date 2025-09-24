@@ -95,22 +95,22 @@ class ChallengerAgent:
         # This needs to be set every time, even when loading from checkpoint
         self.tokenizer.padding_side = "left"
 
-        # System prompt for problem generation
+        # Adaptive system prompt - let the model learn appropriate difficulty
         self.system_prompt = """You are an expert math problem creator. Generate a clear, solvable math word problem.
 
 Requirements:
 1. Create a realistic scenario with specific numbers
 2. The problem must have a single numerical answer
 3. Include all information needed to solve it
-4. The answer must be a whole number or simple decimal
+4. The answer should be a whole number or simple decimal
 
 Format your output EXACTLY as shown:
 <question>
-A store sells apples for $2 each. If John buys 5 apples, how much does he pay?
+[Your problem statement here]
 </question>
-Answer: 10
+Answer: [numerical answer only]
 
-Now generate a new problem following this format:"""
+Generate a new problem:"""
 
         trainable = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
         CLIFormatter.print_success(f"Challenger loaded: {trainable:,} trainable params")
@@ -246,7 +246,8 @@ Now generate a new problem following this format:"""
     def compute_uncertainty_reward(
         self,
         problems: List[Dict],
-        solver_responses: List[List[str]]
+        solver_responses: List[List[str]],
+        solver_empirical_accuracies: Optional[List[float]] = None
     ) -> List[float]:
         """Compute uncertainty reward based on solver's self-consistency
 
@@ -255,6 +256,7 @@ Now generate a new problem following this format:"""
         Args:
             problems: List of generated problems
             solver_responses: For each problem, list of m solver responses
+            solver_empirical_accuracies: Pre-computed empirical accuracies (optional)
 
         Returns:
             List of uncertainty rewards
@@ -262,27 +264,46 @@ Now generate a new problem following this format:"""
         rewards = []
 
         for problem_idx, responses in enumerate(solver_responses):
-            if not responses:
-                rewards.append(0.0)
-                continue
+            # Use pre-computed empirical accuracy if available
+            if solver_empirical_accuracies and problem_idx < len(solver_empirical_accuracies):
+                p_hat = solver_empirical_accuracies[problem_idx]
+            else:
+                # Compute empirical accuracy from responses
+                if not responses:
+                    rewards.append(0.0)
+                    continue
 
-            # Extract answers and compute majority vote
-            extracted_answers = []
-            for resp in responses:
-                # Extract numerical answer
-                numbers = re.findall(r'[\d\.\-]+', resp)
-                if numbers:
-                    extracted_answers.append(numbers[-1])
+                # Extract answers and compute majority vote
+                extracted_answers = []
+                for resp in responses:
+                    # Extract numerical answer - improved pattern
+                    import re
+                    patterns = [
+                        r'answer[:\s]+([\d\.\-,]+)',
+                        r'=\s*([\d\.\-,]+)',
+                        r'is\s+([\d\.\-,]+)',
+                        r'([\d\.\-,]+)$'
+                    ]
 
-            if not extracted_answers:
-                rewards.append(0.0)
-                continue
+                    answer_found = None
+                    for pattern in patterns:
+                        match = re.search(pattern, resp.lower())
+                        if match:
+                            answer_found = match.group(1).replace(',', '')
+                            break
 
-            # Compute empirical accuracy (self-consistency)
-            from collections import Counter
-            answer_counts = Counter(extracted_answers)
-            most_common = answer_counts.most_common(1)[0]
-            p_hat = most_common[1] / len(extracted_answers)
+                    if answer_found:
+                        extracted_answers.append(answer_found)
+
+                if not extracted_answers:
+                    rewards.append(0.0)
+                    continue
+
+                # Compute empirical accuracy (self-consistency)
+                from collections import Counter
+                answer_counts = Counter(extracted_answers)
+                most_common = answer_counts.most_common(1)[0]
+                p_hat = most_common[1] / len(extracted_answers)
 
             # Uncertainty reward: maximized when p_hat = 0.5
             r_uncertainty = 1.0 - 2.0 * abs(p_hat - 0.5)
@@ -351,6 +372,61 @@ Now generate a new problem following this format:"""
             penalties.append(penalty)
 
         return penalties
+
+    def compute_correctness_reward(
+        self,
+        problems: List[Dict],
+        solver_responses: List[List[str]]
+    ) -> List[float]:
+        """Compute reward based on whether problems have correct answers
+
+        Args:
+            problems: List of generated problems with ground truth answers
+            solver_responses: Solver's responses to check against ground truth
+
+        Returns:
+            List of correctness rewards
+        """
+        rewards = []
+
+        for problem_idx, (problem, responses) in enumerate(zip(problems, solver_responses)):
+            if not problem.get("answer") or not responses:
+                rewards.append(0.0)
+                continue
+
+            # Get majority vote from solver
+            extracted_answers = []
+            for resp in responses:
+                # Extract numerical answer
+                import re
+                numbers = re.findall(r'[\d\.\-,]+', resp)
+                if numbers:
+                    extracted_answers.append(numbers[-1].replace(',', ''))
+
+            if not extracted_answers:
+                rewards.append(0.0)
+                continue
+
+            # Get most common answer
+            from collections import Counter
+            answer_counts = Counter(extracted_answers)
+            solver_answer = answer_counts.most_common(1)[0][0]
+
+            # Check if solver's answer matches ground truth
+            try:
+                solver_val = float(solver_answer)
+                truth_val = float(problem["answer"])
+
+                if abs(solver_val - truth_val) < 0.01:
+                    # Correct! Reward the Challenger for generating a solvable problem
+                    rewards.append(0.5)
+                else:
+                    # Wrong answer - small penalty
+                    rewards.append(-0.1)
+            except:
+                rewards.append(0.0)
+
+        return rewards
 
     def compute_format_penalty(self, problems: List[Dict]) -> List[float]:
         """Check if generated problems have proper format
@@ -466,14 +542,21 @@ Now generate a new problem following this format:"""
 
             # Compute individual reward components
             uncertainty_rewards = self.compute_uncertainty_reward(problems, solver_responses)
+            correctness_rewards = self.compute_correctness_reward(problems, solver_responses)
             repetition_penalties = self.compute_repetition_penalty(problems)
             format_penalties = self.compute_format_penalty(problems)
 
-            # Composite reward
+            # Composite reward with both uncertainty and correctness
             composite_rewards = []
             for i in range(batch_size):
-                reward = max(0, uncertainty_rewards[i] - repetition_penalties[i] + format_penalties[i])
-                composite_rewards.append(reward)
+                # Combine rewards: uncertainty is primary, correctness helps guide
+                reward = (
+                    uncertainty_rewards[i] +  # Max at 50% certainty
+                    0.3 * correctness_rewards[i] -  # Bonus for solvable problems
+                    0.5 * repetition_penalties[i] +  # Penalize repetition
+                    format_penalties[i]  # Penalize bad format
+                )
+                composite_rewards.append(max(-1, min(2, reward)))  # Clip to reasonable range
 
             return composite_rewards
 
@@ -503,7 +586,7 @@ Now generate a new problem following this format:"""
 
         # Train
         CLIFormatter.print_subheader("Challenger GRPO Training")
-        CLIFormatter.print_info(f"Training for {max_steps} steps to learn problem generation...")
+        CLIFormatter.print_info(f"Training for {max_steps} steps on problem generation...")
         print()
         trainer.train()
         print()

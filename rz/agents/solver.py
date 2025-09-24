@@ -259,11 +259,13 @@ Then, provide your solution between {SOLUTION_START}{SOLUTION_END}"""
                 true_val = float(true_answer.strip())
 
                 if abs(pred_val - true_val) < 0.01:  # Exact match
-                    scores.append(3.0)
+                    scores.append(5.0)  # Increased reward for correct answers
                 elif abs(pred_val - true_val) / max(abs(true_val), 1) < 0.1:  # Within 10%
-                    scores.append(1.0)
+                    scores.append(2.0)  # Partial credit
+                elif abs(pred_val - true_val) / max(abs(true_val), 1) < 0.2:  # Within 20%
+                    scores.append(0.5)  # Small partial credit
                 else:
-                    scores.append(-0.5)  # Wrong answer
+                    scores.append(-1.0)  # Stronger penalty for wrong answers
             except:
                 scores.append(-0.5)  # Non-numeric
 
@@ -276,9 +278,13 @@ Then, provide your solution between {SOLUTION_START}{SOLUTION_END}"""
             response = completion[0]["content"]
             length = len(response.split())
 
-            # More lenient length requirements
-            if 10 <= length <= 200:
-                scores.append(0.5)
+            # More lenient length requirements with graduated rewards
+            if 20 <= length <= 100:  # Ideal length
+                scores.append(1.0)
+            elif 10 <= length < 20:  # Bit short but ok
+                scores.append(0.3)
+            elif 100 < length <= 200:  # Bit long but ok
+                scores.append(0.3)
             elif length < 10:
                 scores.append(-0.5)  # Too short
             else:
@@ -507,7 +513,7 @@ Then, provide your solution between {SOLUTION_START}{SOLUTION_END}"""
                 is_correct = False
                 if "answer" in problem and problem["answer"]:
                     try:
-                        # Validate both answers are numeric
+                        # Method 1: Check if pseudo_label (majority vote) is correct
                         pred_val = float(pseudo_label) if pseudo_label else None
                         true_val = float(problem["answer"]) if problem["answer"] else None
 
@@ -515,6 +521,14 @@ Then, provide your solution between {SOLUTION_START}{SOLUTION_END}"""
                             is_correct = abs(pred_val - true_val) < 0.01
                             if is_correct:
                                 correct_count += 1
+
+                        # Method 2: Also track how many individual solutions were correct
+                        # This gives us a better sense of the model's actual performance
+                        if not is_correct and empirical_acc > 0.4:
+                            # If empirical accuracy is decent but majority vote was wrong,
+                            # it means the model is close but needs more consistency
+                            if idx < 3:
+                                CLIFormatter.print_info(f"Close miss: empirical_acc={empirical_acc:.2f}, majority={pseudo_label}, truth={problem['answer']}")
                     except (ValueError, TypeError) as e:
                         # Debug: Show what went wrong only for first few problems
                         if idx < 3 and pseudo_label and problem.get('answer'):
@@ -581,9 +595,9 @@ Then, provide your solution between {SOLUTION_START}{SOLUTION_END}"""
             output_dir=f"outputs/grpo_temp_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
         )
 
-        # Configure generation for training
+        # Configure generation for training - adjust based on iteration
         generation_config = {
-            "temperature": 0.7,
+            "temperature": 0.6,  # Slightly lower for more focused learning
             "do_sample": True,
             "top_p": 0.9,
             "repetition_penalty": 1.15,
